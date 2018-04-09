@@ -1,3 +1,10 @@
+#RemoteSystemsTempFiles
+*.txt
+*.metadata
+*.d
+*.cproject
+metadata/
+
 # Prerequisites
 *.d
 
