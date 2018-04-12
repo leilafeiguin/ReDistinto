@@ -29,6 +29,24 @@
 enum codigos_de_operacion {
 	cop_generico = 0,
 	cop_archivo = 1,
+
+	cop_handshake_ESI_Coordinador = 10,
+	cop_handshake_ESI_Planificador = 11,
+	cop_handshake_Planificador_Coordinador = 12,
+	cop_handshake_Instancia_Coordinador = 13,
+
+	cop_Coordinador_Ejecutar = 20,
+	cop_Instancia_Ejecucion_Fallo_TC = 21,
+	cop_Instancia_Ejecucion_Fallo_CNI = 22,
+	cop_Instancia_Ejecucion_Fallo_CI = 23,
+	cop_Instancia_Ejecucion_Exito = 24,
+
+	cop_Planificador_Ejecutar_Sentencia = 30,
+	cop_ESI_Sentencia = 31,
+	cop_Coordinador_Sentencia_Exito = 32,
+	cop_Coordinador_Sentencia_Fallo_TC = 33,
+	cop_Coordinador_Sentencia_Fallo_CNI = 34,
+	cop_Coordinador_Sentencia_Fallo_CI = 35
 };
 
 typedef int un_socket;
@@ -125,5 +143,7 @@ unsigned long int lineCountFile(const char *filename);
 void crear_subcarpeta(char* nombre);
 
 char* generarDirectorioTemporal(char* carpeta);
+
+void *get_in_addr(struct sockaddr *sa);
 
 #endif /* LIBRARIES_H_ */

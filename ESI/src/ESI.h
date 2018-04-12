@@ -4,6 +4,9 @@
 #include <Libraries.h>
 #include <commons/log.h>
 
+void* archivo;
+t_log* logger;
+
 typedef struct ESI_configuracion {
 	char* IP_COORDINADOR;
 	int PUERTO_COORDINADOR;

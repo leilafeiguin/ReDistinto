@@ -15,6 +15,14 @@ int main(void) {
 	instancia_configuracion configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
+	un_socket Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
+	realizar_handshake(Coordinador, cop_handshake_ESI_Coordinador);
+	int tamanio = 0; //Calcular el tamanio del paquete
+	void* buffer = malloc(tamanio); //Info que necesita enviar al coordinador.
+	enviar(Coordinador,cop_generico,tamanio,buffer);
+	log_info(logger, "Me conecte con el Coordinador. \n");
+
+
 	return EXIT_SUCCESS;
 }
 
