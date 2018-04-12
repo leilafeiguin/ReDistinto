@@ -14,7 +14,7 @@ typedef struct planificador_configuracion {
 
 } planificador_configuracion;
 
-const char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/configPlanificador.cfg";
+const char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
 
 planificador_configuracion get_configuracion();
 

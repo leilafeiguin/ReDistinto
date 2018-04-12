@@ -10,7 +10,7 @@ int main(void) {
 	fileLog = "planificador_logs.txt";
 
 	logger = log_create(fileLog, "ESI Logs", 1, 1);
-	log_info(logger, "Inicializando proceso ESI. \n");
+	log_info(logger, "Inicializando proceso Planificador. \n");
 
 	planificador_configuracion configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -19,7 +19,7 @@ int main(void) {
 }
 
 planificador_configuracion get_configuracion() {
-	printf("Levantando archivo de configuracion del proceso ESI\n");
+	printf("Levantando archivo de configuracion del proceso Planificador\n");
 	planificador_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathPlanificadorConfig);
 	configuracion.PUERTO_ESCUCHA = get_campo_config_int(archivo_configuracion, "PUERTO_ESCUCHA");
