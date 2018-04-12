@@ -9,7 +9,7 @@ int main(void) {
 	char* fileLog;
 	fileLog = "coordinador_logs.txt";
 
-	logger = log_create(fileLog, "ESI Logs", 1, 1);
+	logger = log_create(fileLog, "Coordinador Logs", 1, 1);
 	log_info(logger, "Inicializando proceso Coordinador. \n");
 
 	coordinador_configuracion configuracion = get_configuracion();

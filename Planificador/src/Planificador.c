@@ -9,7 +9,7 @@ int main(void) {
 	char* fileLog;
 	fileLog = "planificador_logs.txt";
 
-	logger = log_create(fileLog, "ESI Logs", 1, 1);
+	logger = log_create(fileLog, "Planificador Logs", 1, 1);
 	log_info(logger, "Inicializando proceso Planificador. \n");
 
 	planificador_configuracion configuracion = get_configuracion();
