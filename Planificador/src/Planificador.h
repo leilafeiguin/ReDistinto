@@ -3,6 +3,8 @@
 
 #include <Libraries.h>
 #include <commons/log.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 typedef struct planificador_configuracion {
 	int PUERTO_ESCUCHA;
@@ -17,5 +19,9 @@ typedef struct planificador_configuracion {
 const char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
 
 planificador_configuracion get_configuracion();
+
+void iniciarConsolaPlanificador();
+
+char** validaCantParametrosComando(char* comando, int cantParametros);
 
 #endif /* PLANIFICADOR_H_ */
