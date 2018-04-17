@@ -105,7 +105,7 @@ int main(void) {
 						case cop_handshake_ESI_Planificador:
 
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_ESI_Planificador);
-							log_info(logger, "Realize handshake con ESI \n");
+							log_info(logger, "Realice handshake con ESI \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el ESI
 
 							//Todo actualizar estructuras necesarias con datos del ESI
@@ -135,11 +135,11 @@ planificador_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso Planificador\n");
 	planificador_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathPlanificadorConfig);
-	configuracion.PUERTO_ESCUCHA = get_campo_config_int(archivo_configuracion, "PUERTO_ESCUCHA");
+	configuracion.PUERTO_ESCUCHA = get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA");
 	configuracion.ALGORITMO_PLANIFICACION = get_campo_config_string(archivo_configuracion, "ALGORITMO_PLANIFICACION");
 	configuracion.ESTIMACION_INICIAL = get_campo_config_int(archivo_configuracion, "ESTIMACION_INICIAL");
 	configuracion.IP_COORDINADOR = get_campo_config_string(archivo_configuracion, "IP_COORDINADOR");
-	configuracion.PUERTO_COORDINADOR = get_campo_config_int(archivo_configuracion, "PUERTO_COORDINADOR");
+	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
 	configuracion.CLAVES_BLOQUEADAS = get_campo_config_string(archivo_configuracion, "CLAVES_BLOQUEADAS");
 	return configuracion;
 }

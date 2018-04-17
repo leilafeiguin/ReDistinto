@@ -63,7 +63,7 @@ typedef struct {
  *
  */
 
-un_socket conectar_a(char *IP, int Port);
+un_socket conectar_a(char *IP, char* Port);
 
 /**	@NAME: socket_escucha
  * 	@DESC: Configura un socket que solo le falta hacer listen.
@@ -71,7 +71,7 @@ un_socket conectar_a(char *IP, int Port);
  *
  */
 
-un_socket socket_escucha(char* IP, int Port);
+un_socket socket_escucha(char* IP, char* Port);
 
 /**	@NAME: enviar
  * 	@DESC: Hace el envio de la data que le pasamos. No hay que hacer más nada.

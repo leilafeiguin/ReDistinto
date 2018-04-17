@@ -7,7 +7,7 @@
 bool esEstadoInvalido;
 
 typedef struct coordinador_configuracion {
-	int PUERTO_ESCUCHA;
+	char* PUERTO_ESCUCHA;
 	char* ALGORITMO_DISTRIBUCION;
 	int CANTIDAD_ENTRADAS;
 	int TAMANIO_ENTRADA;

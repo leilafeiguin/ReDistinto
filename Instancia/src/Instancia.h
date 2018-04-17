@@ -6,7 +6,7 @@
 
 typedef struct instancia_configuracion {
 	char* IP_COORDINADOR;
-	int PUERTO_COORDINADOR;
+	char* PUERTO_COORDINADOR;
 	char* ALGORITMO_REEMPLAZO;
 	char* PUNTO_MONTAJE;
 	char* NOMBRE_INSTANCIA;

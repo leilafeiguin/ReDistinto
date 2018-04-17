@@ -93,7 +93,7 @@ int main(void) {
 							if( !esEstadoInvalido ){ // Hay un planificador conectado
 
 								esperar_handshake(socketActual,paqueteRecibido,cop_handshake_ESI_Coordinador);
-								log_info(logger, "Realize handshake con ESI \n");
+								log_info(logger, "Realice handshake con ESI \n");
 								paqueteRecibido = recibir(socketActual); // Info sobre el ESI
 
 								//Todo actualizar estructuras necesarias con datos del ESI
@@ -108,7 +108,7 @@ int main(void) {
 						case cop_handshake_Planificador_Coordinador:
 							esEstadoInvalido = false;
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Planificador_Coordinador);
-							log_info(logger, "Realize handshake con Planificador \n");
+							log_info(logger, "Realice handshake con Planificador \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el Planificador
 
 							//Todo handle informacion que se requiera intercambiar y actualizar estructuras
@@ -116,7 +116,7 @@ int main(void) {
 						break;
 						case cop_handshake_Instancia_Coordinador:
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
-							log_info(logger, "Realize handshake con Instancia \n");
+							log_info(logger, "Realice handshake con Instancia \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
 
 							//Todo handle informacion que se requiera intercambiar y actualizar estructuras
@@ -135,7 +135,7 @@ coordinador_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathCoordinadorConfig);
-	configuracion.PUERTO_ESCUCHA = get_campo_config_int(archivo_configuracion, "PUERTO_ESCUCHA");
+	configuracion.PUERTO_ESCUCHA = get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA");
 	configuracion.ALGORITMO_DISTRIBUCION = get_campo_config_string(archivo_configuracion, "ALGORITMO_DISTRIBUCION");
 	configuracion.CANTIDAD_ENTRADAS = get_campo_config_int(archivo_configuracion, "CANTIDAD_ENTRADAS");
 	configuracion.TAMANIO_ENTRADA = get_campo_config_int(archivo_configuracion, "TAMANIO_ENTRADA");

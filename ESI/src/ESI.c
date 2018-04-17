@@ -35,8 +35,8 @@ ESI_configuracion get_configuracion() {
 	ESI_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathESIConfig);
 	configuracion.IP_COORDINADOR = get_campo_config_string(archivo_configuracion, "IP_COORDINADOR");
-	configuracion.PUERTO_COORDINADOR = get_campo_config_int(archivo_configuracion, "PUERTO_COORDINADOR");
+	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
 	configuracion.IP_PLANIFICADOR = get_campo_config_string(archivo_configuracion, "IP_PLANIFICADOR");
-	configuracion.PUERTO_PLANIFICADOR = get_campo_config_int(archivo_configuracion, "PUERTO_PLANIFICADOR");
+	configuracion.PUERTO_PLANIFICADOR = get_campo_config_string(archivo_configuracion, "PUERTO_PLANIFICADOR");
 	return configuracion;
 }

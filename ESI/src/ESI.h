@@ -9,9 +9,9 @@ t_log* logger;
 
 typedef struct ESI_configuracion {
 	char* IP_COORDINADOR;
-	int PUERTO_COORDINADOR;
+	char* PUERTO_COORDINADOR;
 	char* IP_PLANIFICADOR;
-	int PUERTO_PLANIFICADOR;
+	char* PUERTO_PLANIFICADOR;
 
 } ESI_configuracion;
 

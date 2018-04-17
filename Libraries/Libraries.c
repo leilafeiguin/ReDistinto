@@ -25,7 +25,7 @@ void print_image(FILE *fptr)
 		printf("%s",read_string);
 }
 
-struct addrinfo* _configurar_addrinfo(char *IP, int Port) {
+struct addrinfo* _configurar_addrinfo(char *IP, char* Port) {
 	struct addrinfo hints;
 	struct addrinfo* serverInfo = malloc(sizeof(struct addrinfo));
 	int16_t error;
@@ -40,7 +40,7 @@ struct addrinfo* _configurar_addrinfo(char *IP, int Port) {
 	return serverInfo;
 }
 
-un_socket conectar_a(char *IP, int Port) {
+un_socket conectar_a(char *IP, char* Port) {
 	struct addrinfo* serverInfo = _configurar_addrinfo(IP, Port);
 	if (serverInfo == NULL) {
 		exit(EXIT_FAILURE);
@@ -103,7 +103,7 @@ char* obtener_mi_ip(){
 	   return NULL;
 }
 
-un_socket socket_escucha(char* IP, int Port) {
+un_socket socket_escucha(char* IP, char* Port) {
 
 	struct addrinfo* serverInfo = _configurar_addrinfo(IP, Port);
 

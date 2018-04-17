@@ -7,11 +7,11 @@
 #include <readline/history.h>
 
 typedef struct planificador_configuracion {
-	int PUERTO_ESCUCHA;
+	char* PUERTO_ESCUCHA;
 	char* ALGORITMO_PLANIFICACION;
 	int ESTIMACION_INICIAL;
 	char* IP_COORDINADOR;
-	int PUERTO_COORDINADOR;
+	char* PUERTO_COORDINADOR;
 	char* CLAVES_BLOQUEADAS;
 
 } planificador_configuracion;
