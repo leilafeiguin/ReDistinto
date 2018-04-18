@@ -192,7 +192,7 @@ void iniciarConsolaPlanificador(){
 
 				//Se bloqueará el proceso ESI hasta ser desbloqueado, especificado por dicho <ID> en la cola del recurso <clave>.
 
-				if(validar_ESI(atoi(parametros[1]))){
+				if(validar_ESI_id(atoi(parametros[1]))){
 					pasar_ESI_a_bloqueado(atoi(parametros[1]),parametros[0],bloqueado_por_consola);
 				}else{
 					log_info(logger, "El ID de ESI ingresado es invalido\n");
@@ -329,11 +329,15 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 	free(esi);
 }
 
-void pasar_ESI_a_finalizado(int id_ESI){
+void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado){
 	//Se debe considerar los posibles estandos en los que puede estar el ESI
 
 	bool encontrar_esi(void* esi){
 		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+
+	bool encontrar_esi_bloqueado(void* esi){
+		return ((t_bloqueado*)esi)->ESI->id_ESI == id_ESI;
 	}
 
 	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
@@ -341,6 +345,8 @@ void pasar_ESI_a_finalizado(int id_ESI){
 	switch(esi->estado){
 		case listo:
 		{
+			esi->descripcion_estado = malloc(strlen(descripcion_estado));
+			strcpy(esi->descripcion_estado,descripcion_estado);
 			esi->estado = finalizado;
 			list_remove_by_condition(cola_de_listos,encontrar_esi);
 			list_add(cola_de_finalizados,esi);
@@ -349,14 +355,18 @@ void pasar_ESI_a_finalizado(int id_ESI){
 		case ejecutando:
 		{
 			ESI_ejecutando->estado = finalizado;
-			free(ESI_ejecutando);
+			ESI_ejecutando->descripcion_estado = malloc(strlen(descripcion_estado));
+			strcpy(ESI_ejecutando->descripcion_estado,descripcion_estado);
 			list_add(cola_de_finalizados,ESI_ejecutando);
+			free(ESI_ejecutando);
 		}
 		break;
 		case bloqueado:
 		{
 			esi->estado = finalizado;
-			list_remove_by_condition(cola_de_bloqueados,encontrar_esi);
+			esi->descripcion_estado = malloc(strlen(descripcion_estado));
+			strcpy(esi->descripcion_estado,descripcion_estado);
+			list_remove_by_condition(cola_de_bloqueados,encontrar_esi_bloqueado);
 			list_add(cola_de_finalizados,esi);
 		}
 		break;
@@ -372,6 +382,10 @@ void pasar_ESI_a_listo(int id_ESI){
 		return ((t_ESI*)esi)->id_ESI == id_ESI;
 	}
 
+	bool encontrar_esi_bloqueado(void* esi){
+		return ((t_bloqueado*)esi)->ESI->id_ESI == id_ESI;
+	}
+
 	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
 
 	switch(esi->estado){
@@ -385,7 +399,7 @@ void pasar_ESI_a_listo(int id_ESI){
 		case bloqueado:
 		{
 			esi->estado = listo;
-			list_remove_by_condition(cola_de_bloqueados,encontrar_esi);
+			list_remove_by_condition(cola_de_bloqueados,encontrar_esi_bloqueado);
 			list_add(cola_de_listos,esi);
 		}
 		break;
@@ -399,6 +413,10 @@ void pasar_ESI_a_ejecutando(int id_ESI){
 
 	bool encontrar_esi(void* esi){
 		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+
+	bool encontrar_esi_bloqueado(void* esi){
+		return ((t_bloqueado*)esi)->ESI->id_ESI == id_ESI;
 	}
 
 	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
@@ -415,7 +433,7 @@ void pasar_ESI_a_ejecutando(int id_ESI){
 		case bloqueado:
 		{
 			esi->estado = ejecutando;
-			list_remove_by_condition(cola_de_bloqueados, encontrar_esi);
+			list_remove_by_condition(cola_de_bloqueados, encontrar_esi_bloqueado);
 			ESI_ejecutando = malloc(sizeof(t_ESI));
 			ESI_ejecutando = esi;
 		}
@@ -425,7 +443,7 @@ void pasar_ESI_a_ejecutando(int id_ESI){
 	free(esi);
 }
 
-bool validar_ESI(int id_ESI){
+bool validar_ESI_id(int id_ESI){
 
 	bool encontrar_esi(void* esi){
 		return ((t_ESI*)esi)->id_ESI == id_ESI;

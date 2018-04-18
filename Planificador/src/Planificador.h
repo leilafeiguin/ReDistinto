@@ -60,13 +60,13 @@ char** validaCantParametrosComando(char* comando, int cantParametros);
 
 void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo);
 
-void pasar_ESI_a_finalizado(int id_ESI);
+void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado);
 
 void pasar_ESI_a_listo(int id_ESI);
 
 void pasar_ESI_a_ejecutando(int id_ESI);
 
-bool validar_ESI(int id);
+bool validar_ESI_id(int id);
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------
