@@ -247,7 +247,7 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 			esi->estado = bloqueado;
 			//Todo modificar descripcion de estado?
 
-			t_bloqueado* esi_bloqueado;
+			t_bloqueado* esi_bloqueado = malloc(sizeof(t_bloqueado));
 			esi_bloqueado->ESI = esi;
 			esi_bloqueado->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
 			strcpy(clave_de_bloqueo,esi_bloqueado->clave_de_bloqueo);
@@ -255,16 +255,18 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 
 			list_remove_by_condition(cola_de_listos,(void*)encontrar_esi);
 			list_add(cola_de_bloqueados,esi_bloqueado);
+			free(esi_bloqueado);
 
 		break;
 		case ejecutando:
 		{
-			t_accion_a_tomar* esi_accion_a_tomar;
+			t_accion_a_tomar* esi_accion_a_tomar = malloc(sizeof(t_accion_a_tomar));
 			esi_accion_a_tomar->ESI = esi;
 			esi_accion_a_tomar->accion_a_tomar = bloquear;
 			esi_accion_a_tomar->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
 			strcpy(clave_de_bloqueo,esi_accion_a_tomar->clave_de_bloqueo);
 			esi_accion_a_tomar->motivo = motivo;
+			free(esi_accion_a_tomar);
 		}
 		break;
 	}

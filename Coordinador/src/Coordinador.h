@@ -15,7 +15,7 @@ typedef struct coordinador_configuracion {
 
 } coordinador_configuracion;
 
-const char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/configCoordinador.cfg";
+char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/configCoordinador.cfg";
 
 coordinador_configuracion get_configuracion();
 

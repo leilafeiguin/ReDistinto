@@ -23,7 +23,7 @@ int main(void) {
 	realizar_handshake(Planificador, cop_handshake_ESI_Planificador);
 	int tamanio1 = 0; //Calcular el tamanio del paquete
 	void* buffer1 = malloc(tamanio1); //Info que necesita enviar al Planificador.
-	enviar(Planificador,cop_generico,tamanio1,buffer);
+	enviar(Planificador,cop_generico,tamanio1,buffer1);
 	log_info(logger, "Me conecte con el Planificador. \n");
 
 

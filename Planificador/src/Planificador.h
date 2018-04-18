@@ -48,7 +48,7 @@ t_list* cola_de_finalizados;
 t_ESI* ESI_ejecutando; //Es un unico esi a la vez
 t_list* accion_a_tomar;
 
-const char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
+char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
 
 planificador_configuracion get_configuracion();
 

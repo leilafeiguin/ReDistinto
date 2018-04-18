@@ -15,7 +15,7 @@ typedef struct ESI_configuracion {
 
 } ESI_configuracion;
 
-const char* pathESIConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/configESI.cfg";
+char* pathESIConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/configESI.cfg";
 
 ESI_configuracion get_configuracion();
 

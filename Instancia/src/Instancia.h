@@ -13,7 +13,7 @@ typedef struct instancia_configuracion {
 	int INTERVALO_DUMP;
 } instancia_configuracion;
 
-const char* pathInstanciaConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/configInstancia.cfg";
+char* pathInstanciaConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/configInstancia.cfg";
 
 instancia_configuracion get_configuracion();
 
