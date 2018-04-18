@@ -307,3 +307,30 @@ void pasar_ESI_a_finalizado(int id_ESI){
 	free(esi);
 }
 
+void pasar_ESI_a_listo(int id_ESI){
+	//Se debe considerar los posibles estandos en los que puede estar el ESI
+
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+
+	switch(esi->estado){
+		case ejecutando:
+		{
+			free(ESI_ejecutando);
+			list_add(cola_de_listos,ESI_ejecutando);
+		}
+		break;
+		case bloqueado:
+		{
+			list_remove_by_condition(cola_de_bloqueados,encontrar_esi);
+			list_add(cola_de_listos,esi);
+		}
+		break;
+	}
+
+	free(esi);
+}
+
