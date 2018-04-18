@@ -262,6 +262,7 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 		{
 			t_accion_a_tomar* esi_accion_a_tomar = malloc(sizeof(t_accion_a_tomar));
 			esi_accion_a_tomar->ESI = esi;
+			esi_accion_a_tomar->ESI->estado = bloqueado;
 			esi_accion_a_tomar->accion_a_tomar = bloquear;
 			esi_accion_a_tomar->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo)+1);
 			strcpy(clave_de_bloqueo,esi_accion_a_tomar->clave_de_bloqueo);
@@ -286,18 +287,21 @@ void pasar_ESI_a_finalizado(int id_ESI){
 	switch(esi->estado){
 		case listo:
 		{
+			esi->estado = finalizado;
 			list_remove_by_condition(cola_de_listos,encontrar_esi);
 			list_add(cola_de_finalizados,esi);
 		}
 		break;
 		case ejecutando:
 		{
+			ESI_ejecutando->estado = finalizado;
 			free(ESI_ejecutando);
 			list_add(cola_de_finalizados,ESI_ejecutando);
 		}
 		break;
 		case bloqueado:
 		{
+			esi->estado = finalizado;
 			list_remove_by_condition(cola_de_bloqueados,encontrar_esi);
 			list_add(cola_de_finalizados,esi);
 		}
@@ -319,14 +323,47 @@ void pasar_ESI_a_listo(int id_ESI){
 	switch(esi->estado){
 		case ejecutando:
 		{
+			ESI_ejecutando->estado = listo;
 			free(ESI_ejecutando);
 			list_add(cola_de_listos,ESI_ejecutando);
 		}
 		break;
 		case bloqueado:
 		{
+			esi->estado = listo;
 			list_remove_by_condition(cola_de_bloqueados,encontrar_esi);
 			list_add(cola_de_listos,esi);
+		}
+		break;
+	}
+
+	free(esi);
+}
+
+void pasar_ESI_a_ejecutando(int id_ESI){
+	//Se debe considerar los posibles estandos en los que puede estar el ESI
+
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+
+	switch(esi->estado){
+		case listo:
+		{
+			esi->estado = ejecutando;
+			list_remove_by_condition(cola_de_listos, encontrar_esi);
+			ESI_ejecutando = malloc(sizeof(t_ESI));
+			ESI_ejecutando = esi;
+		}
+		break;
+		case bloqueado:
+		{
+			esi->estado = ejecutando;
+			list_remove_by_condition(cola_de_bloqueados, encontrar_esi);
+			ESI_ejecutando = malloc(sizeof(t_ESI));
+			ESI_ejecutando = esi;
 		}
 		break;
 	}

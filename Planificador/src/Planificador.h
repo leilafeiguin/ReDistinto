@@ -63,6 +63,8 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo);
 void pasar_ESI_a_finalizado(int id_ESI);
 
 void pasar_ESI_a_listo(int id_ESI);
+
+void pasar_ESI_a_ejecutando(int id_ESI);
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------
