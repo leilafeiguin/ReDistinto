@@ -59,6 +59,8 @@ void iniciarConsolaPlanificador();
 char** validaCantParametrosComando(char* comando, int cantParametros);
 
 void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo);
+
+void pasar_ESI_a_finalizado(int id_ESI);
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------

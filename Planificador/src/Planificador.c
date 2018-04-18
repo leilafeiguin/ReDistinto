@@ -236,34 +236,34 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 	//Se debe considerar los posibles estandos en los que puede estar el ESI
 
-	bool encontrar_esi(t_ESI* esi){
-		return esi->id_ESI == id_ESI;
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == id_ESI;
 	}
 
-	t_ESI* esi = list_find(lista_de_ESIs, (void*)encontrar_esi);
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
 
 	switch(esi->estado){
 		case listo:
+		{
 			esi->estado = bloqueado;
 			//Todo modificar descripcion de estado?
 
 			t_bloqueado* esi_bloqueado = malloc(sizeof(t_bloqueado));
 			esi_bloqueado->ESI = esi;
-			esi_bloqueado->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
+			esi_bloqueado->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo)+1);
 			strcpy(clave_de_bloqueo,esi_bloqueado->clave_de_bloqueo);
 			esi_bloqueado->motivo = motivo;
-
-			list_remove_by_condition(cola_de_listos,(void*)encontrar_esi);
+			list_remove_by_condition(cola_de_listos,encontrar_esi);
 			list_add(cola_de_bloqueados,esi_bloqueado);
 			free(esi_bloqueado);
-
+		}
 		break;
 		case ejecutando:
 		{
 			t_accion_a_tomar* esi_accion_a_tomar = malloc(sizeof(t_accion_a_tomar));
 			esi_accion_a_tomar->ESI = esi;
 			esi_accion_a_tomar->accion_a_tomar = bloquear;
-			esi_accion_a_tomar->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
+			esi_accion_a_tomar->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo)+1);
 			strcpy(clave_de_bloqueo,esi_accion_a_tomar->clave_de_bloqueo);
 			esi_accion_a_tomar->motivo = motivo;
 			free(esi_accion_a_tomar);
@@ -271,4 +271,39 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 		break;
 	}
 
+	free(esi);
 }
+
+void pasar_ESI_a_finalizado(int id_ESI){
+	//Se debe considerar los posibles estandos en los que puede estar el ESI
+
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+
+	switch(esi->estado){
+		case listo:
+		{
+			list_remove_by_condition(cola_de_listos,encontrar_esi);
+			list_add(cola_de_finalizados,esi);
+		}
+		break;
+		case ejecutando:
+		{
+			free(ESI_ejecutando);
+			list_add(cola_de_finalizados,ESI_ejecutando);
+		}
+		break;
+		case bloqueado:
+		{
+			list_remove_by_condition(cola_de_bloqueados,encontrar_esi);
+			list_add(cola_de_finalizados,esi);
+		}
+		break;
+	}
+
+	free(esi);
+}
+
