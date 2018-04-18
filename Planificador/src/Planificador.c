@@ -15,6 +15,12 @@ int main(void) {
 	planificador_configuracion configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
+	lista_de_ESIs = list_create();
+	cola_de_listos = list_create();
+	cola_de_bloqueados = list_create();
+	cola_de_finalizados = list_create();
+	accion_a_tomar = list_create();
+
 	iniciarConsolaPlanificador();
 
 	un_socket Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
@@ -144,6 +150,15 @@ planificador_configuracion get_configuracion() {
 	return configuracion;
 }
 
+void salir(int motivo){
+	list_destroy(lista_de_ESIs);
+	list_destroy(cola_de_finalizados);
+	list_destroy(cola_de_bloqueados);
+	list_destroy(cola_de_listos);
+	list_destroy(accion_a_tomar);
+	exit(motivo);
+}
+
 void iniciarConsolaPlanificador(){
 	log_info(logger, "Consola Iniciada. Ingrese una opcion: \n");
 	char * linea;
@@ -216,4 +231,42 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 		return parametros;
 	}
 	return NULL;
+}
+
+void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
+	//Se debe considerar los posibles estandos en los que puede estar el ESI
+
+	bool encontrar_esi(t_ESI* esi){
+		return esi->id_ESI == id_ESI;
+	}
+
+	t_ESI* esi = list_find(lista_de_ESIs, (void*)encontrar_esi);
+
+	switch(esi->estado){
+		case listo:
+			esi->estado = bloqueado;
+			//Todo modificar descripcion de estado?
+
+			t_bloqueado* esi_bloqueado;
+			esi_bloqueado->ESI = esi;
+			esi_bloqueado->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
+			strcpy(clave_de_bloqueo,esi_bloqueado->clave_de_bloqueo);
+			esi_bloqueado->motivo = motivo;
+
+			list_remove_by_condition(cola_de_listos,(void*)encontrar_esi);
+			list_add(cola_de_bloqueados,esi_bloqueado);
+
+		break;
+		case ejecutando:
+		{
+			t_accion_a_tomar* esi_accion_a_tomar;
+			esi_accion_a_tomar->ESI = esi;
+			esi_accion_a_tomar->accion_a_tomar = bloquear;
+			esi_accion_a_tomar->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
+			strcpy(clave_de_bloqueo,esi_accion_a_tomar->clave_de_bloqueo);
+			esi_accion_a_tomar->motivo = motivo;
+		}
+		break;
+	}
+
 }

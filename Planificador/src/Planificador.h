@@ -5,6 +5,7 @@
 #include <commons/log.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <commons/collections/list.h>
 
 typedef struct planificador_configuracion {
 	char* PUERTO_ESCUCHA;
@@ -16,14 +17,48 @@ typedef struct planificador_configuracion {
 
 } planificador_configuracion;
 
+typedef struct {
+	t_ESI* ESI;
+	char* clave_de_bloqueo;
+	int motivo; //como fue bloqueado
+} t_bloqueado;
+
+enum motivos_de_bloqueo {
+	clave_en_uso = 0,
+	bloqueado_por_consola = 1
+};
+
+typedef struct {
+	t_ESI* ESI;
+	int accion_a_tomar;
+	char* clave_de_bloqueo;
+	int motivo; //como fue bloqueado
+} t_accion_a_tomar;
+
+enum acciones_a_tomar {
+	matar = 0,
+	bloquear = 1,
+	desbloquear = 2,
+};
+
+t_list* lista_de_ESIs;
+t_list* cola_de_listos;
+t_list* cola_de_bloqueados;
+t_list* cola_de_finalizados;
+t_ESI* ESI_ejecutando; //Es un unico esi a la vez
+t_list* accion_a_tomar;
+
 const char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
 
 planificador_configuracion get_configuracion();
+
+void salir(int motivo);
 
 void iniciarConsolaPlanificador();
 
 char** validaCantParametrosComando(char* comando, int cantParametros);
 
+void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo);
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------

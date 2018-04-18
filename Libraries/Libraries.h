@@ -57,6 +57,22 @@ typedef struct {
 	void * data;
 } t_paquete;
 
+typedef struct {
+	int id_ESI;
+	int estado; //Mirar enum estados
+	un_socket socket;
+	int cantidad_instrucciones;
+	char* descripcion_estado;
+} t_ESI;
+
+enum estados {
+	listo = 0,
+	ejecutando = 1,
+	bloqueado = 2,
+	finalizado = 3
+};
+
+
 /**	@NAME: conectar_a
  * 	@DESC: Intenta conectarse.
  * 	@RETURN: Devuelve el socket o te avisa si hubo un error al conectarse.
@@ -145,5 +161,6 @@ void crear_subcarpeta(char* nombre);
 char* generarDirectorioTemporal(char* carpeta);
 
 void *get_in_addr(struct sockaddr *sa);
+
 
 #endif /* LIBRARIES_H_ */
