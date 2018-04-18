@@ -65,6 +65,8 @@ void pasar_ESI_a_finalizado(int id_ESI);
 void pasar_ESI_a_listo(int id_ESI);
 
 void pasar_ESI_a_ejecutando(int id_ESI);
+
+bool validar_ESI(int id);
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------
