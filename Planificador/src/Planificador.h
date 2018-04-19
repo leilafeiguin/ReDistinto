@@ -6,6 +6,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <commons/collections/list.h>
+#include <pthread.h>
 
 typedef struct planificador_configuracion {
 	char* PUERTO_ESCUCHA;
@@ -54,7 +55,7 @@ planificador_configuracion get_configuracion();
 
 void salir(int motivo);
 
-void iniciarConsolaPlanificador();
+void hiloPlanificador_Consola(void * unused);
 
 char** validaCantParametrosComando(char* comando, int cantParametros);
 
@@ -67,6 +68,12 @@ void pasar_ESI_a_listo(int id_ESI);
 void pasar_ESI_a_ejecutando(int id_ESI);
 
 bool validar_ESI_id(int id);
+
+void ejecutarBloquear(char** parametros);
+
+void ejecutarDesbloquear(char** parametros);
+
+void ejecutarListar(char** parametros);
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------

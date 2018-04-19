@@ -21,7 +21,8 @@ int main(void) {
 	cola_de_finalizados = list_create();
 	accion_a_tomar = list_create();
 
-	iniciarConsolaPlanificador();
+	pthread_t hiloPlanificadorConsola;
+	pthread_create(&hiloPlanificadorConsola, NULL, hiloPlanificador_Consola, NULL);
 
 	un_socket Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
 	realizar_handshake(Coordinador, cop_handshake_Planificador_Coordinador);
@@ -159,7 +160,7 @@ void salir(int motivo){
 	exit(motivo);
 }
 
-void iniciarConsolaPlanificador(){
+void hiloPlanificador_Consola(void * unused){
 	log_info(logger, "Consola Iniciada. Ingrese una opcion: \n");
 	char * linea;
 	char* primeraPalabra;
@@ -189,65 +190,17 @@ void iniciarConsolaPlanificador(){
 			} else if (strcmp(primeraPalabra, "bloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,2);
-
-				//Se bloqueará el proceso ESI hasta ser desbloqueado, especificado por dicho <ID> en la cola del recurso <clave>.
-
-				if(validar_ESI_id(atoi(parametros[1]))){
-					pasar_ESI_a_bloqueado(atoi(parametros[1]),parametros[0],bloqueado_por_consola);
-				}else{
-					log_info(logger, "El ID de ESI ingresado es invalido\n");
-				}
-
+				ejecutarBloquear(parametros);
 				free(linea);
 			} else if (strcmp(primeraPalabra, "desbloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,1);
-
-				//Se desbloqueara el proceso ESI con el ID especificado.
-				bool encontrar_ESIs_bloqueados_por_consola(void* esi){
-					return ((t_bloqueado*)esi)->motivo == bloqueado_por_consola;
-				}
-
-				t_list* lista_de_ESIs_bloqueados_por_consola = list_create();
-				lista_de_ESIs_bloqueados_por_consola = list_filter(cola_de_bloqueados,encontrar_ESIs_bloqueados_por_consola);
-
-				if(lista_de_ESIs_bloqueados_por_consola != NULL){
-					bool encontrar_esi_por_clave(void* esi){
-						return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[0]);
-					}
-					t_bloqueado* ESI_para_clave = list_find(lista_de_ESIs_bloqueados_por_consola,encontrar_esi_por_clave);
-					if(ESI_para_clave != NULL){
-						pasar_ESI_a_listo(ESI_para_clave->ESI->id_ESI);
-					}else{
-						log_info(logger, "No existe ESI bloqueado por la clave %s\n",parametros[0]);
-					}
-				}else{
-					log_info(logger, "No existen ESIs bloqueados\n");
-				}
-				list_destroy(lista_de_ESIs_bloqueados_por_consola);
+				ejecutarDesbloquear(parametros);
 				free(linea);
 			} else if (strcmp(primeraPalabra, "listar") == 0) {
 				log_info(logger, "Eligio la opcion Listar\n");
 				parametros = validaCantParametrosComando(linea,1);
-
-				//Lista los procesos encolados esperando al recurso.
-				bool encontrar_ESIs_por_clave_de_bloqueo(void* esi){
-					return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[0]);
-				}
-
-				t_list* lista_de_ESIs_por_clave_de_bloqueo = list_create();
-				lista_de_ESIs_por_clave_de_bloqueo = list_filter(cola_de_bloqueados,encontrar_ESIs_por_clave_de_bloqueo);
-				if(lista_de_ESIs_por_clave_de_bloqueo != NULL){
-					int acum = 0;
-					void mostrar_id_de_esi_bloqueado(void* esi){
-						log_info(logger, "%i - ID: %s\n",acum,((t_bloqueado*)esi)->ESI->id_ESI);
-					}
-					log_info(logger, "ESIs bloqueados por: %s\n",parametros[0]);
-					list_iterate(lista_de_ESIs_por_clave_de_bloqueo,mostrar_id_de_esi_bloqueado);
-				}else{
-					log_info(logger, "No hay ESIs esperando por la clave %s\n",parametros[0]);
-				}
-				list_destroy(lista_de_ESIs_por_clave_de_bloqueo);
+				ejecutarListar(parametros);
 				free(linea);
 			} else if (strcmp(primeraPalabra, "kill") == 0) {
 				log_info(logger, "Eligio la opcion Kill\n");
@@ -270,6 +223,61 @@ void iniciarConsolaPlanificador(){
 				free(parametros);
 		}
 	}
+}
+
+void ejecutarBloquear(char** parametros){
+	//Se bloqueará el proceso ESI hasta ser desbloqueado, especificado por dicho <ID> en la cola del recurso <clave>.
+	if(validar_ESI_id(atoi(parametros[1]))){
+		pasar_ESI_a_bloqueado(atoi(parametros[1]),parametros[0],bloqueado_por_consola);
+	}else{
+		log_info(logger, "El ID de ESI ingresado es invalido\n");
+	}
+}
+
+void ejecutarDesbloquear(char** parametros){
+	//Se desbloqueara el proceso ESI con el ID especificado.
+	bool encontrar_ESIs_bloqueados_por_consola(void* esi){
+		return ((t_bloqueado*)esi)->motivo == bloqueado_por_consola;
+	}
+
+	t_list* lista_de_ESIs_bloqueados_por_consola = list_create();
+	lista_de_ESIs_bloqueados_por_consola = list_filter(cola_de_bloqueados,encontrar_ESIs_bloqueados_por_consola);
+
+	if(lista_de_ESIs_bloqueados_por_consola != NULL){
+		bool encontrar_esi_por_clave(void* esi){
+			return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[0]);
+		}
+		t_bloqueado* ESI_para_clave = list_find(lista_de_ESIs_bloqueados_por_consola,encontrar_esi_por_clave);
+		if(ESI_para_clave != NULL){
+			pasar_ESI_a_listo(ESI_para_clave->ESI->id_ESI);
+		}else{
+			log_info(logger, "No existe ESI bloqueado por la clave %s\n",parametros[0]);
+		}
+	}else{
+		log_info(logger, "No existen ESIs bloqueados\n");
+	}
+	list_destroy(lista_de_ESIs_bloqueados_por_consola);
+}
+
+void ejecutarListar(char** parametros){
+	//Lista los procesos encolados esperando al recurso.
+	bool encontrar_ESIs_por_clave_de_bloqueo(void* esi){
+		return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[0]);
+	}
+
+	t_list* lista_de_ESIs_por_clave_de_bloqueo = list_create();
+	lista_de_ESIs_por_clave_de_bloqueo = list_filter(cola_de_bloqueados,encontrar_ESIs_por_clave_de_bloqueo);
+	if(lista_de_ESIs_por_clave_de_bloqueo != NULL){
+		int acum = 0;
+		void mostrar_id_de_esi_bloqueado(void* esi){
+			log_info(logger, "%i - ID: %s\n",acum,((t_bloqueado*)esi)->ESI->id_ESI);
+		}
+		log_info(logger, "ESIs bloqueados por: %s\n",parametros[0]);
+		list_iterate(lista_de_ESIs_por_clave_de_bloqueo,mostrar_id_de_esi_bloqueado);
+	}else{
+		log_info(logger, "No hay ESIs esperando por la clave %s\n",parametros[0]);
+	}
+	list_destroy(lista_de_ESIs_por_clave_de_bloqueo);
 }
 
 char** validaCantParametrosComando(char* comando, int cantParametros) {
