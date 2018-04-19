@@ -41,13 +41,30 @@ enum acciones_a_tomar {
 	bloquear = 1,
 	desbloquear = 2,
 };
-
+pthread_mutex_t mutex_lista_de_ESIs;
 t_list* lista_de_ESIs;
+
+pthread_mutex_t mutex_cola_de_listos;
 t_list* cola_de_listos;
+
+pthread_mutex_t mutex_cola_de_bloqueados;
 t_list* cola_de_bloqueados;
+
+pthread_mutex_t mutex_cola_de_finalizados;
 t_list* cola_de_finalizados;
+
+pthread_mutex_t mutex_ESI_ejecutando;
 t_ESI* ESI_ejecutando; //Es un unico esi a la vez
+
+pthread_mutex_t mutex_accion_a_tomar;
 t_list* accion_a_tomar;
+
+bool estado_hiloEjecucionESIs;
+
+void* archivo;
+t_log* logger;
+
+un_socket Coordinador; //Socket del coordinador
 
 char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
 
@@ -74,6 +91,8 @@ void ejecutarBloquear(char** parametros);
 void ejecutarDesbloquear(char** parametros);
 
 void ejecutarListar(char** parametros);
+
+void hiloEjecucionESIs(void* unused);
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------
