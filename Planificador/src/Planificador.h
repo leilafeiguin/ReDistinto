@@ -72,7 +72,7 @@ planificador_configuracion get_configuracion();
 
 void salir(int motivo);
 
-void hiloPlanificador_Consola(void * unused);
+void* hiloPlanificador_Consola(void * unused);
 
 char** validaCantParametrosComando(char* comando, int cantParametros);
 

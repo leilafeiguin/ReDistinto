@@ -213,7 +213,7 @@ void hiloEjecucionESIs(void* unused){
 	}
 }
 
-void hiloPlanificador_Consola(void * unused){
+void* hiloPlanificador_Consola(void * unused){
 	log_info(logger, "Consola Iniciada. Ingrese una opcion: \n");
 	char * linea;
 	char* primeraPalabra;
@@ -242,17 +242,23 @@ void hiloPlanificador_Consola(void * unused){
 			} else if (strcmp(primeraPalabra, "bloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,2);
-				ejecutarBloquear(parametros);
+				if(parametros != NULL){
+					ejecutarBloquear(parametros);
+				}
 				free(linea);
 			} else if (strcmp(primeraPalabra, "desbloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,1);
-				ejecutarDesbloquear(parametros);
+				if(parametros != NULL){
+					ejecutarDesbloquear(parametros);
+				}
 				free(linea);
 			} else if (strcmp(primeraPalabra, "listar") == 0) {
 				log_info(logger, "Eligio la opcion Listar\n");
 				parametros = validaCantParametrosComando(linea,1);
-				ejecutarListar(parametros);
+				if(parametros != NULL){
+					ejecutarListar(parametros);
+				}
 				free(linea);
 			} else if (strcmp(primeraPalabra, "kill") == 0) {
 				log_info(logger, "Eligio la opcion Kill\n");
