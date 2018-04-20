@@ -289,7 +289,7 @@ void* hiloPlanificador_Consola(void * unused){
 void ejecutarBloquear(char** parametros){
 	//Se bloqueará el proceso ESI hasta ser desbloqueado, especificado por dicho <ID> en la cola del recurso <clave>.
 	if(validar_ESI_id(atoi(parametros[1]))){
-		pasar_ESI_a_bloqueado(atoi(parametros[1]),parametros[0],bloqueado_por_consola);
+		pasar_ESI_a_bloqueado(atoi(parametros[2]),parametros[1],bloqueado_por_consola);
 	}else{
 		log_info(logger, "El ID de ESI ingresado es invalido\n");
 	}
@@ -306,13 +306,13 @@ void ejecutarDesbloquear(char** parametros){
 
 	if(lista_de_ESIs_bloqueados_por_consola != NULL){
 		bool encontrar_esi_por_clave(void* esi){
-			return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[0]);
+			return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[1]);
 		}
 		t_bloqueado* ESI_para_clave = list_find(lista_de_ESIs_bloqueados_por_consola,encontrar_esi_por_clave);
 		if(ESI_para_clave != NULL){
 			pasar_ESI_a_listo(ESI_para_clave->ESI->id_ESI);
 		}else{
-			log_info(logger, "No existe ESI bloqueado por la clave %s\n",parametros[0]);
+			log_info(logger, "No existe ESI bloqueado por la clave %s\n",parametros[1]);
 		}
 	}else{
 		log_info(logger, "No existen ESIs bloqueados\n");
@@ -323,7 +323,7 @@ void ejecutarDesbloquear(char** parametros){
 void ejecutarListar(char** parametros){
 	//Lista los procesos encolados esperando al recurso.
 	bool encontrar_ESIs_por_clave_de_bloqueo(void* esi){
-		return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[0]);
+		return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[1]);
 	}
 
 	t_list* lista_de_ESIs_por_clave_de_bloqueo = list_create();
@@ -333,10 +333,10 @@ void ejecutarListar(char** parametros){
 		void mostrar_id_de_esi_bloqueado(void* esi){
 			log_info(logger, "%i - ID: %s\n",acum,((t_bloqueado*)esi)->ESI->id_ESI);
 		}
-		log_info(logger, "ESIs bloqueados por: %s\n",parametros[0]);
+		log_info(logger, "ESIs bloqueados por: %s\n",parametros[1]);
 		list_iterate(lista_de_ESIs_por_clave_de_bloqueo,mostrar_id_de_esi_bloqueado);
 	}else{
-		log_info(logger, "No hay ESIs esperando por la clave %s\n",parametros[0]);
+		log_info(logger, "No hay ESIs esperando por la clave %s\n",parametros[1]);
 	}
 	list_destroy(lista_de_ESIs_por_clave_de_bloqueo);
 }
