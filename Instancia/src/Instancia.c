@@ -15,14 +15,15 @@ int main(void) {
 	instancia_configuracion configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
+	// Realizar handshake con coordinador
 	un_socket Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
 	realizar_handshake(Coordinador, cop_handshake_Instancia_Coordinador);
-	int tamanio = 0; //Calcular el tamanio del paquete
-	void* buffer = malloc(tamanio); //Info que necesita enviar al coordinador.
-	enviar(Coordinador,cop_generico,tamanio,buffer);
+
+	// Enviar al coordinador nombre de la instancia
+	int tamanio = strlen(configuracion.NOMBRE_INSTANCIA) * sizeof(char); //Calcular el tamanio del paquete
+	enviar(Coordinador,cop_generico,tamanio,configuracion.NOMBRE_INSTANCIA);
 	log_info(logger, "Me conecte con el Coordinador. \n");
-
-
+	esperar_instrucciones(Coordinador);
 	return EXIT_SUCCESS;
 }
 
@@ -37,4 +38,11 @@ instancia_configuracion get_configuracion() {
 	configuracion.NOMBRE_INSTANCIA = get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA");
 	configuracion.INTERVALO_DUMP = get_campo_config_int(archivo_configuracion, "INTERVALO_DUMP");
 	return configuracion;
+}
+
+void esperar_instrucciones(un_socket coordinador) {
+	while(1) {
+		t_paquete* paqueteRecibido = recibir(coordinador);
+		puts(paqueteRecibido->data);
+	}
 }

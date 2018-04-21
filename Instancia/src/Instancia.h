@@ -17,4 +17,6 @@ char* pathInstanciaConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia
 
 instancia_configuracion get_configuracion();
 
+void esperar_instrucciones(un_socket coordinador);
+
 #endif /* INSTANCIA_H_ */

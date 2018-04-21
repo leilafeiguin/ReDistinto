@@ -13,6 +13,7 @@ int main(void) {
 	log_info(logger, "Inicializando proceso Coordinador. \n");
 
 	esEstadoInvalido = true;
+	lista_instancias = list_create();
 
 	coordinador_configuracion configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -116,10 +117,8 @@ int main(void) {
 						break;
 						case cop_handshake_Instancia_Coordinador:
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
-							log_info(logger, "Realice handshake con Instancia \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
-
-							//Todo handle informacion que se requiera intercambiar y actualizar estructuras
+							instancia_conectada(socketActual, paqueteRecibido->data);
 
 						break;
 					}
@@ -146,5 +145,18 @@ coordinador_configuracion get_configuracion() {
 void salir(int motivo){
 	//Todo mejorar funcion de salida
 	exit(motivo);
+}
+
+void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
+	char *mensaje = string_new();
+	string_append(&mensaje, "Instancia conectada: ");
+	string_append(&mensaje, nombre_instancia);
+	string_append(&mensaje, " \n");
+	log_info(logger, mensaje);
+
+	instancia * instancia_conectada = malloc(sizeof(instancia));
+	instancia_conectada->socket = socket_instancia;
+	instancia_conectada->estado = conectada;
+	list_add(lista_instancias, instancia_conectada);
 }
 

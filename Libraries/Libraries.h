@@ -13,6 +13,7 @@
 #include <commons/string.h>
 #include <commons/error.h>
 #include <commons/config.h>
+#include <commons/collections/list.h>
 #include <unistd.h>
 #include <assert.h>
 #include <commons/collections/list.h>
@@ -64,6 +65,28 @@ typedef struct {
 	int cantidad_instrucciones;
 	char* descripcion_estado;
 } t_ESI;
+
+typedef struct {
+	char* clave; // Si esta vacia entonces la entrada esta vacia
+	int id; // Numero de entrada
+	double tamanio_ocupado;
+	int cant_veces_no_accesedida;
+} entrada;
+
+/*
+ Observacion de la estructura de la instancia:
+
+ Es redundante guardar el listado de las keys contenidas ya que se podria iterar sobre la tabla de entradas,
+ pero se decidio hacerlo asi para ganar performance.
+*/
+
+typedef struct {
+	char* nombre;
+	un_socket socket;
+	int estado;
+	t_list * keys_contenidas; // Lista de keys que actuamente estan guardadas en la instancia
+	t_list * entradas; // Tabla de entradas de la instancia
+} instancia;
 
 enum estados {
 	listo = 0,
