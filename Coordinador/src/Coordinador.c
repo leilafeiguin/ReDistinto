@@ -15,7 +15,7 @@ int main(void) {
 	esEstadoInvalido = true;
 	lista_instancias = list_create();
 
-	coordinador_configuracion configuracion = get_configuracion();
+	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
 /*
@@ -119,7 +119,6 @@ int main(void) {
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
 							instancia_conectada(socketActual, paqueteRecibido->data);
-
 						break;
 					}
 					free(paqueteRecibido);
@@ -147,6 +146,16 @@ void salir(int motivo){
 	exit(motivo);
 }
 
+bool instancia_activa(t_instancia * i) {
+	return i->estado == conectada;
+}
+
+void * instancias_activas() {
+	return list_find(lista_instancias, &instancia_activa);
+}
+
+
+
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	char *mensaje = string_new();
 	string_append(&mensaje, "Instancia conectada: ");
@@ -154,9 +163,20 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	string_append(&mensaje, " \n");
 	log_info(logger, mensaje);
 
-	instancia * instancia_conectada = malloc(sizeof(instancia));
+	// Creo que la estructura de la instancia y la agrego a la lista
+	t_instancia * instancia_conectada = malloc(sizeof(t_instancia));
 	instancia_conectada->socket = socket_instancia;
 	instancia_conectada->estado = conectada;
 	list_add(lista_instancias, instancia_conectada);
+
+	// Envio la cantidad de entradas que va a tener esa instancia
+	char cant_entradas[12];
+	sprintf(cant_entradas, "%d", configuracion.CANTIDAD_ENTRADAS);
+	enviar(socket_instancia, cop_generico, sizeof(int), cant_entradas);
+
+	// Envio el tamaño que va a tener cada entrada
+	char tamanio_entrada[12];
+	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
+	enviar(socket_instancia, cop_generico, sizeof(int), tamanio_entrada);
 }
 

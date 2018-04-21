@@ -72,8 +72,8 @@ typedef struct {
 	char* clave; // Si esta vacia entonces la entrada esta vacia
 	int id; // Numero de entrada
 	double tamanio_ocupado;
-	int cant_veces_no_accesedida;
-} entrada;
+	int cant_veces_no_accedida;
+} t_entrada;
 
 /*
  Observacion de la estructura de la instancia:
@@ -88,7 +88,12 @@ typedef struct {
 	int estado;
 	t_list * keys_contenidas; // Lista de keys que actuamente estan guardadas en la instancia
 	t_list * entradas; // Tabla de entradas de la instancia
-} instancia;
+} t_instancia;
+
+enum estados_instancia {
+	desconectada = 0,
+	conectada = 1
+};
 
 enum estados {
 	listo = 0,

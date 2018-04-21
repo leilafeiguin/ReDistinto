@@ -8,11 +8,6 @@
 
 bool esEstadoInvalido;
 
-enum estados_instancia {
-	desconectada = 0,
-	conectada = 1
-};
-
 typedef struct coordinador_configuracion {
 	char* PUERTO_ESCUCHA;
 	char* ALGORITMO_DISTRIBUCION;
@@ -21,6 +16,8 @@ typedef struct coordinador_configuracion {
 	int RETARDO;
 
 } coordinador_configuracion;
+
+coordinador_configuracion configuracion;
 
 char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/configCoordinador.cfg";
 
@@ -31,6 +28,12 @@ coordinador_configuracion get_configuracion();
 void salir(int motivo);
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia);
+
+bool instancia_activa(t_instancia * i);
+
+void * instancias_activas();
+
+int calcular_cantidad_entradas_x_instancia();
 
 /*
 --------------------------------------------------------
