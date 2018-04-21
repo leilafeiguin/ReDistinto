@@ -9,7 +9,7 @@ int main(void) {
 	logger = log_create(fileLog, "Planificador Logs", 1, 1);
 	log_info(logger, "Inicializando proceso Planificador. \n");
 
-	planificador_configuracion configuracion = get_configuracion();
+	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
 	lista_de_ESIs = list_create();
@@ -19,6 +19,7 @@ int main(void) {
 	accion_a_tomar = list_create();
 
 	pthread_t hiloEjecucionESIs;
+	un_socket socketHiloEjecicionESIs;
 	estado_hiloEjecucionESIs = false;
 	pthread_t hiloPlanificadorConsola;
 	pthread_create(&hiloPlanificadorConsola, NULL, hiloPlanificador_Consola, NULL);
@@ -30,6 +31,7 @@ int main(void) {
 	void* buffer = malloc(tamanio); //Info que necesita enviar al coordinador.
 	enviar(Coordinador,cop_generico,tamanio,buffer);
 	log_info(logger, "Me conecte con el Coordinador. \n");
+	free(buffer);
 
 /*
 --------------------------------------------------------
@@ -118,22 +120,30 @@ int main(void) {
 							//Todo actualizar estructuras necesarias con datos del ESI
 
 							//Todo corroborar que sea el primer ESI o que el hilo de ejecucion anterior finalizado
-							if(estado_hiloEjecucionESIs){
+							if(!estado_hiloEjecucionESIs){
 								pthread_create(&hiloEjecucionESIs, NULL, hiloEjecucionESIs, NULL);
 							}
 
 						break;
+						case cop_handshake_Planificador_ejecucion:
+							socketHiloEjecicionESIs = socketActual;
+						break;
+						case cop_Planificador_Ejecutar_Sentencia:
+							buffer = malloc(sizeof(int));
+							enviar(atoi(paqueteRecibido->data),cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
+							free(buffer);
+						break;
 						case cop_Coordinador_Sentencia_Exito:
-
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
 						case cop_Coordinador_Sentencia_Fallo_TC:
-
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_TC,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
 						case cop_Coordinador_Sentencia_Fallo_CNI:
-
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_CNI,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
 						case cop_Coordinador_Sentencia_Fallo_CI:
-
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_CI,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
 					}
 				}
@@ -173,6 +183,12 @@ void salir(int motivo){
 
 void hiloEjecucionESIs(void* unused){
 
+	estado_hiloEjecucionESIs = true;
+
+	un_socket hiloPrincipal = conectar_a("127.0.0.1",configuracion.PUERTO_ESCUCHA);
+	realizar_handshake(hiloPrincipal,cop_handshake_Planificador_ejecucion);
+	log_info(logger, "Me conecte con el Hilo principal. \n");
+
 	pthread_mutex_lock(&mutex_cola_de_listos);
 	pthread_mutex_lock(&mutex_cola_de_bloqueados);
 	while(list_size(cola_de_listos) != 0 || list_size(cola_de_bloqueados) != 0){
@@ -182,9 +198,12 @@ void hiloEjecucionESIs(void* unused){
 		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
 		pthread_mutex_unlock(&mutex_cola_de_listos);
 
+		//Todo revisar si este hilo puede comunicarse con el ESI.
 		void* buffer = malloc(sizeof(int));
-		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
-		t_paquete* paqueteRecibido = recibir(Coordinador);
+		strcpy(buffer,&ESI_ejecutando->socket);
+		enviar(hiloPrincipal,cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
+		free(buffer);
+		t_paquete* paqueteRecibido = recibir(hiloPrincipal);
 			switch(paqueteRecibido->codigo_operacion){
 				case cop_Instancia_Ejecucion_Exito:
 					pthread_mutex_lock(&mutex_ESI_ejecutando);
@@ -205,8 +224,6 @@ void hiloEjecucionESIs(void* unused){
 				case cop_Instancia_Ejecucion_Fallo_CI:
 					//Error de comunicacion
 				break;
-
-
 			}
 	//Cuando termina settea el flag en true
 	estado_hiloEjecucionESIs = true;
