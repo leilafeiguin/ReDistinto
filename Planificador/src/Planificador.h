@@ -41,6 +41,9 @@ enum acciones_a_tomar {
 	bloquear = 1,
 	desbloquear = 2,
 };
+
+planificador_configuracion configuracion;
+
 pthread_mutex_t mutex_lista_de_ESIs;
 t_list* lista_de_ESIs;
 

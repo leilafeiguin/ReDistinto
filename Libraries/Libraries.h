@@ -47,7 +47,9 @@ enum codigos_de_operacion {
 	cop_Coordinador_Sentencia_Exito = 32,
 	cop_Coordinador_Sentencia_Fallo_TC = 33,
 	cop_Coordinador_Sentencia_Fallo_CNI = 34,
-	cop_Coordinador_Sentencia_Fallo_CI = 35
+	cop_Coordinador_Sentencia_Fallo_CI = 35,
+
+	cop_handshake_Planificador_ejecucion = 50
 };
 
 typedef int un_socket;
