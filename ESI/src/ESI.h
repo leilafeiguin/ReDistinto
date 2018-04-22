@@ -15,8 +15,17 @@ typedef struct ESI_configuracion {
 
 } ESI_configuracion;
 
+typedef struct paqueteSentencias {
+	int cantidadInstrucciones;
+	int idESI;
+} paqueteSentencias;
+
 char* pathESIConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/configESI.cfg";
 
 ESI_configuracion get_configuracion();
+
+void leerScript(char* path);
+
+char** enviarAlParser(void* archivo);
 
 #endif /* ESI_H_ */
