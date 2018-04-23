@@ -193,10 +193,15 @@ void hiloEjecucionESIs(void* unused){
 	pthread_mutex_lock(&mutex_cola_de_bloqueados);
 	while(list_size(cola_de_listos) != 0 || list_size(cola_de_bloqueados) != 0){
 		pthread_mutex_unlock(&mutex_cola_de_bloqueados);
-
-		//En FIFO pasamos a ejecutando solo el primero de los ESI
-		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
 		pthread_mutex_unlock(&mutex_cola_de_listos);
+		pthread_mutex_lock(&mutex_pausa_por_consola);
+
+		//Ordenamos la cola de listos segun el algoritmo.
+		//Si no tiene desalojo se puede almacenar el ID del ultimo que corrio y hasta que no cambie no se replanifica.
+		ordenar_por_sjf();
+
+		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
+
 
 		//Todo revisar si este hilo puede comunicarse con el ESI.
 		void* buffer = malloc(sizeof(int));
@@ -225,9 +230,10 @@ void hiloEjecucionESIs(void* unused){
 					//Error de comunicacion
 				break;
 			}
+		pthread_mutex_unlock(&mutex_pausa_por_consola);
+	}
 	//Cuando termina settea el flag en true
 	estado_hiloEjecucionESIs = true;
-	}
 }
 
 void* hiloPlanificador_Consola(void * unused){
@@ -250,11 +256,11 @@ void* hiloPlanificador_Consola(void * unused){
 
 			if (strcmp(linea, "Pausar") == 0) {
 				log_info(logger, "Eligio la opcion Pausar\n");
-				//Todo
+				pthread_mutex_lock(&mutex_pausa_por_consola);
 				free(linea);
 			}else if (strcmp(linea, "Continuar") == 0) {
 				log_info(logger, "Eligio la opcion Continuar\n");
-				//Todo
+				pthread_mutex_unlock(&mutex_pausa_por_consola);
 				free(linea);
 			} else if (strcmp(primeraPalabra, "bloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
@@ -559,5 +565,13 @@ bool validar_ESI_id(int id_ESI){
 	return false;
 }
 
+void ordenar_por_sjf(){
+	pthread_mutex_lock(&mutex_cola_de_listos);
 
+	bool sjf(void* esi1, void* esi2){
+		return ((t_ESI*)esi1)->cantidad_instrucciones < ((t_ESI*)esi2)->cantidad_instrucciones;
+	}
+	list_sort(cola_de_listos,sjf);
+	pthread_mutex_unlock(&mutex_cola_de_listos);
+}
 

@@ -44,6 +44,8 @@ enum acciones_a_tomar {
 
 planificador_configuracion configuracion;
 
+pthread_mutex_t mutex_pausa_por_consola;
+
 pthread_mutex_t mutex_lista_de_ESIs;
 t_list* lista_de_ESIs;
 
@@ -96,6 +98,8 @@ void ejecutarDesbloquear(char** parametros);
 void ejecutarListar(char** parametros);
 
 void hiloEjecucionESIs(void* unused);
+
+void ordenar_por_sjf();
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------
