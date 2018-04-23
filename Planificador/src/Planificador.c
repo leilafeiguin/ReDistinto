@@ -189,17 +189,17 @@ void hiloEjecucionESIs(void* unused){
 	realizar_handshake(hiloPrincipal,cop_handshake_Planificador_ejecucion);
 	log_info(logger, "Me conecte con el Hilo principal. \n");
 
-	pthread_mutex_lock(&mutex_cola_de_listos);
-	pthread_mutex_lock(&mutex_cola_de_bloqueados);
 	while(list_size(cola_de_listos) != 0 || list_size(cola_de_bloqueados) != 0){
-		pthread_mutex_unlock(&mutex_cola_de_bloqueados);
-		pthread_mutex_unlock(&mutex_cola_de_listos);
 		pthread_mutex_lock(&mutex_pausa_por_consola);
 
 		//Ordenamos la cola de listos segun el algoritmo.
-		//Si no tiene desalojo se puede almacenar el ID del ultimo que corrio y hasta que no cambie no se replanifica.
-		ordenar_por_sjf();
+		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") ){
+			ordenar_por_sjf();
+		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") ){
 
+		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") ){
+
+		}
 		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
 
 
@@ -232,8 +232,8 @@ void hiloEjecucionESIs(void* unused){
 			}
 		pthread_mutex_unlock(&mutex_pausa_por_consola);
 	}
-	//Cuando termina settea el flag en true
-	estado_hiloEjecucionESIs = true;
+	//Cuando termina settea el flag en false
+	estado_hiloEjecucionESIs = false;
 }
 
 void* hiloPlanificador_Consola(void * unused){
