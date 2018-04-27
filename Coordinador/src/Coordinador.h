@@ -35,6 +35,8 @@ void * instancias_activas();
 
 int calcular_cantidad_entradas_x_instancia();
 
+void equitative_load();
+
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------

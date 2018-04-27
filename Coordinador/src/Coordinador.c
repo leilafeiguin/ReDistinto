@@ -154,8 +154,6 @@ void * instancias_activas() {
 	return list_find(lista_instancias, &instancia_activa);
 }
 
-
-
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	char *mensaje = string_new();
 	string_append(&mensaje, "Instancia conectada: ");
@@ -163,10 +161,11 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	string_append(&mensaje, " \n");
 	log_info(logger, mensaje);
 
-	// Creo que la estructura de la instancia y la agrego a la lista
+	// Creo la estructura de la instancia y la agrego a la lista
 	t_instancia * instancia_conectada = malloc(sizeof(t_instancia));
 	instancia_conectada->socket = socket_instancia;
 	instancia_conectada->estado = conectada;
+	instancia_conectada->contador = 0;
 	list_add(lista_instancias, instancia_conectada);
 
 	// Envio la cantidad de entradas que va a tener esa instancia
@@ -178,5 +177,9 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	char tamanio_entrada[12];
 	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
 	enviar(socket_instancia, cop_generico, sizeof(int), tamanio_entrada);
+}
+
+void equitative_load() {
+
 }
 
