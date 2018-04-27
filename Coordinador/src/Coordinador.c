@@ -6,6 +6,7 @@ void* archivo;
 t_log* logger;
 
 int main(void) {
+	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador");
 	char* fileLog;
 	fileLog = "coordinador_logs.txt";
 

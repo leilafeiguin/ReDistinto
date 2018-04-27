@@ -3,6 +3,7 @@
 #include "Planificador.h"
 
 int main(void) {
+	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/planif_image.txt");
 	char* fileLog;
 	fileLog = "planificador_logs.txt";
 

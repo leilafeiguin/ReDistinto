@@ -3,6 +3,7 @@
 #include "ESI.h"
 
 int main(void) {
+	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/esi_image.txt");
 	char* fileLog;
 	fileLog = "ESI_logs.txt";
 
