@@ -41,6 +41,10 @@ enum codigos_de_operacion {
 	cop_Instancia_Ejecucion_Fallo_CNI = 22,
 	cop_Instancia_Ejecucion_Fallo_CI = 23,
 	cop_Instancia_Ejecucion_Exito = 24,
+	cop_Instancia_Ejecutar_Set = 25,
+	cop_Instancia_Guardar_OK = 26,
+	cop_Instancia_Guardar_Error_FE = 27,
+	cop_Instancia_Guardar_Error_FI = 28,
 
 	cop_Planificador_Ejecutar_Sentencia = 30,
 	cop_ESI_Sentencia = 31,
@@ -70,8 +74,9 @@ typedef struct {
 
 typedef struct {
 	char* clave; // Si esta vacia entonces la entrada esta vacia
+	char* contenido; // Contenido de la entrada. Puede contener todo el valor de la clave o solo una parcialidad.
 	int id; // Numero de entrada
-	double tamanio_ocupado;
+	int espacio_ocupado;	// En bytes
 	int cant_veces_no_accedida;
 } t_entrada;
 
@@ -88,7 +93,7 @@ typedef struct {
 	int estado;
 	t_list * keys_contenidas; // Lista de keys que actuamente estan guardadas en la instancia
 	t_list * entradas; // Tabla de entradas de la instancia
-	int contador;
+	int cant_entradas_ocupadas;
 } t_instancia;
 
 enum estados_instancia {
@@ -192,6 +197,8 @@ void crear_subcarpeta(char* nombre);
 char* generarDirectorioTemporal(char* carpeta);
 
 void *get_in_addr(struct sockaddr *sa);
+
+int size_of_string(char* string);
 
 
 #endif /* LIBRARIES_H_ */

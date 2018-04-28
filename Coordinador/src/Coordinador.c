@@ -152,7 +152,7 @@ bool instancia_activa(t_instancia * i) {
 }
 
 void * instancias_activas() {
-	return list_find(lista_instancias, &instancia_activa);
+	return list_find(lista_instancias, instancia_activa);
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
@@ -165,8 +165,9 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	// Creo la estructura de la instancia y la agrego a la lista
 	t_instancia * instancia_conectada = malloc(sizeof(t_instancia));
 	instancia_conectada->socket = socket_instancia;
+	instancia_conectada->nombre = nombre_instancia;
 	instancia_conectada->estado = conectada;
-	instancia_conectada->contador = 0;
+	instancia_conectada->cant_entradas_ocupadas = 0;
 	list_add(lista_instancias, instancia_conectada);
 
 	// Envio la cantidad de entradas que va a tener esa instancia
@@ -178,7 +179,24 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	char tamanio_entrada[12];
 	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
 	enviar(socket_instancia, cop_generico, sizeof(int), tamanio_entrada);
+
+
+	// Para probar las funciones
+	set(instancia_conectada, "nombre", "tomas uriel chjanovich");
 }
+
+int set(t_instancia * instancia, char* clave, char* valor) {
+	// Envio la clave en la que se guardara
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave);
+	// Envio el valor a guardar
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor);
+}
+
+/*
+t_instancia * instancia_a_guardar() {
+	return list_get(lista_instancias, 0);
+}
+*/
 
 void equitative_load() {
 

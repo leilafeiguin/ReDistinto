@@ -454,3 +454,7 @@ void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+int size_of_string(char* string) {
+	return strlen(string) * sizeof(char) + 1;
+}
+
