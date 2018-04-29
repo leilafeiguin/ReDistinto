@@ -15,6 +15,7 @@ int main(void) {
 
 	esEstadoInvalido = true;
 	lista_instancias = list_create();
+	lista_cant_entradas_x_instancia = list_create();
 
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -182,7 +183,7 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 
 
 	// Para probar las funciones
-	set(instancia_conectada, "nombre", "tomas uriel chjanovich");
+	set(instancia_conectada, "nombre", "tomas uriel chejanovich");
 }
 
 int set(t_instancia * instancia, char* clave, char* valor) {
@@ -198,7 +199,11 @@ t_instancia * instancia_a_guardar() {
 }
 */
 
-void equitative_load() {
+void * equitative_load() {
+	return list_find(lista_instancias, cantidad_entradas_x_instancia);
+}
 
+int cantidad_entradas_x_instancia(t_instancia * i) {
+	return i->cant_entradas_ocupadas;
 }
 

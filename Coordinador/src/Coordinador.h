@@ -23,6 +23,8 @@ char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordin
 
 t_list* lista_instancias;
 
+t_list* lista_cant_entradas_x_instancia;
+
 coordinador_configuracion get_configuracion();
 
 void salir(int motivo);
@@ -33,9 +35,9 @@ bool instancia_activa(t_instancia * i);
 
 void * instancias_activas();
 
-int calcular_cantidad_entradas_x_instancia();
+int cantidad_entradas_x_instancia();
 
-void equitative_load();
+void * equitative_load();
 
 /*
 --------------------------------------------------------
