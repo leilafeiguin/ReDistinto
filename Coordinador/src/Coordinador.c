@@ -160,30 +160,22 @@ t_list * instancias_activas() {
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
-	char* mensaje = string_new();
-	string_append(&mensaje, "Instancia conectada: ");
-	string_append(&mensaje, nombre_instancia);
-	string_append(&mensaje, " \n");
-	log_info(logger, mensaje);
-
-	// Creo la estructura de la instancia y la agrego a la lista
-	t_instancia * instancia_conectada = malloc(sizeof(t_instancia));
-	instancia_conectada->socket = socket_instancia;
-	instancia_conectada->nombre = nombre_instancia;
-	instancia_conectada->estado = conectada;
-	instancia_conectada->cant_entradas_ocupadas = 0;
-	instancia_conectada->keys_contenidas = list_create();
-	list_add(lista_instancias, instancia_conectada);
-
-	// Envio la cantidad de entradas que va a tener esa instancia
-	char cant_entradas[12];
-	sprintf(cant_entradas, "%d", configuracion.CANTIDAD_ENTRADAS);
-	enviar(socket_instancia, cop_generico, sizeof(int), cant_entradas);
-
-	// Envio el tamaño que va a tener cada entrada
-	char tamanio_entrada[12];
-	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
-	enviar(socket_instancia, cop_generico, sizeof(int),  tamanio_entrada);
+	bool instancia_ya_existente(t_instancia * ins){
+		if (strcmp(ins->nombre, nombre_instancia) == 0) {
+			return true;
+		}
+		return false;
+	}
+	t_instancia * instancia = list_find(lista_instancias, instancia_ya_existente);
+	if (instancia == NULL) { // Si es una instancia nueva
+		mensaje_instancia_conectada(nombre_instancia, 0);
+		instancia = crear_instancia(socket_instancia, nombre_instancia);
+	} else { // Si es una instancia ya creada reconectandose
+		mensaje_instancia_conectada(nombre_instancia, 1);
+		instancia->socket = socket_instancia;
+		instancia->estado = conectada;
+	}
+	enviar_informacion_tabla_entradas(instancia);
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
 	set("nombre", "tomas uriel chejanovich");
@@ -276,6 +268,42 @@ t_instancia * get_instancia_con_clave(char * clave) {
 
 t_instancia * instancia_a_guardar() {
 	return list_get(lista_instancias, 0); // TODO: Utilizar algoritmo correspondiente
+}
+
+t_instancia * crear_instancia(un_socket socket, char* nombre) {
+	// Creo la estructura de la instancia y la agrego a la lista
+	t_instancia * instancia_nueva = malloc(sizeof(t_instancia));
+	instancia_nueva->socket = socket;
+	instancia_nueva->nombre = nombre;
+	instancia_nueva->estado = conectada;
+	instancia_nueva->cant_entradas_ocupadas = 0;
+	instancia_nueva->keys_contenidas = list_create();
+	list_add(lista_instancias, instancia_nueva);
+	return instancia_nueva;
+}
+
+int enviar_informacion_tabla_entradas(t_instancia * instancia) {
+	// Envio la cantidad de entradas que va a tener esa instancia
+	char cant_entradas[12];
+	sprintf(cant_entradas, "%d", configuracion.CANTIDAD_ENTRADAS);
+	enviar(instancia->socket, cop_generico, sizeof(int), cant_entradas);
+
+	// Envio el tamaño que va a tener cada entrada
+	char tamanio_entrada[12];
+	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
+	enviar(instancia->socket, cop_generico, sizeof(int),  tamanio_entrada);
+}
+
+void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Instancia nueva, 1: Instancia reconectandose
+	char* mensaje = string_new();
+	if (estado == 0) {
+		string_append(&mensaje, "Instancia conectada: ");
+	} else {
+		string_append(&mensaje, "Instancia reconectada: ");
+	}
+	string_append(&mensaje, nombre_instancia);
+	string_append(&mensaje, " \n");
+	log_info(logger, mensaje);
 }
 
 

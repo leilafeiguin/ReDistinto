@@ -49,6 +49,12 @@ t_instancia * instancia_a_guardar(); // Devuelve la instancia en la que se ejecu
 
 t_instancia * get_instancia_con_clave(char * clave); // Devuelve la instancia que contiene una clave especificada
 
+t_instancia * crear_instancia(un_socket socket, char* nombre);
+
+int enviar_informacion_tabla_entradas(t_instancia * instancia); // Envia la informacion de la tabla de entradas a la instancia
+
+void mensaje_instancia_conectada(char* nombre_instancia, int estado); // 0: Instancia nueva, 1: Instancia reconectandose
+
 int cantidad_entradas_x_instancia();
 
 void * equitative_load();
