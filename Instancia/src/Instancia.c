@@ -99,6 +99,10 @@ void esperar_instrucciones(un_socket coordinador) {
 			case cop_Instancia_Ejecutar_Get:
 				ejecutar_get(coordinador, paqueteRecibido->data);
 			break;
+
+			case cop_Instancia_Ejecutar_Store:
+				ejecutar_store(coordinador, paqueteRecibido->data);
+			break;
 		}
 	}
 }
@@ -129,6 +133,20 @@ t_entrada * get_next(t_entrada * entrada) {
 	return list_get(instancia.entradas, index_entrada);
 }
 
+// Recibo la clave como parametro y espero a que me envien en el valor
+int ejecutar_set(un_socket coordinador, char* clave) {
+	t_paquete* paqueteValor = recibir(coordinador); // Recibo el valor a guardar
+	char* valor = paqueteValor->data;
+	int estado_set = verificar_set(valor);
+	switch(estado_set) {
+		case cop_Instancia_Guardar_OK:
+			set(get_entrada_a_guardar(valor), clave, valor);
+		break;
+	}
+	mostrar_tabla_entradas();
+	return estado_set;
+}
+
 int set(t_entrada * entrada, char* clave, char* valor) {
 	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
@@ -149,42 +167,57 @@ int set(t_entrada * entrada, char* clave, char* valor) {
 	return 0;
 }
 
-// Recibo la clave como parametro y espero a que me envien en el valor
-int ejecutar_set(un_socket coordinador, char* clave) {
-	t_paquete* paqueteValor = recibir(coordinador); // Recibo el valor a guardar
-	char* valor = paqueteValor->data;
-	int estado_set = verificar_set(valor);
-	switch(estado_set) {
-		case cop_Instancia_Guardar_OK:
-			set(get_entrada_a_guardar(valor), clave, valor);
-		break;
-	}
-	mostrar_tabla_entradas();
-	return estado_set;
+int ejecutar_get(un_socket coordinador, char* clave) {
+	char* valor = get(clave);
+	enviar(coordinador, cop_Instancia_Ejecutar_Get, size_of_string(valor), valor); // Envia al coordinador el valor de la clave solicitada
+	printf("GET %s \n", clave);
 }
 
-char* get_valor_por_clave(char* clave) {
+char* get(char* clave) {
 	char* valor = string_new();
+	t_list * entradas = get_entradas_con_clave(clave);
+	void concatenar_valor(t_entrada * entrada){
+		string_append(&valor, entrada->contenido);
+	}
+	list_iterate(entradas, concatenar_valor);
+	return valor;
+}
+
+int ejecutar_store(un_socket coordinador, char* clave) {
+	printf("STORE %s \n", clave);
+	t_list * entradas = get_entradas_con_clave(clave);
+	list_iterate(entradas, dump_entrada);
+	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el STORE se ejecuto de forma exitosa
+}
+
+int dump_entrada(t_entrada * entrada) {
+	printf("Persistiendo entrada. ID %d , Valor '%s' \n", entrada->id, entrada->contenido);
+	char* filePath = get_file_path(entrada);
+	remove(filePath); // Borro el archivo ya que voy a reemplazar el contenido
+	FILE* file = txt_open_for_append(filePath);
+	txt_write_in_file(file, entrada->contenido);
+	txt_close_file(file);
+}
+
+t_list * get_entradas_con_clave(char* clave) {
 	bool entrada_tiene_la_clave(t_entrada * entrada){
 		if (strcmp(clave, entrada->clave) == 0) {
 			return true;
 		}
 		return false;
 	}
-	t_entrada * i_entrada = list_find(instancia.entradas, entrada_tiene_la_clave);
-	string_append(&valor, i_entrada->contenido);
-	i_entrada = get_next(i_entrada);
-	while(strcmp(clave, i_entrada->clave) == 0) {
-		string_append(&valor, i_entrada->contenido);
-		i_entrada = get_next(i_entrada);
-	}
-	return valor;
+	return list_filter(instancia.entradas, entrada_tiene_la_clave);
 }
 
-int ejecutar_get(un_socket coordinador, char* clave) {
-	char* valor = get_valor_por_clave(clave);
-	enviar(coordinador, cop_Instancia_Ejecutar_Get, size_of_string(valor), valor); // Envia al coordinador el valor de la clave solicitada
-	printf("GET %s \n", clave);
+char* get_file_path(t_entrada * entrada) {
+	char* filePath = string_new();
+	string_append(&filePath, pathInstanciaData);
+	string_append(&filePath, instancia.nombre);
+	string_append(&filePath, "_Entrada_");
+	char id_entrada[12];
+	sprintf(id_entrada, "%d", entrada->id);
+	string_append(&filePath, id_entrada);
+	return filePath;
 }
 
 void mostrar_tabla_entradas() {

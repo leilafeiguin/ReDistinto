@@ -157,7 +157,7 @@ void * instancias_activas() {
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
-	char *mensaje = string_new();
+	char* mensaje = string_new();
 	string_append(&mensaje, "Instancia conectada: ");
 	string_append(&mensaje, nombre_instancia);
 	string_append(&mensaje, " \n");
@@ -180,12 +180,13 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	// Envio el tamaño que va a tener cada entrada
 	char tamanio_entrada[12];
 	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
-	enviar(socket_instancia, cop_generico, sizeof(int), tamanio_entrada);
+	enviar(socket_instancia, cop_generico, sizeof(int),  tamanio_entrada);
 
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
 	set("nombre", "tomas uriel chejanovich");
 	get("nombre");
+	store("nombre");
 }
 
 int set(char* clave, char* valor) {
@@ -194,6 +195,24 @@ int set(char* clave, char* valor) {
 	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
 	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
 	printf("SET %s '%s' \n", clave, valor);
+	return 0;
+}
+
+int get(char* clave) {
+	t_instancia * instancia = get_instancia_con_clave(clave);
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
+	t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
+	printf("GET %s: '%s' \n", clave, paqueteValor->data);
+	return 0;
+}
+
+int store(char* clave) {
+	t_instancia * instancia = get_instancia_con_clave(clave);
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
+	t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
+	if (paqueteEstadoOperacion->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
+		printf("Clave '%s' liberada \n", clave);
+	}
 	return 0;
 }
 
@@ -211,14 +230,6 @@ t_instancia * get_instancia_con_clave(char * clave) {
 		return false;
 	}
 	return list_find(lista_instancias, instancia_tiene_clave);
-}
-
-int get(char* clave) {
-	t_instancia * instancia = get_instancia_con_clave(clave);
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
-	t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
-	printf("GET %s \n", clave);
-	return 0;
 }
 
 t_instancia * instancia_a_guardar() {

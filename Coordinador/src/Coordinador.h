@@ -39,6 +39,8 @@ int set(char* clave, char* valor);
 
 int get(char* clave);
 
+int store(char* clave);
+
 t_instancia * instancia_a_guardar(); // Devuelve la instancia en la que se ejecutara un SET de acuerdo al algoritmo correspondiente
 
 t_instancia * get_instancia_con_clave(char * clave); // Devuelve la instancia que contiene una clave especificada
