@@ -148,12 +148,14 @@ void salir(int motivo){
 	exit(motivo);
 }
 
-bool instancia_activa(t_instancia * i) {
-	return i->estado == conectada;
-}
-
-void * instancias_activas() {
-	return list_find(lista_instancias, instancia_activa);
+t_list * instancias_activas() {
+	bool instancia_activa(t_instancia * i) {
+		 if (i->estado == conectada) {
+			 return true;
+		 }
+		return false;
+	}
+	return list_filter(lista_instancias, instancia_activa);
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
@@ -187,6 +189,7 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	set("nombre", "tomas uriel chejanovich");
 	get("nombre");
 	store("nombre");
+	dump();
 }
 
 int set(char* clave, char* valor) {
@@ -214,6 +217,14 @@ int store(char* clave) {
 		printf("Clave '%s' liberada \n", clave);
 	}
 	return 0;
+}
+
+int dump() {
+	list_iterate(instancias_activas(), dump_instancia);
+}
+
+int dump_instancia(t_instancia * instancia) {
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
 }
 
 t_instancia * get_instancia_con_clave(char * clave) {

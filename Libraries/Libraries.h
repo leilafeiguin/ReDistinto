@@ -44,6 +44,7 @@ enum codigos_de_operacion {
 	cop_Instancia_Ejecutar_Set = 25,
 	cop_Instancia_Ejecutar_Get = 29,
 	cop_Instancia_Ejecutar_Store = 210,
+	cop_Instancia_Ejecutar_Dump = 211,
 	cop_Instancia_Guardar_OK = 26,
 	cop_Instancia_Guardar_Error_FE = 27,
 	cop_Instancia_Guardar_Error_FI = 28,

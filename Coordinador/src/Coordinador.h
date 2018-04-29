@@ -31,15 +31,17 @@ void salir(int motivo);
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia);
 
-bool instancia_activa(t_instancia * i);
-
-void * instancias_activas();
+t_list * instancias_activas();
 
 int set(char* clave, char* valor);
 
 int get(char* clave);
 
 int store(char* clave);
+
+int dump(); // Ejecuta un dump en todas las instancias
+
+int dump_instancia(t_instancia * instancia); // Ejecuta un dump en una instancia especificada
 
 t_instancia * instancia_a_guardar(); // Devuelve la instancia en la que se ejecutara un SET de acuerdo al algoritmo correspondiente
 

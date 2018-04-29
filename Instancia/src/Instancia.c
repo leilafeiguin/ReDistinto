@@ -103,6 +103,10 @@ void esperar_instrucciones(un_socket coordinador) {
 			case cop_Instancia_Ejecutar_Store:
 				ejecutar_store(coordinador, paqueteRecibido->data);
 			break;
+
+			case cop_Instancia_Ejecutar_Dump:
+				ejecutar_dump(coordinador);
+			break;
 		}
 	}
 }
@@ -188,6 +192,12 @@ int ejecutar_store(un_socket coordinador, char* clave) {
 	t_list * entradas = get_entradas_con_clave(clave);
 	list_iterate(entradas, dump_entrada);
 	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el STORE se ejecuto de forma exitosa
+}
+
+int ejecutar_dump(un_socket coordinador) {
+	puts("Ejecutando DUMP");
+	list_iterate(instancia.entradas, dump_entrada);
+	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el DUMP se ejecuto de forma exitosa
 }
 
 int dump_entrada(t_entrada * entrada) {

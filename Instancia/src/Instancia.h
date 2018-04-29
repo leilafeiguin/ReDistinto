@@ -29,6 +29,7 @@ int set(t_entrada * entrada, char* clave, char* valor);
 int ejecutar_get(un_socket coordinador, char* clave);
 char* get(char* clave);
 int ejecutar_store(un_socket coordinador, char* clave);
+int ejecutar_dump(un_socket coordinador);
 int espacio_total();
 int espacio_ocupado();
 int espacio_disponible();
