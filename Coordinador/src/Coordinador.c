@@ -169,6 +169,7 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	instancia_conectada->nombre = nombre_instancia;
 	instancia_conectada->estado = conectada;
 	instancia_conectada->cant_entradas_ocupadas = 0;
+	instancia_conectada->keys_contenidas = list_create();
 	list_add(lista_instancias, instancia_conectada);
 
 	// Envio la cantidad de entradas que va a tener esa instancia
@@ -182,22 +183,48 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	enviar(socket_instancia, cop_generico, sizeof(int), tamanio_entrada);
 
 
-	// Para probar las funciones
-	set(instancia_conectada, "nombre", "tomas uriel chejanovich");
+	// BORRAR PROXIMAMENTE: Para probar las funciones
+	set("nombre", "tomas uriel chejanovich");
+	get("nombre");
 }
 
-int set(t_instancia * instancia, char* clave, char* valor) {
-	// Envio la clave en la que se guardara
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave);
-	// Envio el valor a guardar
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor);
+int set(char* clave, char* valor) {
+	t_instancia * instancia = instancia_a_guardar();
+	list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
+	printf("SET %s '%s' \n", clave, valor);
+	return 0;
 }
 
-/*
+t_instancia * get_instancia_con_clave(char * clave) {
+	bool instancia_tiene_clave(t_instancia * instancia){
+		bool clave_match(char * clave_comparar){
+			if (strcmp(clave, clave_comparar) == 0) {
+				return true;
+			}
+			return false;
+		}
+		if (list_find(instancia->keys_contenidas, clave_match) != NULL) {
+			return true;
+		}
+		return false;
+	}
+	return list_find(lista_instancias, instancia_tiene_clave);
+}
+
+int get(char* clave) {
+	t_instancia * instancia = get_instancia_con_clave(clave);
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
+	t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
+	printf("GET %s \n", clave);
+	return 0;
+}
+
 t_instancia * instancia_a_guardar() {
-	return list_get(lista_instancias, 0);
+	return list_get(lista_instancias, 0); // TODO: Utilizar algoritmo correspondiente
 }
-*/
+
 
 void * equitative_load() {
 	return list_find(lista_instancias, cantidad_entradas_x_instancia);

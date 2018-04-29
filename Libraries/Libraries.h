@@ -42,6 +42,7 @@ enum codigos_de_operacion {
 	cop_Instancia_Ejecucion_Fallo_CI = 23,
 	cop_Instancia_Ejecucion_Exito = 24,
 	cop_Instancia_Ejecutar_Set = 25,
+	cop_Instancia_Ejecutar_Get = 29,
 	cop_Instancia_Guardar_OK = 26,
 	cop_Instancia_Guardar_Error_FE = 27,
 	cop_Instancia_Guardar_Error_FI = 28,

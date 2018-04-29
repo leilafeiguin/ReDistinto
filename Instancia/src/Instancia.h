@@ -24,11 +24,14 @@ t_instancia instancia;
 void crear_tabla_entradas(un_socket coordinador);
 void esperar_instrucciones(un_socket coordinador);
 int ejecutar_set(un_socket coordinador, char* clave);
+int ejecutar_get(un_socket coordinador, char* clave);
 int espacio_total();
 int espacio_ocupado();
 int espacio_disponible();
-int verificar_set(char* valor);
-int get_entrada_a_guardar(char* valor);	// Devuelve la posicion de la entrada donde se guardara el valor
+int verificar_set(char* valor); // Verifica si se puede guardar un valor
+t_entrada * get_entrada_a_guardar(char* valor);	// Devuelve la entrada donde se guardara el valor
 void mostrar_tabla_entradas();
+char* get_valor_por_clave(char* clave);
+t_entrada * get_next(t_entrada * entrada); // Devuelve la entrada consecutiva a una entrada especificada
 
 #endif /* INSTANCIA_H_ */

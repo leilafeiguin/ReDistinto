@@ -56,8 +56,7 @@ void crear_tabla_entradas(un_socket coordinador) {
 	if (0) {
 
 	} else {
-		// Instancia nueva
-		instancia.entradas = list_create();
+		instancia.entradas = list_create(); // Instancia nueva
 		for(int i = 0; i < cantidad_entradas; i++) {
 			t_entrada * entrada = malloc(sizeof(t_entrada));
 			entrada->id = i;
@@ -96,11 +95,14 @@ void esperar_instrucciones(un_socket coordinador) {
 			case cop_Instancia_Ejecutar_Set:
 				ejecutar_set(coordinador, paqueteRecibido->data);
 			break;
+
+			case cop_Instancia_Ejecutar_Get:
+				ejecutar_get(coordinador, paqueteRecibido->data);
+			break;
 		}
 	}
 }
 
-// Verifica si se puede guardar un valor
 int verificar_set(char* valor) {
 	/*
 	 * TODO:
@@ -113,27 +115,31 @@ int verificar_set(char* valor) {
 	return cop_Instancia_Guardar_OK;
 }
 
-
-int get_entrada_a_guardar(char* valor) {
+t_entrada * get_entrada_a_guardar(char* valor) {
 	/*
-	 * TODO
-	 * Segun un algoritmo devuelve la posicion de la entrada donde se guardara el valor.
+	 * Segun un algoritmo devuelve la entrada donde se guardara el valor.
 	 * Si el valor es demasiado grande, ocupara las proximas entradas consecutivas a esa.
 	 */
-	return 0;
+	int index_entrada = 0;// TODO: Aplicar algoritmo aca
+	return list_get(instancia.entradas, index_entrada);
 }
 
-int set(int index_entrada, char* clave, char* valor) {
+t_entrada * get_next(t_entrada * entrada) {
+	int index_entrada = entrada->id + 1;
+	return list_get(instancia.entradas, index_entrada);
+}
+
+int set(t_entrada * entrada, char* clave, char* valor) {
 	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
-		t_entrada * entrada = list_get(instancia.entradas, index_entrada);
 		entrada->clave = clave;
 		entrada->contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
 		entrada->espacio_ocupado = size_of_string(entrada->contenido) -1;
 		entrada->cant_veces_no_accedida = 0;
 		espacio_restante_a_guardar += (-1) * (entrada->espacio_ocupado);
-		index_entrada++;
+		entrada = get_next(entrada);
+
 		// Verifico si ya guarde todo el valor
 		if (espacio_restante_a_guardar > 0) {
 			valor_restante_a_guardar = string_substring(valor_restante_a_guardar, tamanio_entradas, strlen(valor_restante_a_guardar) - tamanio_entradas);
@@ -145,8 +151,7 @@ int set(int index_entrada, char* clave, char* valor) {
 
 // Recibo la clave como parametro y espero a que me envien en el valor
 int ejecutar_set(un_socket coordinador, char* clave) {
-	// Recibo el valor a guardar
-	t_paquete* paqueteValor = recibir(coordinador);
+	t_paquete* paqueteValor = recibir(coordinador); // Recibo el valor a guardar
 	char* valor = paqueteValor->data;
 	int estado_set = verificar_set(valor);
 	switch(estado_set) {
@@ -158,14 +163,38 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 	return estado_set;
 }
 
+char* get_valor_por_clave(char* clave) {
+	char* valor = string_new();
+	bool entrada_tiene_la_clave(t_entrada * entrada){
+		if (strcmp(clave, entrada->clave) == 0) {
+			return true;
+		}
+		return false;
+	}
+	t_entrada * i_entrada = list_find(instancia.entradas, entrada_tiene_la_clave);
+	string_append(&valor, i_entrada->contenido);
+	i_entrada = get_next(i_entrada);
+	while(strcmp(clave, i_entrada->clave) == 0) {
+		string_append(&valor, i_entrada->contenido);
+		i_entrada = get_next(i_entrada);
+	}
+	return valor;
+}
+
+int ejecutar_get(un_socket coordinador, char* clave) {
+	char* valor = get_valor_por_clave(clave);
+	enviar(coordinador, cop_Instancia_Ejecutar_Get, size_of_string(valor), valor); // Envia al coordinador el valor de la clave solicitada
+	printf("GET %s \n", clave);
+}
+
 void mostrar_tabla_entradas() {
-	puts("______________________________________________________________________");
+	puts("_________________________________________________________________________");
 	puts("| ID | Clave | Contenido | Espacio utilizado | Cant. veces no accedida |");
-	puts("______________________________________________________________________");
+	puts("_________________________________________________________________________");
 	void mostrar_entrada(t_entrada * entrada){
 		printf("|   %d   |   %s   |   %s   |   %d   |   %d   | \n", entrada->id, entrada->clave,
 				entrada->contenido, entrada->espacio_ocupado, entrada->cant_veces_no_accedida);
 	}
 	list_iterate(instancia.entradas, mostrar_entrada);
-	puts("______________________________________________________________________");
+	puts("_________________________________________________________________________");
 }
