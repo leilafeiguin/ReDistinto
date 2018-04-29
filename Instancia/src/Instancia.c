@@ -63,6 +63,8 @@ void crear_tabla_entradas(un_socket coordinador) {
 			entrada->id = i;
 			entrada->espacio_ocupado = 0;
 			entrada->cant_veces_no_accedida = 0;
+			entrada->clave = "";
+			entrada->contenido = "";
 			list_add(instancia.entradas, entrada);
 		}
 		log_info(logger, "Tabla de entradas creada \n");
@@ -124,25 +126,20 @@ int get_entrada_a_guardar(char* valor) {
 int set(int index_entrada, char* clave, char* valor) {
 	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
-	bool contenido_guardado = false;
-	while(contenido_guardado == false) {
-		puts(valor_restante_a_guardar);
-		puts(string_substring(valor_restante_a_guardar, 0, tamanio_entradas));
-
+	while(espacio_restante_a_guardar > 0) {
 		t_entrada * entrada = list_get(instancia.entradas, index_entrada);
 		entrada->clave = clave;
 		entrada->contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
 		entrada->espacio_ocupado = size_of_string(entrada->contenido) -1;
 		entrada->cant_veces_no_accedida = 0;
-		// Verifico si ya guarde todo el valor
 		espacio_restante_a_guardar += (-1) * (entrada->espacio_ocupado);
-		printf("Espacio restante: %d \n", espacio_restante_a_guardar);
+		index_entrada++;
+		// Verifico si ya guarde todo el valor
 		if (espacio_restante_a_guardar > 0) {
 			valor_restante_a_guardar = string_substring(valor_restante_a_guardar, tamanio_entradas, strlen(valor_restante_a_guardar) - tamanio_entradas);
-		} else {
-			contenido_guardado = true;
 		}
 	}
+	printf("Operacion SET, clave: %s, valor: %s \n", clave, valor);
 	return 0;
 }
 
@@ -157,5 +154,18 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 			set(get_entrada_a_guardar(valor), clave, valor);
 		break;
 	}
+	mostrar_tabla_entradas();
 	return estado_set;
+}
+
+void mostrar_tabla_entradas() {
+	puts("______________________________________________________________________");
+	puts("| ID | Clave | Contenido | Espacio utilizado | Cant. veces no accedida |");
+	puts("______________________________________________________________________");
+	void mostrar_entrada(t_entrada * entrada){
+		printf("|   %d   |   %s   |   %s   |   %d   |   %d   | \n", entrada->id, entrada->clave,
+				entrada->contenido, entrada->espacio_ocupado, entrada->cant_veces_no_accedida);
+	}
+	list_iterate(instancia.entradas, mostrar_entrada);
+	puts("______________________________________________________________________");
 }

@@ -29,5 +29,6 @@ int espacio_ocupado();
 int espacio_disponible();
 int verificar_set(char* valor);
 int get_entrada_a_guardar(char* valor);	// Devuelve la posicion de la entrada donde se guardara el valor
+void mostrar_tabla_entradas();
 
 #endif /* INSTANCIA_H_ */

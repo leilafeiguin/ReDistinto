@@ -458,3 +458,11 @@ int size_of_string(char* string) {
 	return strlen(string) * sizeof(char) + 1;
 }
 
+char* string_joins(char** strings) {
+	char *string = string_new();
+	for(int i = 0; i < sizeof(strings); i++ ) {
+		string_append(&string, strings[i]);
+	}
+	return string;
+}
+
