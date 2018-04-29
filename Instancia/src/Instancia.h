@@ -16,6 +16,7 @@ typedef struct instancia_configuracion {
 
 char* pathInstanciaConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/configInstancia.cfg";
 char* pathInstanciaData = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/data/";
+char* nombre_instancia;
 int cantidad_entradas;
 int tamanio_entradas;
 
@@ -23,7 +24,7 @@ instancia_configuracion get_configuracion();
 t_instancia instancia;
 
 void crear_tabla_entradas(un_socket coordinador);
-void esperar_instrucciones(un_socket coordinador);
+int esperar_instrucciones(un_socket coordinador);
 int ejecutar_set(un_socket coordinador, char* clave);
 int set(t_entrada * entrada, char* clave, char* valor);
 int ejecutar_get(un_socket coordinador, char* clave);

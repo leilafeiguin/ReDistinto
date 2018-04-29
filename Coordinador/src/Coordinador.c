@@ -128,6 +128,7 @@ int main(void) {
 			}
 		}
 	}
+	puts("Saliendo wachooo");
 	return EXIT_SUCCESS;
 }
 
@@ -184,7 +185,6 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
 	enviar(socket_instancia, cop_generico, sizeof(int),  tamanio_entrada);
 
-
 	// BORRAR PROXIMAMENTE: Para probar las funciones
 	set("nombre", "tomas uriel chejanovich");
 	get("nombre");
@@ -194,28 +194,40 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 
 int set(char* clave, char* valor) {
 	t_instancia * instancia = instancia_a_guardar();
-	list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
-	printf("SET %s '%s' \n", clave, valor);
+	if (health_check(instancia) == true) {
+		list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
+		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
+		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
+		printf("SET %s '%s' \n", clave, valor);
+		return 1;
+	}
+	printf("ERROR: No pudo ejecutarse el SET. %s no disponible. \n", instancia->nombre);
 	return 0;
 }
 
 int get(char* clave) {
 	t_instancia * instancia = get_instancia_con_clave(clave);
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
-	t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
-	printf("GET %s: '%s' \n", clave, paqueteValor->data);
+	if (health_check(instancia) == true) {
+		enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
+		t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
+		printf("GET %s: '%s' \n", clave, paqueteValor->data);
+		return 1;
+	}
+	printf("ERROR: No pudo ejecutarse el GET. %s no disponible. \n", instancia->nombre);
 	return 0;
 }
 
 int store(char* clave) {
 	t_instancia * instancia = get_instancia_con_clave(clave);
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
-	t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
-	if (paqueteEstadoOperacion->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
-		printf("Clave '%s' liberada \n", clave);
+	if (health_check(instancia) == true) {
+		enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
+		t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
+		if (paqueteEstadoOperacion->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
+			printf("Clave '%s' liberada \n", clave);
+		}
+		return 1;
 	}
+	printf("ERROR: No pudo ejecutarse el STORE. %s no disponible. \n", instancia->nombre);
 	return 0;
 }
 
@@ -224,7 +236,26 @@ int dump() {
 }
 
 int dump_instancia(t_instancia * instancia) {
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
+	if (health_check(instancia) == true) {
+		enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
+		return 1;
+	}
+	printf("ERROR: No pudo ejecutarse el DUMP. %s no disponible. \n", instancia->nombre);
+	return 0;
+}
+
+bool health_check(t_instancia * instancia) {
+	if (instancia->estado == desconectada) {
+		return false;
+	}
+	enviar(instancia->socket, codigo_healthcheck, size_of_string(""), ""); // Envio el request de healthcheck
+	t_paquete* paqueteRecibido = recibir(instancia->socket); // Aguardo a recbir el OK de la instancia
+	if (paqueteRecibido->codigo_operacion == codigo_healthcheck) {
+		return true;
+	}
+	instancia->estado = desconectada;
+	printf("%s no disponible \n", instancia->nombre);
+	return false;
 }
 
 t_instancia * get_instancia_con_clave(char * clave) {

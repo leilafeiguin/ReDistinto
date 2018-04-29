@@ -5,7 +5,9 @@
 void* archivo;
 t_log* logger;
 
-int main(void) {
+int main(int argc, char* arguments[]) {
+	nombre_instancia = arguments[1]; // BORRAR PROXIMAMENTE
+
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/instancia_image.txt");
 	char* fileLog;
 	fileLog = "instancia_logs.txt";
@@ -40,7 +42,8 @@ instancia_configuracion get_configuracion() {
 	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
 	configuracion.ALGORITMO_REEMPLAZO = get_campo_config_string(archivo_configuracion, "ALGORITMO_REEMPLAZO");
 	configuracion.PUNTO_MONTAJE = get_campo_config_string(archivo_configuracion, "PUNTO_MONTAJE");
-	configuracion.NOMBRE_INSTANCIA = get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA");
+	// configuracion.NOMBRE_INSTANCIA = get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA");
+	configuracion.NOMBRE_INSTANCIA = nombre_instancia; // BORRAR PROXIMAMENTE
 	configuracion.INTERVALO_DUMP = get_campo_config_int(archivo_configuracion, "INTERVALO_DUMP");
 	return configuracion;
 }
@@ -88,8 +91,9 @@ int espacio_disponible() {
 	return espacio_total() - espacio_ocupado();
 }
 
-void esperar_instrucciones(un_socket coordinador) {
+int esperar_instrucciones(un_socket coordinador) {
 	while(1) {
+		puts("Aguardando instrucciones del coordinador..");
 		t_paquete* paqueteRecibido = recibir(coordinador);
 		switch(paqueteRecibido->codigo_operacion) {
 			case cop_Instancia_Ejecutar_Set:
@@ -106,6 +110,15 @@ void esperar_instrucciones(un_socket coordinador) {
 
 			case cop_Instancia_Ejecutar_Dump:
 				ejecutar_dump(coordinador);
+			break;
+
+			case codigo_error:
+				log_info(logger, "Error en el coordinador. Abortando. \n");
+				return 0;
+			break;
+
+			case codigo_healthcheck:
+				enviar(coordinador, codigo_healthcheck, size_of_string(""), "");
 			break;
 		}
 	}

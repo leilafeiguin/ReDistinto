@@ -31,6 +31,8 @@ void salir(int motivo);
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia);
 
+bool health_check(t_instancia * instancia);
+
 t_list * instancias_activas();
 
 int set(char* clave, char* valor);

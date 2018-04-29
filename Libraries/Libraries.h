@@ -28,6 +28,8 @@
 
 
 enum codigos_de_operacion {
+	codigo_error = -1,
+	codigo_healthcheck = 2,
 	cop_generico = 0,
 	cop_archivo = 1,
 
