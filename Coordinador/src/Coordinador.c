@@ -151,20 +151,14 @@ void salir(int motivo){
 
 t_list * instancias_activas() {
 	bool instancia_activa(t_instancia * i) {
-		 if (i->estado == conectada) {
-			 return true;
-		 }
-		return false;
+		return i->estado == conectada ? true : false;
 	}
 	return list_filter(lista_instancias, instancia_activa);
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	bool instancia_ya_existente(t_instancia * ins){
-		if (strcmp(ins->nombre, nombre_instancia) == 0) {
-			return true;
-		}
-		return false;
+		return strcmp(ins->nombre, nombre_instancia) == 0 ? true : false;
 	}
 	t_instancia * instancia = list_find(lista_instancias, instancia_ya_existente);
 	int codigo_respuesta = cop_Instancia_Nueva;
@@ -256,15 +250,9 @@ bool health_check(t_instancia * instancia) {
 t_instancia * get_instancia_con_clave(char * clave) {
 	bool instancia_tiene_clave(t_instancia * instancia){
 		bool clave_match(char * clave_comparar){
-			if (strcmp(clave, clave_comparar) == 0) {
-				return true;
-			}
-			return false;
+			return strcmp(clave, clave_comparar) == 0 ? true : false;
 		}
-		if (list_find(instancia->keys_contenidas, clave_match) != NULL) {
-			return true;
-		}
-		return false;
+		return list_find(instancia->keys_contenidas, clave_match) != NULL ? true :  false;
 	}
 	return list_find(lista_instancias, instancia_tiene_clave);
 }
@@ -296,14 +284,8 @@ int enviar_informacion_tabla_entradas(t_instancia * instancia) {
 }
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Instancia nueva, 1: Instancia reconectandose
-	char* mensaje = string_new();
-	if (estado == 0) {
-		string_append(&mensaje, "Instancia conectada: ");
-	} else {
-		string_append(&mensaje, "Instancia reconectada: ");
-	}
-	string_append(&mensaje, nombre_instancia);
-	string_append(&mensaje, " \n");
+	char* mensaje = estado == 0 ? "Instancia conectada: " : "Instancia reconectada: ";
+	mensaje = string_concat(3, mensaje, nombre_instancia, " \n");
 	log_info(logger, mensaje);
 }
 

@@ -52,23 +52,15 @@ instancia_configuracion get_configuracion() {
 }
 
 void inicializar_instancia(un_socket coordinador) {
-	bool instancia_nueva = true;
 	t_paquete* paqueteEstadoInstancia = recibir(coordinador); // Recibo si es una instancia nueva o se esta reconectado
-	if (paqueteEstadoInstancia->codigo_operacion == cop_Instancia_Vieja) {
-		instancia_nueva = false;
-	}
-
+	bool instancia_nueva = paqueteEstadoInstancia->codigo_operacion == cop_Instancia_Vieja ? false : true;
 	t_paquete* paqueteCantidadEntradas = recibir(coordinador) ; // Recibo la cantidad de entradas
 	t_paquete* paqueteTamanioEntradas = recibir(coordinador); // Recibo tamaño de cada entrada
 	cantidad_entradas = atoi(paqueteCantidadEntradas->data);
 	tamanio_entradas = atoi(paqueteTamanioEntradas->data);
 
 	// Se fija si la instancia es nueva o se esta reconectando, por ende tiene que levantar informacion del disco
-	if (instancia_nueva) {
-		crear_tabla_entradas(cantidad_entradas, tamanio_entradas);
-	} else {
-		restaurar_tabla_entradas(cantidad_entradas, tamanio_entradas);
-	}
+	instancia_nueva ? crear_tabla_entradas(cantidad_entradas, tamanio_entradas) : restaurar_tabla_entradas(cantidad_entradas, tamanio_entradas);
 }
 
 int espacio_total() {
@@ -214,10 +206,7 @@ int dump_entrada(t_entrada * entrada) {
 		printf("Persistiendo entrada. ID %d , Valor '%s' \n", entrada->id, entrada->contenido);
 		char* file_path = get_file_path(entrada->id);
 		remove(file_path); // Borro el archivo ya que voy a reemplazar el contenido
-		char* file_content = string_new();
-		string_append(&file_content, entrada->clave);
-		string_append(&file_content, "-:-");
-		string_append(&file_content, entrada->contenido);
+		char* file_content = string_concat(3, entrada->clave, "-:-", entrada->contenido);
 		FILE* file = txt_open_for_append(file_path);
 		txt_write_in_file(file, file_content);
 		txt_close_file(file);
@@ -226,22 +215,13 @@ int dump_entrada(t_entrada * entrada) {
 
 t_list * get_entradas_con_clave(char* clave) {
 	bool entrada_tiene_la_clave(t_entrada * entrada){
-		if (strcmp(clave, entrada->clave) == 0) {
-			return true;
-		}
-		return false;
+		return strcmp(clave, entrada->clave) == 0 ? true : false;
 	}
 	return list_filter(instancia.entradas, entrada_tiene_la_clave);
 }
 
 char* get_file_path(int id_entrada) {
-	char* filePath = string_new();
-	string_append(&filePath, pathInstanciaData);
-	string_append(&filePath, instancia.nombre);
-	string_append(&filePath, "_Entrada_");
-	string_append(&filePath, string_itoa(id_entrada));
-	string_append(&filePath, ".txt");
-	return filePath;
+	return string_concat(5, pathInstanciaData, instancia.nombre, "_Entrada_", string_itoa(id_entrada), ".txt");
 }
 
 int restaurar_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {

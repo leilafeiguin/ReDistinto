@@ -458,3 +458,16 @@ int size_of_string(char* string) {
 	return strlen(string) * sizeof(char) + 1;
 }
 
+char* string_concat(int cant_strings, ...) {
+	va_list list;
+   int j = 0;
+   va_start(list, cant_strings);
+   char* result = string_new();
+   for(j=0; j < cant_strings; j++)
+   {
+	 string_append(&result, va_arg(list, int));
+   }
+   va_end(list);
+   return result;
+}
+
