@@ -178,6 +178,8 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	set("nombre", "tomas uriel chejanovich");
 	get("nombre");
 	store("nombre");
+	set("sdfsdf", "Cristiano ronaldo");
+	set("jojo", "Miamemeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
 	dump();
 }
 

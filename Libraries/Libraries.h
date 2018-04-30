@@ -25,6 +25,7 @@
 #include <linux/if_link.h>
 #include <ifaddrs.h>
 #include <stdarg.h>
+#include <math.h>
 #define MAX_LEN 128
 
 

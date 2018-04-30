@@ -30,7 +30,9 @@ char* get(char* clave);
 int ejecutar_store(un_socket coordinador, char* clave);
 int ejecutar_dump(un_socket coordinador);
 int verificar_set(char* valor); // Verifica si se puede guardar un valor
-t_entrada * get_entrada_a_guardar(char* valor);	// Devuelve la entrada donde se guardara el valor
+t_entrada * get_entrada_a_guardar_algoritmo_reemplazo(char* clave, char* valor);	// Detecta si no hay espacio disponible a causa de fragmentacion (y especifica el tipo) y aplica el algoritmo de reemplazo
+t_entrada * get_entrada_a_guardar(char* clave, char* valor);	// Devuelve la entrada donde se guardara el valor
+t_entrada * get_entrada_x_index(int id); // El ID de la intrada es igual al index de la misma en la lista
 t_list * get_entradas_con_clave(char* clave); // Devuelve las entradas que contiene una clave especificada
 int dump_entrada(t_entrada * entrada); // Persiste a disco una entrada especificada
 void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada);

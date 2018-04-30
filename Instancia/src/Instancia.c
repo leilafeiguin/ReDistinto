@@ -107,18 +107,54 @@ int verificar_set(char* valor) {
 	return cop_Instancia_Guardar_OK;
 }
 
-t_entrada * get_entrada_a_guardar(char* valor) {
+t_entrada * get_entrada_x_index(int index) {
+	return list_get(instancia.entradas, index);
+}
+
+// Detecta si no hay espacio disponible a causa de fragmentacion (y especifica el tipo) y aplica el algoritmo de reemplazo
+t_entrada * get_entrada_a_guardar_algoritmo_reemplazo(char* clave, char* valor) {
+	log_info(logger, "No hay entradas disponibles. Aplicando algoritmo de reemplazo");
+	return get_entrada_x_index(0);
+}
+
+t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
 	/*
 	 * Segun un algoritmo devuelve la entrada donde se guardara el valor.
 	 * Si el valor es demasiado grande, ocupara las proximas entradas consecutivas a esa.
+	 * En caso de que no haya espacio disponible ya sea por fragmentacion interna o externa, lo comunicara y
+	 * luego aplicara el algoritmo de reemplazo.
 	 */
-	int index_entrada = 0;// TODO: Aplicar algoritmo aca
-	return list_get(instancia.entradas, index_entrada);
+	int cant_entradas_necesarias = ceil((float)(size_of_string(valor) - 1) / tamanio_entradas);
+	t_entrada * entrada_guardar = NULL;	// Entrada inicial donde se guardara el valor
+	int i_entrada = 0;
+	while(entrada_guardar == NULL && i_entrada < cantidad_entradas) {
+		t_entrada * entrada_i = get_entrada_x_index(i_entrada);
+		if (entrada_i->espacio_ocupado == 0 || strcmp(entrada_i->clave, clave) == 0) {	// Si la entrada esta libre o se uso para esa misma clave
+			int max_offset = i_entrada + cant_entradas_necesarias - 1;
+			bool espacio_disponible = max_offset >= cantidad_entradas ? false : true;
+			int j_entrada = i_entrada + 1;
+			while (espacio_disponible && j_entrada <= max_offset) {
+				t_entrada * entrada_j = get_entrada_x_index(j_entrada);
+				if (entrada_j->espacio_ocupado == 0 || strcmp(entrada_j->clave, clave) == 0) {
+					j_entrada++;
+				} else {
+					espacio_disponible = false;
+				}
+			}
+			if (espacio_disponible) {
+				entrada_guardar = entrada_i;
+			} else {
+				i_entrada = max_offset + 1;
+			}
+		}
+		i_entrada++;
+	}
+	return entrada_guardar != NULL ? entrada_guardar : get_entrada_a_guardar_algoritmo_reemplazo(clave, valor);
 }
 
 t_entrada * get_next(t_entrada * entrada) {
 	int index_entrada = entrada->id + 1;
-	return list_get(instancia.entradas, index_entrada);
+	return get_entrada_x_index(index_entrada);
 }
 
 // Recibo la clave como parametro y espero a que me envien en el valor
@@ -128,13 +164,14 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 	int estado_set = verificar_set(valor);
 	switch(estado_set) {
 		case cop_Instancia_Guardar_OK:
-			set(get_entrada_a_guardar(valor), clave, valor);
+			set(get_entrada_a_guardar(clave, valor), clave, valor);
 		break;
 	}
 	return estado_set;
 }
 
 int set(t_entrada * entrada, char* clave, char* valor) {
+	puts("Tratando de ejecutar SET");
 	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
@@ -184,9 +221,9 @@ int ejecutar_dump(un_socket coordinador) {
 }
 
 int dump_entrada(t_entrada * entrada) {
+	char* file_path = get_file_path(entrada->id);
+	remove(file_path); // Borro el archivo ya que voy a reemplazar el contenido
 	if (entrada->espacio_ocupado > 0) {
-		char* file_path = get_file_path(entrada->id);
-		remove(file_path); // Borro el archivo ya que voy a reemplazar el contenido
 		char* file_content = string_concat(3, entrada->clave, "-:-", entrada->contenido);
 		FILE* file = txt_open_for_append(file_path);
 		txt_write_in_file(file, file_content);
