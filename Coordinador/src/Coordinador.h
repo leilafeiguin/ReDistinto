@@ -23,8 +23,6 @@ char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordin
 
 t_list* lista_instancias;
 
-t_list* lista_cant_entradas_x_instancia;
-
 coordinador_configuracion get_configuracion();
 
 void salir(int motivo);
