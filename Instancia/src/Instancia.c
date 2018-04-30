@@ -171,7 +171,6 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 }
 
 int set(t_entrada * entrada, char* clave, char* valor) {
-	puts("Tratando de ejecutar SET");
 	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
