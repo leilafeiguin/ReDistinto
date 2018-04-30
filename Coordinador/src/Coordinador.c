@@ -15,6 +15,7 @@ int main(void) {
 
 	esEstadoInvalido = true;
 	lista_instancias = list_create();
+	lista_claves_tomadas = list_create();
 
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -127,7 +128,6 @@ int main(void) {
 			}
 		}
 	}
-	puts("Saliendo wachooo");
 	return EXIT_SUCCESS;
 }
 
@@ -200,6 +200,30 @@ int set(char* clave, char* valor) {
 		}
 	}
 	return 1;
+}
+
+int ejecutar_get(int id_ESI, char* clave) {
+	bool clave_match(t_clave_tomada * clave_comparar){
+		return strcmp(clave, clave_comparar->clave) == 0 ? true : false;
+	}
+	t_clave_tomada * t_clave = list_find(lista_claves_tomadas, clave_match);
+	if (t_clave == NULL) { // Si la clave no se encuentra tomada
+		t_clave = add_clave_tomada(id_ESI, clave);
+	}
+
+	if (t_clave->id_ESI == id_ESI) {	// Si la clave esta tomada por ese mismo ESI
+		get(clave);
+	} else {
+		printf("La clave %s se encuentra tomada por otro ESI \n", clave);
+	}
+}
+
+t_clave_tomada * add_clave_tomada(int id_ESI, char* clave) {
+	t_clave_tomada * t_clave = malloc(sizeof(t_clave_tomada));
+	t_clave->id_ESI = id_ESI;
+	t_clave->clave = clave;
+	list_add(lista_claves_tomadas, t_clave);
+	return t_clave;
 }
 
 int get(char* clave) {
@@ -298,7 +322,6 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 	mensaje = string_concat(3, mensaje, nombre_instancia, " \n");
 	log_info(logger, mensaje);
 }
-
 
 void * equitative_load() {
 	return list_find(lista_instancias, cantidad_entradas_x_instancia);

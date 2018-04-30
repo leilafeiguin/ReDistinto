@@ -23,6 +23,13 @@ char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordin
 
 t_list* lista_instancias;
 
+t_list* lista_claves_tomadas;
+
+typedef struct {
+	int id_ESI; // ID del ESI que tiene la clave
+	char* clave; // Nombre de la clave tomada
+} t_clave_tomada;
+
 coordinador_configuracion get_configuracion();
 
 void salir(int motivo);
@@ -34,6 +41,10 @@ bool health_check(t_instancia * instancia);
 t_list * instancias_activas();
 
 int set(char* clave, char* valor);
+
+t_clave_tomada * add_clave_tomada(int id_ESI, char* clave);
+
+int ejecutar_get(int id_ESI, char* clave);
 
 int get(char* clave);
 
