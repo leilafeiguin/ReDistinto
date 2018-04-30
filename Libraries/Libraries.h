@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include <linux/if_link.h>
 #include <ifaddrs.h>
-
 #define MAX_LEN 128
 
 
@@ -206,8 +205,6 @@ char* generarDirectorioTemporal(char* carpeta);
 void *get_in_addr(struct sockaddr *sa);
 
 int size_of_string(char* string);
-
-char* string_joins(char** strings);
 
 
 #endif /* LIBRARIES_H_ */

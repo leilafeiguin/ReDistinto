@@ -287,14 +287,12 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 
 int enviar_informacion_tabla_entradas(t_instancia * instancia) {
 	// Envio la cantidad de entradas que va a tener esa instancia
-	char cant_entradas[12];
-	sprintf(cant_entradas, "%d", configuracion.CANTIDAD_ENTRADAS);
-	enviar(instancia->socket, cop_generico, sizeof(int), cant_entradas);
+	char* cant_entradas = string_itoa(configuracion.CANTIDAD_ENTRADAS);
+	enviar(instancia->socket, cop_generico, size_of_string(cant_entradas), cant_entradas);
 
 	// Envio el tamaño que va a tener cada entrada
-	char tamanio_entrada[12];
-	sprintf(tamanio_entrada, "%d", configuracion.TAMANIO_ENTRADA);
-	enviar(instancia->socket, cop_generico, sizeof(int),  tamanio_entrada);
+	char* tamanio_entrada = string_itoa(configuracion.TAMANIO_ENTRADA);
+	enviar(instancia->socket, cop_generico, size_of_string(tamanio_entrada), tamanio_entrada);
 }
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Instancia nueva, 1: Instancia reconectandose

@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "Instancia.h"
 
 void* archivo;
@@ -213,7 +216,7 @@ int dump_entrada(t_entrada * entrada) {
 		remove(file_path); // Borro el archivo ya que voy a reemplazar el contenido
 		char* file_content = string_new();
 		string_append(&file_content, entrada->clave);
-		string_append(&file_content, "\n");
+		string_append(&file_content, "-:-");
 		string_append(&file_content, entrada->contenido);
 		FILE* file = txt_open_for_append(file_path);
 		txt_write_in_file(file, file_content);
@@ -236,9 +239,8 @@ char* get_file_path(int id_entrada) {
 	string_append(&filePath, pathInstanciaData);
 	string_append(&filePath, instancia.nombre);
 	string_append(&filePath, "_Entrada_");
-	char id[12];
-	sprintf(id, "%d", id_entrada);
-	string_append(&filePath, id);
+	string_append(&filePath, string_itoa(id_entrada));
+	string_append(&filePath, ".txt");
 	return filePath;
 }
 
@@ -246,25 +248,32 @@ int restaurar_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
 	instancia.entradas = list_create();
 	for(int i = 0; i < cantidad_entradas; i++) {
 		t_entrada * entrada = malloc(sizeof(t_entrada));
-		int espacio_ocupado = 0;
-		char* clave = "";
-		char* contenido = "";
 		entrada->id = i;
 		entrada->cant_veces_no_accedida = 0;
+		char* clave = "";
+		char* contenido = "";
 		char* file_path = get_file_path(i);
-		FILE* file = fopen(file_path, "r");
-		if (file != NULL) {
-			char* line = NULL;
-			size_t len = 0;
-			ssize_t read;
-			clave = getline(&line, &len, file);
-			contenido = getline(&line, &len, file);
-			fclose(file);
+
+		/* Implementacion mmap */
+		int fd = open(file_path, O_RDONLY);
+		if (fd > 0) {
+			size_t pagesize = getpagesize();
+			char * file_content = mmap(
+				(void*) (pagesize * (1 << 20)), pagesize,
+				PROT_READ, MAP_FILE|MAP_PRIVATE,
+				fd, 0
+			);
+			char** content = string_split(file_content, "-:-");
+			clave = content[0];
+			contenido = content[1];
+			int unmap_result = munmap(file_content, pagesize);
+			close(fd);
 		}
-		printf("Clave: %s, Valor: %s \n");
+		/* !Implementacion mmap */
+
 		entrada->clave = clave;
 		entrada->contenido = contenido;
-		entrada->espacio_ocupado = size_of_string(contenido);
+		entrada->espacio_ocupado = size_of_string(contenido) - 1;
 		list_add(instancia.entradas, entrada);
 	}
 	log_info(logger, "Tabla de entradas restaurada del disco \n");
