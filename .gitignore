@@ -67,3 +67,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Dumps de las instancias
+Instancia/data
+
