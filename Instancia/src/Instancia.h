@@ -1,9 +1,7 @@
 #ifndef INSTANCIA_H_
 #define INSTANCIA_H_
 
-#include <stdlib.h>
 #include <Libraries.h>
-#include <commons/log.h>
 
 typedef struct instancia_configuracion {
 	char* IP_COORDINADOR;
@@ -31,9 +29,6 @@ int ejecutar_get(un_socket coordinador, char* clave);
 char* get(char* clave);
 int ejecutar_store(un_socket coordinador, char* clave);
 int ejecutar_dump(un_socket coordinador);
-int espacio_total();
-int espacio_ocupado();
-int espacio_disponible();
 int verificar_set(char* valor); // Verifica si se puede guardar un valor
 t_entrada * get_entrada_a_guardar(char* valor);	// Devuelve la entrada donde se guardara el valor
 t_list * get_entradas_con_clave(char* clave); // Devuelve las entradas que contiene una clave especificada

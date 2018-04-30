@@ -182,16 +182,24 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 }
 
 int set(char* clave, char* valor) {
-	t_instancia * instancia = instancia_a_guardar();
-	if (health_check(instancia)) {
-		list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
-		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
-		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
-		log_info(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
-		return 1;
+	bool inserted = false;
+	while(!inserted) {
+		t_instancia * instancia = instancia_a_guardar();
+		if (instancia == NULL) {
+			log_info(logger, "ERROR: No pudo ejecutarse el SET. No hay instancias disponibles. \n ");
+			return 0;
+		}
+		if (health_check(instancia)) {
+			list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
+			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
+			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
+			log_info(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
+			inserted = true;
+		} else {
+			log_info(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
+		}
 	}
-	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el SET. ", instancia->nombre, " no disponible. \n"));
-	return 0;
+	return 1;
 }
 
 int get(char* clave) {
@@ -259,7 +267,7 @@ t_instancia * get_instancia_con_clave(char * clave) {
 }
 
 t_instancia * instancia_a_guardar() {
-	return list_get(lista_instancias, 0); // TODO: Utilizar algoritmo correspondiente
+	return list_get(instancias_activas(), 0); // TODO: Utilizar algoritmo correspondiente
 }
 
 t_instancia * crear_instancia(un_socket socket, char* nombre) {

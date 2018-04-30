@@ -63,23 +63,6 @@ void inicializar_instancia(un_socket coordinador) {
 	instancia_nueva ? crear_tabla_entradas(cantidad_entradas, tamanio_entradas) : restaurar_tabla_entradas(cantidad_entradas, tamanio_entradas);
 }
 
-int espacio_total() {
-	return cantidad_entradas * tamanio_entradas;
-}
-
-int espacio_ocupado() {
-	double espacio = 0;
-	void sumar_espacio(t_entrada * entrada){
-		espacio += entrada->espacio_ocupado;
-	}
-	list_iterate(instancia.entradas, sumar_espacio);
-	return espacio;
-}
-
-int espacio_disponible() {
-	return espacio_total() - espacio_ocupado();
-}
-
 int esperar_instrucciones(un_socket coordinador) {
 	while(1) {
 		t_paquete* paqueteRecibido = recibir(coordinador);

@@ -15,6 +15,7 @@
 #include <commons/config.h>
 #include <commons/collections/list.h>
 #include <commons/txt.h>
+#include <commons/log.h>
 #include <unistd.h>
 #include <assert.h>
 #include <sys/mman.h>
