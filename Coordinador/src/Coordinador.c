@@ -15,7 +15,6 @@ int main(void) {
 
 	esEstadoInvalido = true;
 	lista_instancias = list_create();
-	lista_cant_entradas_x_instancia = list_create();
 
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -269,6 +268,7 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 	instancia_nueva->nombre = nombre;
 	instancia_nueva->estado = conectada;
 	instancia_nueva->cant_entradas_ocupadas = 0;
+	instancia_nueva->espacio_entradas = 0;
 	instancia_nueva->keys_contenidas = list_create();
 	list_add(lista_instancias, instancia_nueva);
 	return instancia_nueva;
