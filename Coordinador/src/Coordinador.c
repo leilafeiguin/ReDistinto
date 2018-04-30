@@ -167,14 +167,17 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 		return false;
 	}
 	t_instancia * instancia = list_find(lista_instancias, instancia_ya_existente);
+	int codigo_respuesta = cop_Instancia_Nueva;
 	if (instancia == NULL) { // Si es una instancia nueva
 		mensaje_instancia_conectada(nombre_instancia, 0);
 		instancia = crear_instancia(socket_instancia, nombre_instancia);
 	} else { // Si es una instancia ya creada reconectandose
+		codigo_respuesta = cop_Instancia_Vieja;
 		mensaje_instancia_conectada(nombre_instancia, 1);
 		instancia->socket = socket_instancia;
 		instancia->estado = conectada;
 	}
+	enviar(instancia->socket, codigo_respuesta, sizeof(int), "0");
 	enviar_informacion_tabla_entradas(instancia);
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
@@ -186,7 +189,7 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 
 int set(char* clave, char* valor) {
 	t_instancia * instancia = instancia_a_guardar();
-	if (health_check(instancia) == true) {
+	if (health_check(instancia)) {
 		list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
@@ -199,7 +202,7 @@ int set(char* clave, char* valor) {
 
 int get(char* clave) {
 	t_instancia * instancia = get_instancia_con_clave(clave);
-	if (health_check(instancia) == true) {
+	if (health_check(instancia)) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
 		printf("GET %s: '%s' \n", clave, paqueteValor->data);
@@ -211,7 +214,7 @@ int get(char* clave) {
 
 int store(char* clave) {
 	t_instancia * instancia = get_instancia_con_clave(clave);
-	if (health_check(instancia) == true) {
+	if (health_check(instancia)) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
 		if (paqueteEstadoOperacion->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
@@ -228,7 +231,7 @@ int dump() {
 }
 
 int dump_instancia(t_instancia * instancia) {
-	if (health_check(instancia) == true) {
+	if (health_check(instancia)) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
 		return 1;
 	}

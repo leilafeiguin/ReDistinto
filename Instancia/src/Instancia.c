@@ -29,7 +29,7 @@ int main(int argc, char* arguments[]) {
 	enviar(Coordinador,cop_generico, size_of_string(instancia.nombre), instancia.nombre);
 	log_info(logger, "Me conecte con el Coordinador. \n");
 
-	crear_tabla_entradas(Coordinador);
+	inicializar_instancia(Coordinador);
 	esperar_instrucciones(Coordinador);
 	return EXIT_SUCCESS;
 }
@@ -48,30 +48,24 @@ instancia_configuracion get_configuracion() {
 	return configuracion;
 }
 
-void crear_tabla_entradas(un_socket coordinador) {
-	// Recibo la cantidad de entradas y tamaño de cada una
-	t_paquete* paqueteCantidadEntradas = recibir(coordinador);
-	t_paquete* paqueteTamanioEntradas = recibir(coordinador);
+void inicializar_instancia(un_socket coordinador) {
+	bool instancia_nueva = true;
+	t_paquete* paqueteEstadoInstancia = recibir(coordinador); // Recibo si es una instancia nueva o se esta reconectado
+	if (paqueteEstadoInstancia->codigo_operacion == cop_Instancia_Vieja) {
+		instancia_nueva = false;
+	}
+
+	t_paquete* paqueteCantidadEntradas = recibir(coordinador) ; // Recibo la cantidad de entradas
+	t_paquete* paqueteTamanioEntradas = recibir(coordinador); // Recibo tamaño de cada entrada
 	cantidad_entradas = atoi(paqueteCantidadEntradas->data);
 	tamanio_entradas = atoi(paqueteTamanioEntradas->data);
 
 	// Se fija si la instancia es nueva o se esta reconectando, por ende tiene que levantar informacion del disco
-	if (0) {
-
+	if (instancia_nueva) {
+		crear_tabla_entradas(cantidad_entradas, tamanio_entradas);
 	} else {
-		instancia.entradas = list_create(); // Instancia nueva
-		for(int i = 0; i < cantidad_entradas; i++) {
-			t_entrada * entrada = malloc(sizeof(t_entrada));
-			entrada->id = i;
-			entrada->espacio_ocupado = 0;
-			entrada->cant_veces_no_accedida = 0;
-			entrada->clave = "";
-			entrada->contenido = "";
-			list_add(instancia.entradas, entrada);
-		}
-		log_info(logger, "Tabla de entradas creada \n");
+		restaurar_tabla_entradas(cantidad_entradas, tamanio_entradas);
 	}
-
 }
 
 int espacio_total() {
@@ -160,7 +154,6 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 			set(get_entrada_a_guardar(valor), clave, valor);
 		break;
 	}
-	mostrar_tabla_entradas();
 	return estado_set;
 }
 
@@ -214,12 +207,18 @@ int ejecutar_dump(un_socket coordinador) {
 }
 
 int dump_entrada(t_entrada * entrada) {
-	printf("Persistiendo entrada. ID %d , Valor '%s' \n", entrada->id, entrada->contenido);
-	char* filePath = get_file_path(entrada);
-	remove(filePath); // Borro el archivo ya que voy a reemplazar el contenido
-	FILE* file = txt_open_for_append(filePath);
-	txt_write_in_file(file, entrada->contenido);
-	txt_close_file(file);
+	if (entrada->espacio_ocupado > 0) {
+		printf("Persistiendo entrada. ID %d , Valor '%s' \n", entrada->id, entrada->contenido);
+		char* file_path = get_file_path(entrada->id);
+		remove(file_path); // Borro el archivo ya que voy a reemplazar el contenido
+		char* file_content = string_new();
+		string_append(&file_content, entrada->clave);
+		string_append(&file_content, "\n");
+		string_append(&file_content, entrada->contenido);
+		FILE* file = txt_open_for_append(file_path);
+		txt_write_in_file(file, file_content);
+		txt_close_file(file);
+	}
 }
 
 t_list * get_entradas_con_clave(char* clave) {
@@ -232,15 +231,58 @@ t_list * get_entradas_con_clave(char* clave) {
 	return list_filter(instancia.entradas, entrada_tiene_la_clave);
 }
 
-char* get_file_path(t_entrada * entrada) {
+char* get_file_path(int id_entrada) {
 	char* filePath = string_new();
 	string_append(&filePath, pathInstanciaData);
 	string_append(&filePath, instancia.nombre);
 	string_append(&filePath, "_Entrada_");
-	char id_entrada[12];
-	sprintf(id_entrada, "%d", entrada->id);
-	string_append(&filePath, id_entrada);
+	char id[12];
+	sprintf(id, "%d", id_entrada);
+	string_append(&filePath, id);
 	return filePath;
+}
+
+int restaurar_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
+	instancia.entradas = list_create();
+	for(int i = 0; i < cantidad_entradas; i++) {
+		t_entrada * entrada = malloc(sizeof(t_entrada));
+		int espacio_ocupado = 0;
+		char* clave = "";
+		char* contenido = "";
+		entrada->id = i;
+		entrada->cant_veces_no_accedida = 0;
+		char* file_path = get_file_path(i);
+		FILE* file = fopen(file_path, "r");
+		if (file != NULL) {
+			char* line = NULL;
+			size_t len = 0;
+			ssize_t read;
+			clave = getline(&line, &len, file);
+			contenido = getline(&line, &len, file);
+			fclose(file);
+		}
+		printf("Clave: %s, Valor: %s \n");
+		entrada->clave = clave;
+		entrada->contenido = contenido;
+		entrada->espacio_ocupado = size_of_string(contenido);
+		list_add(instancia.entradas, entrada);
+	}
+	log_info(logger, "Tabla de entradas restaurada del disco \n");
+	mostrar_tabla_entradas();
+}
+
+void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
+	instancia.entradas = list_create();
+	for(int i = 0; i < cantidad_entradas; i++) {
+		t_entrada * entrada = malloc(sizeof(t_entrada));
+		entrada->id = i;
+		entrada->espacio_ocupado = 0;
+		entrada->cant_veces_no_accedida = 0;
+		entrada->clave = "";
+		entrada->contenido = "";
+		list_add(instancia.entradas, entrada);
+	}
+	log_info(logger, "Tabla de entradas creada \n");
 }
 
 void mostrar_tabla_entradas() {

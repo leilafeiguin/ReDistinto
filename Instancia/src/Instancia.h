@@ -23,7 +23,7 @@ int tamanio_entradas;
 instancia_configuracion get_configuracion();
 t_instancia instancia;
 
-void crear_tabla_entradas(un_socket coordinador);
+void inicializar_instancia(un_socket coordinador);
 int esperar_instrucciones(un_socket coordinador);
 int ejecutar_set(un_socket coordinador, char* clave);
 int set(t_entrada * entrada, char* clave, char* valor);
@@ -38,8 +38,10 @@ int verificar_set(char* valor); // Verifica si se puede guardar un valor
 t_entrada * get_entrada_a_guardar(char* valor);	// Devuelve la entrada donde se guardara el valor
 t_list * get_entradas_con_clave(char* clave); // Devuelve las entradas que contiene una clave especificada
 int dump_entrada(t_entrada * entrada); // Persiste a disco una entrada especificada
+void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada);
+int restaurar_tabla_entradas(int cantidad_entradas, int tamanio_entrada);
 void mostrar_tabla_entradas();
 t_entrada * get_next(t_entrada * entrada); // Devuelve la entrada consecutiva a una entrada especificada
-char* get_file_path(t_entrada * entrada); // Devuelve el path del archivo .txt que almacena el contenido de la entrada
+char* get_file_path(int id_entrada); // Devuelve el path del archivo .txt que almacena el contenido de la entrada
 
 #endif /* INSTANCIA_H_ */

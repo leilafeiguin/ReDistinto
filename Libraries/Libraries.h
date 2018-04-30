@@ -50,6 +50,8 @@ enum codigos_de_operacion {
 	cop_Instancia_Guardar_OK = 26,
 	cop_Instancia_Guardar_Error_FE = 27,
 	cop_Instancia_Guardar_Error_FI = 28,
+	cop_Instancia_Nueva= 212,
+	cop_Instancia_Vieja= 213,
 
 	cop_Planificador_Ejecutar_Sentencia = 30,
 	cop_ESI_Sentencia = 31,
