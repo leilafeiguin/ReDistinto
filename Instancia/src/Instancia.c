@@ -82,7 +82,6 @@ int espacio_disponible() {
 
 int esperar_instrucciones(un_socket coordinador) {
 	while(1) {
-		puts("Aguardando instrucciones del coordinador..");
 		t_paquete* paqueteRecibido = recibir(coordinador);
 		switch(paqueteRecibido->codigo_operacion) {
 			case cop_Instancia_Ejecutar_Set:
@@ -168,14 +167,14 @@ int set(t_entrada * entrada, char* clave, char* valor) {
 			valor_restante_a_guardar = string_substring(valor_restante_a_guardar, tamanio_entradas, strlen(valor_restante_a_guardar) - tamanio_entradas);
 		}
 	}
-	printf("Operacion SET, clave: %s, valor: %s \n", clave, valor);
+	log_info(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 	return 0;
 }
 
 int ejecutar_get(un_socket coordinador, char* clave) {
 	char* valor = get(clave);
 	enviar(coordinador, cop_Instancia_Ejecutar_Get, size_of_string(valor), valor); // Envia al coordinador el valor de la clave solicitada
-	printf("GET %s \n", clave);
+	log_info(logger, string_concat(3, "GET ", clave," \n"));
 }
 
 char* get(char* clave) {
@@ -189,21 +188,20 @@ char* get(char* clave) {
 }
 
 int ejecutar_store(un_socket coordinador, char* clave) {
-	printf("STORE %s \n", clave);
 	t_list * entradas = get_entradas_con_clave(clave);
 	list_iterate(entradas, dump_entrada);
 	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el STORE se ejecuto de forma exitosa
+	log_info(logger, string_concat(3, "STORE ", clave, " \n"));
 }
 
 int ejecutar_dump(un_socket coordinador) {
-	puts("Ejecutando DUMP");
+	log_info(logger, "Ejecutando DUMP \n");
 	list_iterate(instancia.entradas, dump_entrada);
 	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el DUMP se ejecuto de forma exitosa
 }
 
 int dump_entrada(t_entrada * entrada) {
 	if (entrada->espacio_ocupado > 0) {
-		printf("Persistiendo entrada. ID %d , Valor '%s' \n", entrada->id, entrada->contenido);
 		char* file_path = get_file_path(entrada->id);
 		remove(file_path); // Borro el archivo ya que voy a reemplazar el contenido
 		char* file_content = string_concat(3, entrada->clave, "-:-", entrada->contenido);

@@ -187,10 +187,10 @@ int set(char* clave, char* valor) {
 		list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
-		printf("SET %s '%s' \n", clave, valor);
+		log_info(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 		return 1;
 	}
-	printf("ERROR: No pudo ejecutarse el SET. %s no disponible. \n", instancia->nombre);
+	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el SET. ", instancia->nombre, " no disponible. \n"));
 	return 0;
 }
 
@@ -199,10 +199,10 @@ int get(char* clave) {
 	if (health_check(instancia)) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
-		printf("GET %s: '%s' \n", clave, paqueteValor->data);
+		log_info(logger, string_concat(5, "GET ", clave, ": '", paqueteValor->data, "' \n"));
 		return 1;
 	}
-	printf("ERROR: No pudo ejecutarse el GET. %s no disponible. \n", instancia->nombre);
+	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el GET. ", instancia->nombre, " no disponible. \n"));
 	return 0;
 }
 
@@ -212,11 +212,12 @@ int store(char* clave) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
 		if (paqueteEstadoOperacion->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
-			printf("Clave '%s' liberada \n", clave);
+			log_info(logger, string_concat(3, "Clave '", clave, "' liberada \n"));
+
 		}
 		return 1;
 	}
-	printf("ERROR: No pudo ejecutarse el STORE. %s no disponible. \n", instancia->nombre);
+	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el STORE. ", instancia->nombre, " no disponible. \n"));
 	return 0;
 }
 
@@ -229,7 +230,7 @@ int dump_instancia(t_instancia * instancia) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
 		return 1;
 	}
-	printf("ERROR: No pudo ejecutarse el DUMP. %s no disponible. \n", instancia->nombre);
+	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el DUMP. ", instancia->nombre, " no disponible. \n"));
 	return 0;
 }
 
@@ -243,7 +244,7 @@ bool health_check(t_instancia * instancia) {
 		return true;
 	}
 	instancia->estado = desconectada;
-	printf("%s no disponible \n", instancia->nombre);
+	log_info(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
 	return false;
 }
 
