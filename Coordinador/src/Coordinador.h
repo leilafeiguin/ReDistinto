@@ -64,9 +64,9 @@ int enviar_informacion_tabla_entradas(t_instancia * instancia); // Envia la info
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado); // 0: Instancia nueva, 1: Instancia reconectandose
 
-int cantidad_entradas_x_instancia();
-
 void * equitative_load();
+
+void * crear_instancias_prueba_alan();
 
 /*
 --------------------------------------------------------
