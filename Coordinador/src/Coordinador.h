@@ -42,7 +42,7 @@ t_list * instancias_activas();
 
 int set(char* clave, char* valor);
 
-t_clave_tomada * add_clave_tomada(int id_ESI, char* clave);
+t_clave_tomada * nueva_clave_tomada(int id_ESI, char* clave);
 
 int ejecutar_get(int id_ESI, char* clave);
 

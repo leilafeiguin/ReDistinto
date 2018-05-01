@@ -208,7 +208,7 @@ int ejecutar_get(int id_ESI, char* clave) {
 	}
 	t_clave_tomada * t_clave = list_find(lista_claves_tomadas, clave_match);
 	if (t_clave == NULL) { // Si la clave no se encuentra tomada
-		t_clave = add_clave_tomada(id_ESI, clave);
+		t_clave = nueva_clave_tomada(id_ESI, clave);
 	}
 
 	if (t_clave->id_ESI == id_ESI) {	// Si la clave esta tomada por ese mismo ESI
@@ -218,7 +218,7 @@ int ejecutar_get(int id_ESI, char* clave) {
 	}
 }
 
-t_clave_tomada * add_clave_tomada(int id_ESI, char* clave) {
+t_clave_tomada * nueva_clave_tomada(int id_ESI, char* clave) {
 	t_clave_tomada * t_clave = malloc(sizeof(t_clave_tomada));
 	t_clave->id_ESI = id_ESI;
 	t_clave->clave = clave;
