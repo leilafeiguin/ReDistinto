@@ -23,6 +23,8 @@ char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordin
 
 t_list* lista_instancias;
 
+t_list* new_list_instancias_organized;
+
 t_list* lista_claves_tomadas;
 
 typedef struct {

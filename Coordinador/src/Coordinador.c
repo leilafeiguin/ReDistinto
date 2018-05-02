@@ -18,6 +18,7 @@ int main(void) {
 	esEstadoInvalido = true;
 	lista_instancias = list_create();
 	lista_claves_tomadas = list_create();
+	new_list_instancias_organized = list_create();
 
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -134,7 +135,7 @@ int main(void) {
 }
 
 coordinador_configuracion get_configuracion() {
-	// crear_instancias_prueba_alan();
+	 crear_instancias_prueba_alan();
 
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
@@ -328,23 +329,33 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 	log_info(logger, mensaje);
 }
 
-void * equitative_load() {
-	void show_cant_entradas(t_instancia * element) {
-		if((element)->cant_entradas_ocupadas > maxEntradas) {
-			(element)->cant_entradas_ocupadas += 1;
-			maxEntradas = (element)->cant_entradas_ocupadas;
-			nombreInstanciaEnUso = (element)->nombre;
-		}
-		printf("%i", maxEntradas);
-		printf(nombreInstanciaEnUso);
+void * equitative_load(t_instancia * lista) {
+	void incrementar_entrada(t_instancia * element) {
+		(element)->cant_entradas_ocupadas += 1;
 	}
 
-	list_iterate(lista_instancias, show_cant_entradas);
+	void show_cant_entradas(t_instancia * element) {
+		printf("%i", (element)->cant_entradas_ocupadas);
+		printf((element)->nombre);
+	}
+
+	incrementar_entrada(list_get(lista, 0));
+	list_take_and_remove(new_list_instancias_organized, list_size(new_list_instancias_organized));
+	list_add_all(new_list_instancias_organized, lista);
+	list_remove(new_list_instancias_organized, 0);
+	list_add(new_list_instancias_organized, list_get(lista, 0));
+	list_take_and_remove(lista, list_size(lista));
+	list_add_all(lista, new_list_instancias_organized);
+
+	list_iterate(lista, show_cant_entradas);
+
 }
 
 void * crear_instancias_prueba_alan() {
 	crear_instancia(3, " Alan\n");
 	crear_instancia(4, " Cheja\n");
 	crear_instancia(3, " Marco\n");
-	equitative_load();
+	equitative_load(lista_instancias);
+	equitative_load(lista_instancias);
+	equitative_load(lista_instancias);
 }
