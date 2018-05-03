@@ -4,6 +4,8 @@
 
 void* archivo;
 t_log* logger;
+int maxEntradas = -1; //Equitative Load
+char * nombreInstanciaEnUso = ""; //Equitative Load
 
 int main(void) {
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/coord_image.txt");
@@ -16,6 +18,7 @@ int main(void) {
 	esEstadoInvalido = true;
 	lista_instancias = list_create();
 	lista_claves_tomadas = list_create();
+	new_list_instancias_organized = list_create();
 
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -134,6 +137,8 @@ int main(void) {
 }
 
 coordinador_configuracion get_configuracion() {
+	 crear_instancias_prueba_alan();
+
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathCoordinadorConfig);
@@ -310,7 +315,8 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 	// Creo la estructura de la instancia y la agrego a la lista
 	t_instancia * instancia_nueva = malloc(sizeof(t_instancia));
 	instancia_nueva->socket = socket;
-	instancia_nueva->nombre = nombre;
+	instancia_nueva->nombre = malloc(strlen(nombre));
+	strcpy(instancia_nueva->nombre, nombre);
 	instancia_nueva->estado = conectada;
 	instancia_nueva->cant_entradas_ocupadas = 0;
 	instancia_nueva->espacio_entradas = 0;
@@ -337,11 +343,33 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 	log_and_free(logger, mensaje);
 }
 
-void * equitative_load() {
-	return list_find(lista_instancias, cantidad_entradas_x_instancia);
+void * equitative_load(t_instancia * lista) {
+	void incrementar_entrada(t_instancia * element) {
+		(element)->cant_entradas_ocupadas += 1;
+	}
+
+	void show_cant_entradas(t_instancia * element) {
+		printf("%i", (element)->cant_entradas_ocupadas);
+		printf((element)->nombre);
+	}
+
+	incrementar_entrada(list_get(lista, 0));
+	list_take_and_remove(new_list_instancias_organized, list_size(new_list_instancias_organized));
+	list_add_all(new_list_instancias_organized, lista);
+	list_remove(new_list_instancias_organized, 0);
+	list_add(new_list_instancias_organized, list_get(lista, 0));
+	list_take_and_remove(lista, list_size(lista));
+	list_add_all(lista, new_list_instancias_organized);
+
+	list_iterate(lista, show_cant_entradas);
+
 }
 
-int cantidad_entradas_x_instancia(t_instancia * i) {
-	return i->cant_entradas_ocupadas;
+void * crear_instancias_prueba_alan() {
+	crear_instancia(3, " Alan\n");
+	crear_instancia(4, " Cheja\n");
+	crear_instancia(3, " Marco\n");
+	equitative_load(lista_instancias);
+	equitative_load(lista_instancias);
+	equitative_load(lista_instancias);
 }
-
