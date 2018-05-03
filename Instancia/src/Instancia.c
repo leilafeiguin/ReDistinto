@@ -54,6 +54,7 @@ instancia_configuracion get_configuracion() {
 void inicializar_instancia(un_socket coordinador) {
 	t_paquete* paqueteEstadoInstancia = recibir(coordinador); // Recibo si es una instancia nueva o se esta reconectado
 	bool instancia_nueva = paqueteEstadoInstancia->codigo_operacion == cop_Instancia_Vieja ? false : true;
+	liberar_paquete(paqueteEstadoInstancia);
 	t_paquete* paqueteCantidadEntradas = recibir(coordinador) ; // Recibo la cantidad de entradas
 	t_paquete* paqueteTamanioEntradas = recibir(coordinador); // Recibo tamaño de cada entrada
 	cantidad_entradas = atoi(paqueteCantidadEntradas->data);
@@ -61,6 +62,8 @@ void inicializar_instancia(un_socket coordinador) {
 
 	// Se fija si la instancia es nueva o se esta reconectando, por ende tiene que levantar informacion del disco
 	instancia_nueva ? crear_tabla_entradas(cantidad_entradas, tamanio_entradas) : restaurar_tabla_entradas(cantidad_entradas, tamanio_entradas);
+	liberar_paquete(paqueteCantidadEntradas);
+	liberar_paquete(paqueteTamanioEntradas);
 }
 
 int esperar_instrucciones(un_socket coordinador) {
@@ -92,6 +95,7 @@ int esperar_instrucciones(un_socket coordinador) {
 				enviar(coordinador, codigo_healthcheck, size_of_string(""), "");
 			break;
 		}
+		liberar_paquete(paqueteRecibido);
 	}
 }
 
@@ -167,15 +171,18 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 			set(get_entrada_a_guardar(clave, valor), clave, valor);
 		break;
 	}
+	liberar_paquete(paqueteValor);
 	return estado_set;
 }
 
 int set(t_entrada * entrada, char* clave, char* valor) {
-	char* valor_restante_a_guardar = valor;
+	char* valor_restante_a_guardar = copy_string(valor);
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
-		entrada->clave = clave;
-		entrada->contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
+		entrada->clave = copy_string(clave);
+		char* contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
+		entrada->contenido = copy_string(contenido);
+		free(contenido);
 		entrada->espacio_ocupado = size_of_string(entrada->contenido) -1;
 		entrada->cant_veces_no_accedida = 0;
 		espacio_restante_a_guardar += (-1) * (entrada->espacio_ocupado);
@@ -183,17 +190,21 @@ int set(t_entrada * entrada, char* clave, char* valor) {
 
 		// Verifico si ya guarde todo el valor
 		if (espacio_restante_a_guardar > 0) {
-			valor_restante_a_guardar = string_substring(valor_restante_a_guardar, tamanio_entradas, strlen(valor_restante_a_guardar) - tamanio_entradas);
+			char* valor_restante = string_substring(valor_restante_a_guardar, tamanio_entradas, strlen(valor_restante_a_guardar) - tamanio_entradas);
+			strcpy(valor_restante_a_guardar, valor_restante);
+			free(valor_restante);
 		}
 	}
-	log_info(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
+	free(valor_restante_a_guardar);
+	log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 	return 0;
 }
 
 int ejecutar_get(un_socket coordinador, char* clave) {
 	char* valor = get(clave);
 	enviar(coordinador, cop_Instancia_Ejecutar_Get, size_of_string(valor), valor); // Envia al coordinador el valor de la clave solicitada
-	log_info(logger, string_concat(3, "GET ", clave," \n"));
+	log_and_free(logger, string_concat(3, "GET ", clave," \n"));
+	free(valor);
 }
 
 char* get(char* clave) {
@@ -203,6 +214,7 @@ char* get(char* clave) {
 		string_append(&valor, entrada->contenido);
 	}
 	list_iterate(entradas, concatenar_valor);
+	list_destroy(entradas);
 	return valor;
 }
 
@@ -210,7 +222,8 @@ int ejecutar_store(un_socket coordinador, char* clave) {
 	t_list * entradas = get_entradas_con_clave(clave);
 	list_iterate(entradas, dump_entrada);
 	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el STORE se ejecuto de forma exitosa
-	log_info(logger, string_concat(3, "STORE ", clave, " \n"));
+	list_destroy(entradas);
+	log_and_free(logger, string_concat(3, "STORE ", clave, " \n"));
 }
 
 int ejecutar_dump(un_socket coordinador) {
@@ -227,7 +240,9 @@ int dump_entrada(t_entrada * entrada) {
 		FILE* file = txt_open_for_append(file_path);
 		txt_write_in_file(file, file_content);
 		txt_close_file(file);
+		free(file_content);
 	}
+	free(file_path);
 }
 
 t_list * get_entradas_con_clave(char* clave) {
@@ -238,7 +253,10 @@ t_list * get_entradas_con_clave(char* clave) {
 }
 
 char* get_file_path(int id_entrada) {
-	return string_concat(5, pathInstanciaData, instancia.nombre, "_Entrada_", string_itoa(id_entrada), ".txt");
+	char* entrada_id = string_itoa(id_entrada);
+	char* result =  string_concat(5, pathInstanciaData, instancia.nombre, "_Entrada_", entrada_id, ".txt");
+	free(entrada_id);
+	return result;
 }
 
 int restaurar_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
@@ -261,12 +279,14 @@ int restaurar_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
 				fd, 0
 			);
 			char** content = string_split(file_content, "-:-");
-			clave = content[0];
-			contenido = content[1];
+			clave = copy_string(content[0]);
+			contenido = copy_string(content[1]);
+			free_array(content, 2);
 			int unmap_result = munmap(file_content, pagesize);
 			close(fd);
 		}
 		/* !Implementacion mmap */
+		free(file_path);
 
 		entrada->clave = clave;
 		entrada->contenido = contenido;

@@ -476,3 +476,16 @@ void log_and_free(t_log* logger, char* mensaje) {
 	free(mensaje);
 }
 
+void free_array(char** array, int array_size) {
+	for(int i = 0;i < array_size;i++) {
+		free(array[i]);
+	}
+	free(array);
+}
+
+char* copy_string(char* value) {
+	char* pointer = malloc(size_of_string(value));
+	strcpy(pointer, value);
+	return pointer;
+}
+

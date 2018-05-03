@@ -123,8 +123,7 @@ int main(void) {
 						case cop_handshake_Instancia_Coordinador:
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
-							char* nombre_instancia = malloc(size_of_string(paqueteRecibido->data));
-							strcpy(nombre_instancia, paqueteRecibido->data);
+							char* nombre_instancia = copy_string(paqueteRecibido->data);
 							instancia_conectada(socketActual, nombre_instancia);
 						break;
 					}
@@ -315,8 +314,7 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 	// Creo la estructura de la instancia y la agrego a la lista
 	t_instancia * instancia_nueva = malloc(sizeof(t_instancia));
 	instancia_nueva->socket = socket;
-	instancia_nueva->nombre = malloc(strlen(nombre));
-	strcpy(instancia_nueva->nombre, nombre);
+	instancia_nueva->nombre = copy_string(nombre);
 	instancia_nueva->estado = conectada;
 	instancia_nueva->cant_entradas_ocupadas = 0;
 	instancia_nueva->espacio_entradas = 0;
