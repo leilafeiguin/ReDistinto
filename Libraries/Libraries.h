@@ -212,5 +212,7 @@ int size_of_string(char* string);
 
 char* string_concat(int cant_strings, ...);
 
+void log_and_free(t_log* logger, char* mensaje);
+
 
 #endif /* LIBRARIES_H_ */

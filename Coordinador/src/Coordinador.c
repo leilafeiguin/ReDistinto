@@ -120,10 +120,12 @@ int main(void) {
 						case cop_handshake_Instancia_Coordinador:
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
-							instancia_conectada(socketActual, paqueteRecibido->data);
+							char* nombre_instancia = malloc(size_of_string(paqueteRecibido->data));
+							strcpy(nombre_instancia, paqueteRecibido->data);
+							instancia_conectada(socketActual, nombre_instancia);
 						break;
 					}
-					free(paqueteRecibido);
+					liberar_paquete(paqueteRecibido);
 				}
 			}
 		}
@@ -193,10 +195,10 @@ int set(char* clave, char* valor) {
 			list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
 			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
 			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
-			log_info(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
+			log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 			inserted = true;
 		} else {
-			log_info(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
+			log_and_free(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
 		}
 	}
 	return 1;
@@ -231,10 +233,11 @@ int get(char* clave) {
 	if (health_check(instancia)) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
-		log_info(logger, string_concat(5, "GET ", clave, ": '", paqueteValor->data, "' \n"));
+		log_and_free(logger, string_concat(5, "GET ", clave, ": '", paqueteValor->data, "' \n"));
+		liberar_paquete(paqueteValor);
 		return 1;
 	}
-	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el GET. ", instancia->nombre, " no disponible. \n"));
+	log_and_free(logger, string_concat(3, "ERROR: No pudo ejecutarse el GET. ", instancia->nombre, " no disponible. \n"));
 	return 0;
 }
 
@@ -243,18 +246,22 @@ int store(char* clave) {
 	if (health_check(instancia)) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
-		if (paqueteEstadoOperacion->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
-			log_info(logger, string_concat(3, "Clave '", clave, "' liberada \n"));
+		int estado_operacion = paqueteEstadoOperacion->codigo_operacion;
+		liberar_paquete(paqueteEstadoOperacion);
+		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
+			log_and_free(logger, string_concat(3, "Clave '", clave, "' liberada \n"));
 
 		}
 		return 1;
 	}
-	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el STORE. ", instancia->nombre, " no disponible. \n"));
+	log_and_free(logger, string_concat(3, "ERROR: No pudo ejecutarse el STORE. ", instancia->nombre, " no disponible. \n"));
 	return 0;
 }
 
 int dump() {
-	list_iterate(instancias_activas(), dump_instancia);
+	t_list* list_instancias_activas = instancias_activas();
+	list_iterate(list_instancias_activas, dump_instancia);
+	list_destroy(list_instancias_activas);
 }
 
 int dump_instancia(t_instancia * instancia) {
@@ -262,7 +269,7 @@ int dump_instancia(t_instancia * instancia) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
 		return 1;
 	}
-	log_info(logger, string_concat(3, "ERROR: No pudo ejecutarse el DUMP. ", instancia->nombre, " no disponible. \n"));
+	log_and_free(logger, string_concat(3, "ERROR: No pudo ejecutarse el DUMP. ", instancia->nombre, " no disponible. \n"));
 	return 0;
 }
 
@@ -272,11 +279,13 @@ bool health_check(t_instancia * instancia) {
 	}
 	enviar(instancia->socket, codigo_healthcheck, size_of_string(""), ""); // Envio el request de healthcheck
 	t_paquete* paqueteRecibido = recibir(instancia->socket); // Aguardo a recbir el OK de la instancia
-	if (paqueteRecibido->codigo_operacion == codigo_healthcheck) {
+	int codigo_recibido = paqueteRecibido->codigo_operacion;
+	liberar_paquete(paqueteRecibido);
+	if (codigo_recibido == codigo_healthcheck) {
 		return true;
 	}
 	instancia->estado = desconectada;
-	log_info(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
+	log_and_free(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
 	return false;
 }
 
@@ -291,7 +300,10 @@ t_instancia * get_instancia_con_clave(char * clave) {
 }
 
 t_instancia * instancia_a_guardar() {
-	return list_get(instancias_activas(), 0); // TODO: Utilizar algoritmo correspondiente
+	t_list* list_instancias_activas = instancias_activas();
+	t_instancia* result = list_get(list_instancias_activas, 0); // TODO: Utilizar algoritmo correspondiente
+	list_destroy(list_instancias_activas);
+	return result;
 }
 
 t_instancia * crear_instancia(un_socket socket, char* nombre) {
@@ -311,16 +323,18 @@ int enviar_informacion_tabla_entradas(t_instancia * instancia) {
 	// Envio la cantidad de entradas que va a tener esa instancia
 	char* cant_entradas = string_itoa(configuracion.CANTIDAD_ENTRADAS);
 	enviar(instancia->socket, cop_generico, size_of_string(cant_entradas), cant_entradas);
+	free(cant_entradas);
 
 	// Envio el tamaño que va a tener cada entrada
 	char* tamanio_entrada = string_itoa(configuracion.TAMANIO_ENTRADA);
 	enviar(instancia->socket, cop_generico, size_of_string(tamanio_entrada), tamanio_entrada);
+	free(tamanio_entrada);
 }
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Instancia nueva, 1: Instancia reconectandose
 	char* mensaje = estado == 0 ? "Instancia conectada: " : "Instancia reconectada: ";
 	mensaje = string_concat(3, mensaje, nombre_instancia, " \n");
-	log_info(logger, mensaje);
+	log_and_free(logger, mensaje);
 }
 
 void * equitative_load() {

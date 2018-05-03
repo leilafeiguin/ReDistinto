@@ -471,3 +471,8 @@ char* string_concat(int cant_strings, ...) {
    return result;
 }
 
+void log_and_free(t_log* logger, char* mensaje) {
+	log_info(logger, mensaje);
+	free(mensaje);
+}
+
