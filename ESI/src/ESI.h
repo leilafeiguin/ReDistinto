@@ -3,6 +3,7 @@
 
 #include <Libraries.h>
 #include <commons/log.h>
+#include <parsi/parser.h>
 
 void* archivo;
 t_log* logger;
@@ -25,7 +26,5 @@ char* pathESIConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/configESI.c
 ESI_configuracion get_configuracion();
 
 void leerScript(char* path);
-
-char** enviarAlParser(void* archivo);
 
 #endif /* ESI_H_ */
