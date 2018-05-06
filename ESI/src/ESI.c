@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 	void* bufferSentencias = malloc(2*sizeof(int));
 	paqueteSentencias* paqueteSentencias = malloc(sizeof(paqueteSentencias));
 
-	paqueteSentencias->cantidadInstrucciones = list_size(instrucciones); //preg lei
+	paqueteSentencias->cantidadInstrucciones = list_size(instrucciones);
 
 	memcpy(bufferSentencias+desplazamiento, &paqueteSentencias->cantidadInstrucciones,sizeof(int));
 	desplazamiento+=sizeof(int);
