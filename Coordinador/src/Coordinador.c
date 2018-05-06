@@ -363,6 +363,13 @@ void * equitative_load(t_instancia * lista) {
 
 }
 
+void * least_space_used(t_instancia * lista) {
+	void show_cant_entradas(t_instancia * element) {
+		printf("%i", (element)->cant_entradas_ocupadas);
+		printf((element)->nombre);
+	}
+}
+
 void * crear_instancias_prueba_alan() {
 	crear_instancia(3, " Alan\n");
 	crear_instancia(4, " Cheja\n");

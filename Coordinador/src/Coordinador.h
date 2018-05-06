@@ -68,6 +68,8 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado); // 0: Inst
 
 void * equitative_load();
 
+void * least_space_used();
+
 void * crear_instancias_prueba_alan();
 
 /*
