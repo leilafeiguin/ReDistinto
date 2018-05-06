@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 
 	while ((read = getline(&line, &len, archivo)) != -1) {
 	        t_esi_operacion parsed = parse(line);
-	        //list_add(instrucciones, parsed);
+	        list_add(instrucciones, &parsed);
 	        if(parsed.valido){
 	            switch(parsed.keyword){
 	                case GET:
