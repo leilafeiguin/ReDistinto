@@ -102,8 +102,7 @@ typedef struct {
 	int estado;
 	t_list * keys_contenidas; // Lista de keys que actuamente estan guardadas en la instancia
 	t_list * entradas; // Tabla de entradas de la instancia
-	int cant_entradas_ocupadas; // Contador de veces que entra a cada instancia para EQUITATIVE LOAD
-	int espacio_entradas; // Cuando se le pasa info a una instancia, cuantas entradas necesita
+	int cant_entradas_ocupadas; // Contador de entradas que usa cada instancia
 } t_instancia;
 
 enum estados_instancia {

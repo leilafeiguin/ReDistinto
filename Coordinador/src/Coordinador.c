@@ -136,7 +136,7 @@ int main(void) {
 }
 
 coordinador_configuracion get_configuracion() {
-	 // crear_instancias_prueba_alan();
+	  crear_instancias_prueba_alan();
 
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
@@ -316,8 +316,7 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 	instancia_nueva->socket = socket;
 	instancia_nueva->nombre = copy_string(nombre);
 	instancia_nueva->estado = conectada;
-	instancia_nueva->cant_entradas_ocupadas = 0;
-	instancia_nueva->espacio_entradas = 0;
+	instancia_nueva->cant_entradas_ocupadas = 0; // Contador Cantidad de entradas
 	instancia_nueva->keys_contenidas = list_create();
 	list_add(lista_instancias, instancia_nueva);
 	return instancia_nueva;
@@ -341,9 +340,9 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 	log_and_free(logger, mensaje);
 }
 
-void * equitative_load(t_instancia * lista) {
+void * equitative_load(t_instancia * lista, int cant_entradas) {
 	void incrementar_entrada(t_instancia * element) {
-		(element)->cant_entradas_ocupadas += 1;
+		(element)->cant_entradas_ocupadas += cant_entradas;
 	}
 
 	void show_cant_entradas(t_instancia * element) {
@@ -359,22 +358,42 @@ void * equitative_load(t_instancia * lista) {
 	list_take_and_remove(lista, list_size(lista));
 	list_add_all(lista, new_list_instancias_organized);
 
-	list_iterate(lista, show_cant_entradas);
+//	list_iterate(lista, show_cant_entradas);
 
 }
 
-void * least_space_used(t_instancia * lista) {
-	void show_cant_entradas(t_instancia * element) {
-		printf("%i", (element)->cant_entradas_ocupadas);
-		printf((element)->nombre);
+void * least_space_used(t_instancia * lista, int espacio_entradas) {
+	int i = 0;
+	int menorEspacioInstancia = -1;
+	t_instancia * instanciaConMayorEspacioDisponible = list_get(lista, 0);
+
+	int getEspacio(t_instancia * element) {
+		return (element)->cant_entradas_ocupadas;
 	}
+
+	void instancia_mas_vacia() {
+		if (menorEspacioInstancia == -1 || menorEspacioInstancia > getEspacio(list_get(lista, i))){
+			menorEspacioInstancia = getEspacio(list_get(lista, i));
+			instanciaConMayorEspacioDisponible = list_get(lista, i);
+		}
+		i++;
+	}
+
+	list_iterate(lista, instancia_mas_vacia);
+	(instanciaConMayorEspacioDisponible)->cant_entradas_ocupadas += espacio_entradas;
+	printf((instanciaConMayorEspacioDisponible)->nombre);
+	printf("%i", menorEspacioInstancia);
 }
 
 void * crear_instancias_prueba_alan() {
 	crear_instancia(3, " Alan\n");
 	crear_instancia(4, " Cheja\n");
 	crear_instancia(3, " Marco\n");
-	equitative_load(lista_instancias);
-	equitative_load(lista_instancias);
-	equitative_load(lista_instancias);
+	equitative_load(lista_instancias, 1);
+	equitative_load(lista_instancias, 3);
+	equitative_load(lista_instancias, 2);
+	least_space_used(lista_instancias, 5);
+	least_space_used(lista_instancias, 5);
+	least_space_used(lista_instancias, 5);
+	least_space_used(lista_instancias, 5);
 }
