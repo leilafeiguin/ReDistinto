@@ -23,6 +23,9 @@ int main(void) {
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
+	threads_counter = 1;
+
+
 /*
 --------------------------------------------------------
 ----------------- Implementacion Select ----------------
@@ -97,11 +100,9 @@ int main(void) {
 					switch(paqueteRecibido->codigo_operacion){
 						case cop_handshake_ESI_Coordinador:
 							if( !esEstadoInvalido ){ // Hay un planificador conectado
-
 								esperar_handshake(socketActual,paqueteRecibido,cop_handshake_ESI_Coordinador);
 								log_info(logger, "Realice handshake con ESI \n");
 								paqueteRecibido = recibir(socketActual); // Info sobre el ESI
-
 								//Todo actualizar estructuras necesarias con datos del ESI
 								//Todo abrir hilo para el ESI y pasar por parametro todos los datos necesarios
 
@@ -116,7 +117,6 @@ int main(void) {
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Planificador_Coordinador);
 							log_info(logger, "Realice handshake con Planificador \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el Planificador
-
 							//Todo handle informacion que se requiera intercambiar y actualizar estructuras
 
 						break;
@@ -124,7 +124,16 @@ int main(void) {
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
 							char* nombre_instancia = copy_string(paqueteRecibido->data);
-							instancia_conectada(socketActual, nombre_instancia);
+							// instancia_conectada(socketActual, nombre_instancia);
+
+							t_list* thread_params = list_create();
+							list_add(thread_params, socketActual);
+							list_add(thread_params, nombre_instancia);
+							pthread_create(&threads_counter, NULL, instancia_conectada_funcion_thread, thread_params);
+							pthread_join(threads_counter, NULL);
+							threads_counter++;
+
+
 						break;
 					}
 					liberar_paquete(paqueteRecibido);
@@ -159,6 +168,10 @@ t_list * instancias_activas() {
 		return i->estado == conectada ? true : false;
 	}
 	return list_filter(lista_instancias, instancia_activa);
+}
+
+void* instancia_conectada_funcion_thread(void* argumentos) {
+	instancia_conectada(list_get(argumentos, 0), list_get(argumentos, 1));
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
@@ -217,7 +230,7 @@ int ejecutar_get(int id_ESI, char* clave) {
 		t_clave = nueva_clave_tomada(id_ESI, clave);
 	}
 
-	if (t_clave->id_ESI == id_ESI) {	// Si la clave esta tomada por ese mismo ESI
+	if (true) {	// Si la clave esta tomada por ese mismo ESI
 		get(clave);
 	} else {
 		printf("La clave %s se encuentra tomada por otro ESI \n", clave);
@@ -397,3 +410,4 @@ void * crear_instancias_prueba_alan() {
 	least_space_used(lista_instancias, 5);
 	least_space_used(lista_instancias, 5);
 }
+

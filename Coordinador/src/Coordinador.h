@@ -5,6 +5,7 @@
 #include <commons/log.h>
 #include <commons/collections/list.h>
 #include <commons/string.h>
+#include <pthread.h>
 
 bool esEstadoInvalido;
 
@@ -71,6 +72,14 @@ void * equitative_load();
 void * least_space_used();
 
 void * crear_instancias_prueba_alan();
+
+
+// Funciones de hilos
+pthread_t threads_counter;
+
+void* instancia_conectada_funcion_thread(void* argumentos);
+
+// !Funciones de hilos
 
 /*
 --------------------------------------------------------
