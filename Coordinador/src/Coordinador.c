@@ -136,7 +136,7 @@ int main(void) {
 }
 
 coordinador_configuracion get_configuracion() {
-	  crear_instancias_prueba_alan();
+//	  crear_instancias_prueba_alan();
 
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
