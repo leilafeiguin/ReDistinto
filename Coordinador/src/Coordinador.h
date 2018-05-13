@@ -65,6 +65,8 @@ t_instancia * crear_instancia(un_socket socket, char* nombre);
 
 int enviar_informacion_tabla_entradas(t_instancia * instancia); // Envia la informacion de la tabla de entradas a la instancia
 
+int enviar_keys_contenidas(t_instancia * instancia); // Envia las keys contenidas para la instancia que se esta restaurando
+
 void mensaje_instancia_conectada(char* nombre_instancia, int estado); // 0: Instancia nueva, 1: Instancia reconectandose
 
 void * equitative_load();

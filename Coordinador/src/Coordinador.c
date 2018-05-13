@@ -179,8 +179,9 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 		return strcmp(ins->nombre, nombre_instancia) == 0 ? true : false;
 	}
 	t_instancia * instancia = list_find(lista_instancias, instancia_ya_existente);
+	bool instancia_nueva = instancia == NULL;
 	int codigo_respuesta = cop_Instancia_Nueva;
-	if (instancia == NULL) { // Si es una instancia nueva
+	if (instancia_nueva) { // Si es una instancia nueva
 		mensaje_instancia_conectada(nombre_instancia, 0);
 		instancia = crear_instancia(socket_instancia, nombre_instancia);
 	} else { // Si es una instancia ya creada reconectandose
@@ -191,6 +192,10 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	}
 	enviar(instancia->socket, codigo_respuesta, sizeof(int), "0");
 	enviar_informacion_tabla_entradas(instancia);
+
+	if (!instancia_nueva) {
+		enviar_keys_contenidas(instancia);
+	}
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
 	set("nombre", "tomas uriel chejanovich");
@@ -228,9 +233,7 @@ int ejecutar_get(int id_ESI, char* clave) {
 	t_clave_tomada * t_clave = list_find(lista_claves_tomadas, clave_match);
 	if (t_clave == NULL) { // Si la clave no se encuentra tomada
 		t_clave = nueva_clave_tomada(id_ESI, clave);
-	}
-
-	if (true) {	// Si la clave esta tomada por ese mismo ESI
+	} else if (t_clave->id_ESI == id_ESI) {	// Si la clave esta tomada por ese mismo ESI
 		get(clave);
 	} else {
 		printf("La clave %s se encuentra tomada por otro ESI \n", clave);
@@ -345,6 +348,20 @@ int enviar_informacion_tabla_entradas(t_instancia * instancia) {
 	char* tamanio_entrada = string_itoa(configuracion.TAMANIO_ENTRADA);
 	enviar(instancia->socket, cop_generico, size_of_string(tamanio_entrada), tamanio_entrada);
 	free(tamanio_entrada);
+}
+
+int enviar_keys_contenidas(t_instancia * instancia) {
+	// Primero le mando la cantidad de claves que le voy a mandar
+	int cantidad_keys = list_size(instancia->keys_contenidas);
+	char* cantidad_keys_string = string_itoa(cantidad_keys);
+	enviar(instancia->socket, cop_generico, size_of_string(cantidad_keys_string), cantidad_keys_string);
+	free(cantidad_keys_string);
+
+	// Ahora le mando todas las keys
+	for(int i = 0;i < cantidad_keys;i++) {
+		char* key = list_get(instancia->keys_contenidas, i);
+		enviar(instancia->socket, cop_generico, size_of_string(key), key);
+	}
 }
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Instancia nueva, 1: Instancia reconectandose

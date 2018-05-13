@@ -27,6 +27,7 @@ int main(int argc, char* arguments[]) {
 
 	instancia.nombre = configuracion.NOMBRE_INSTANCIA;
 	instancia.estado = conectada;
+	instancia.keys_contenidas = list_create();
 
 	// Enviar al coordinador nombre de la instancia
 	enviar(Coordinador,cop_generico, size_of_string(instancia.nombre), instancia.nombre);
@@ -61,7 +62,14 @@ void inicializar_instancia(un_socket coordinador) {
 	tamanio_entradas = atoi(paqueteTamanioEntradas->data);
 
 	// Se fija si la instancia es nueva o se esta reconectando, por ende tiene que levantar informacion del disco
-	instancia_nueva ? crear_tabla_entradas(cantidad_entradas, tamanio_entradas) : restaurar_tabla_entradas(cantidad_entradas, tamanio_entradas);
+	crear_tabla_entradas(cantidad_entradas, tamanio_entradas);
+	if (instancia_nueva) {
+		log_info(logger, "Tabla de entradas creada \n");
+	} else {
+		restaurar_claves(coordinador);
+		log_info(logger, "Tabla de entradas restaurada del disco \n");
+		mostrar_tabla_entradas();
+	}
 	liberar_paquete(paqueteCantidadEntradas);
 	liberar_paquete(paqueteTamanioEntradas);
 }
@@ -168,14 +176,16 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 	int estado_set = verificar_set(valor);
 	switch(estado_set) {
 		case cop_Instancia_Guardar_OK:
-			set(get_entrada_a_guardar(clave, valor), clave, valor);
+			set(clave, valor);
 		break;
 	}
 	liberar_paquete(paqueteValor);
 	return estado_set;
 }
 
-int set(t_entrada * entrada, char* clave, char* valor) {
+int set(char* clave, char* valor) {
+	t_entrada * entrada = get_entrada_a_guardar(clave, valor);
+	// Guardo el valor en las entradas
 	char* valor_restante_a_guardar = copy_string(valor);
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
@@ -196,6 +206,10 @@ int set(t_entrada * entrada, char* clave, char* valor) {
 		}
 	}
 	free(valor_restante_a_guardar);
+
+	// Agrego la clave a la lista de claves
+	list_add(instancia.keys_contenidas, copy_string(clave));
+
 	log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 	return 0;
 }
@@ -219,29 +233,25 @@ char* get(char* clave) {
 }
 
 int ejecutar_store(un_socket coordinador, char* clave) {
-	t_list * entradas = get_entradas_con_clave(clave);
-	list_iterate(entradas, dump_entrada);
+	dump_clave(clave);
 	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el STORE se ejecuto de forma exitosa
-	list_destroy(entradas);
 	log_and_free(logger, string_concat(3, "STORE ", clave, " \n"));
 }
 
 int ejecutar_dump(un_socket coordinador) {
 	log_info(logger, "Ejecutando DUMP \n");
-	list_iterate(instancia.entradas, dump_entrada);
+	list_iterate(instancia.keys_contenidas, dump_clave);
 	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el DUMP se ejecuto de forma exitosa
 }
 
-int dump_entrada(t_entrada * entrada) {
-	char* file_path = get_file_path(entrada->id);
+int dump_clave(char* clave) {
+	char* file_path = get_file_path(clave);
 	remove(file_path); // Borro el archivo ya que voy a reemplazar el contenido
-	if (entrada->espacio_ocupado > 0) {
-		char* file_content = string_concat(3, entrada->clave, "-:-", entrada->contenido);
-		FILE* file = txt_open_for_append(file_path);
-		txt_write_in_file(file, file_content);
-		txt_close_file(file);
-		free(file_content);
-	}
+	char* file_content = get(clave);
+	FILE* file = txt_open_for_append(file_path);
+	txt_write_in_file(file, file_content);
+	txt_close_file(file);
+	free(file_content);
 	free(file_path);
 }
 
@@ -252,49 +262,42 @@ t_list * get_entradas_con_clave(char* clave) {
 	return list_filter(instancia.entradas, entrada_tiene_la_clave);
 }
 
-char* get_file_path(int id_entrada) {
-	char* entrada_id = string_itoa(id_entrada);
-	char* result =  string_concat(5, pathInstanciaData, instancia.nombre, "_Entrada_", entrada_id, ".txt");
-	free(entrada_id);
-	return result;
+char* get_file_path(char* clave) {
+	return string_concat(3, pathInstanciaData, clave, ".txt");
 }
 
-int restaurar_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
-	instancia.entradas = list_create();
-	for(int i = 0; i < cantidad_entradas; i++) {
-		t_entrada * entrada = malloc(sizeof(t_entrada));
-		entrada->id = i;
-		entrada->cant_veces_no_accedida = 0;
-		char* clave = "";
-		char* contenido = "";
-		char* file_path = get_file_path(i);
+void restaurar_clave(char* clave) {
+	char* valor = "";
 
-		/* Implementacion mmap */
-		int fd = open(file_path, O_RDONLY);
-		if (fd > 0) {
-			size_t pagesize = getpagesize();
-			char * file_content = mmap(
-				(void*) (pagesize * (1 << 20)), pagesize,
-				PROT_READ, MAP_FILE|MAP_PRIVATE,
-				fd, 0
-			);
-			char** content = string_split(file_content, "-:-");
-			clave = copy_string(content[0]);
-			contenido = copy_string(content[1]);
-			free_array(content, 2);
-			int unmap_result = munmap(file_content, pagesize);
-			close(fd);
-		}
-		/* !Implementacion mmap */
-		free(file_path);
-
-		entrada->clave = clave;
-		entrada->contenido = contenido;
-		entrada->espacio_ocupado = size_of_string(contenido) - 1;
-		list_add(instancia.entradas, entrada);
+	char* file_path = get_file_path(clave);
+	/* Implementacion mmap */
+	int fd = open(file_path, O_RDONLY);
+	if (fd > 0) {
+		size_t pagesize = getpagesize();
+		char * file_content = mmap(
+			(void*) (pagesize * (1 << 20)), pagesize,
+			PROT_READ, MAP_FILE|MAP_PRIVATE,
+			fd, 0
+		);
+		valor = copy_string(file_content);
+		int unmap_result = munmap(file_content, pagesize);
+		close(fd);
 	}
-	log_info(logger, "Tabla de entradas restaurada del disco \n");
-	mostrar_tabla_entradas();
+	/* !Implementacion mmap */
+
+	set(clave, valor);
+}
+
+int restaurar_claves(un_socket coordinador) {
+	t_paquete* paqueteCantidadClaves = recibir(coordinador); // Recibo la cantidad de claves
+	int cantidad_keys = atoi(paqueteCantidadClaves->data);
+	liberar_paquete(paqueteCantidadClaves);
+
+	for(int i = 0;i < cantidad_keys;i++) {
+		t_paquete* paqueteClave = recibir(coordinador); // Recibo la clave
+		restaurar_clave(paqueteClave->data);
+		liberar_paquete(paqueteClave);
+	}
 }
 
 void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
@@ -308,7 +311,6 @@ void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
 		entrada->contenido = "";
 		list_add(instancia.entradas, entrada);
 	}
-	log_info(logger, "Tabla de entradas creada \n");
 }
 
 void mostrar_tabla_entradas() {
