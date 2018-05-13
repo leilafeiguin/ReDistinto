@@ -126,7 +126,7 @@ t_entrada * get_entrada_x_index(int index) {
 // Detecta si no hay espacio disponible a causa de fragmentacion (y especifica el tipo) y aplica el algoritmo de reemplazo
 t_entrada * get_entrada_a_guardar_algoritmo_reemplazo(char* clave, char* valor) {
 	log_info(logger, "No hay entradas disponibles. Aplicando algoritmo de reemplazo");
-	int id_entrada_reemplazante = 5; // Hardcodeado, aplicar algoritmo aca
+	int id_entrada_reemplazante = 10; // Hardcodeado, aplicar algoritmo aca
 	t_entrada * entrada_reemplazante = get_entrada_x_index(id_entrada_reemplazante);
 	remover_clave(entrada_reemplazante->clave);
 	return entrada_reemplazante;
@@ -220,6 +220,7 @@ int set(char* clave, char* valor, bool log_mensaje) {
 
 	// Agrego la clave a la lista de claves
 	list_add(instancia.keys_contenidas, copy_string(clave));
+
 	return 0;
 }
 
@@ -315,18 +316,6 @@ void restaurar_clave(char* clave) {
 	set(clave, valor, false);
 }
 
-/*int restaurar_claves(un_socket coordinador) {
-	t_paquete* paqueteCantidadClaves = recibir(coordinador); // Recibo la cantidad de claves
-	int cantidad_keys = atoi(paqueteCantidadClaves->data);
-	liberar_paquete(paqueteCantidadClaves);
-
-	for(int i = 0;i < cantidad_keys;i++) {
-		t_paquete* paqueteClave = recibir(coordinador); // Recibo la clave
-		restaurar_clave(paqueteClave->data);
-		liberar_paquete(paqueteClave);
-	}
-}*/
-
 void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
 	instancia.entradas = list_create();
 	for(int i = 0; i < cantidad_entradas; i++) {
@@ -350,4 +339,26 @@ void mostrar_tabla_entradas() {
 	}
 	list_iterate(instancia.entradas, mostrar_entrada);
 	puts("_________________________________________________________________________");
+}
+
+void compactar_tabla_entradas() {
+	log_info(logger, "Compactando tabla de entradas \n");
+	typedef struct {
+		char* clave;
+		char* valor;
+	} t_clave_valor;
+	t_list * lista_claves = list_create();
+	void agregar_clave_valor(char* clave) {
+		t_clave_valor * clave_valor = malloc(sizeof(t_clave_valor));
+		char* valor = get(clave);
+		clave_valor->clave = clave;
+		clave_valor->valor = valor;
+		list_add(lista_claves, clave_valor);
+	}
+	list_iterate(instancia.keys_contenidas, agregar_clave_valor);
+	list_iterate(instancia.keys_contenidas, remover_clave);
+	void restaurar_clave_valor(t_clave_valor* clave_valor) {
+		set(clave_valor->clave, clave_valor->valor, false);
+	}
+	list_iterate(lista_claves, restaurar_clave_valor);
 }

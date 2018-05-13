@@ -41,5 +41,6 @@ void mostrar_tabla_entradas();
 t_entrada * get_next(t_entrada * entrada); // Devuelve la entrada consecutiva a una entrada especificada
 char* get_file_path(char* clave); // Devuelve el path del archivo .txt que almacena el contenido de la clave
 int remover_clave(char* clave); // Borra el contenido de todas las entradas que guardan una determinada clave
+void compactar_tabla_entradas();
 
 #endif /* INSTANCIA_H_ */

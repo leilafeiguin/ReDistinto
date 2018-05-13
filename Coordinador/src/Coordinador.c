@@ -205,7 +205,7 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 			set("Futbolista 1", "Cristiano ronaldo");
 			set("Futbolista 2", "Carlos tevez");
 			set("Futbolista 3", "Ronaldo asis moreira junior");
-			set("Futbolista 4", "Giovani dos santos aveiro juse luis gomez");
+			set("Futbolista 4", "Giovani dos santos aveiro juse lui");
 			dump();
 	}
 }
