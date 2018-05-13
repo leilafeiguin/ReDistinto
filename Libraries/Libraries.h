@@ -217,5 +217,9 @@ void free_array(char** array, int array_size);
 
 char* copy_string(char* value);
 
+void enviar_listado_de_strings(un_socket socket, t_list * listado_strings);
+
+void recibir_listado_de_strings(un_socket socket, void(*callback)(void*));
+
 
 #endif /* LIBRARIES_H_ */

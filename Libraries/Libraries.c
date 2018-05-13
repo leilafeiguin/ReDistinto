@@ -489,3 +489,29 @@ char* copy_string(char* value) {
 	return pointer;
 }
 
+void enviar_listado_de_strings(un_socket socket, t_list * listado_strings) {
+	// Primero le mando la cantidad de strings que le voy a mandar
+	int cantidad_keys = list_size(listado_strings);
+	char* cantidad_keys_string = string_itoa(cantidad_keys);
+	enviar(socket, cop_generico, size_of_string(cantidad_keys_string), cantidad_keys_string);
+	free(cantidad_keys_string);
+
+	// Ahora le mando todos los strings
+	for(int i = 0;i < cantidad_keys;i++) {
+		char* key = list_get(listado_strings, i);
+		enviar(socket, cop_generico, size_of_string(key), key);
+	}
+}
+
+void recibir_listado_de_strings(un_socket socket, void(*callback)(void*)) {
+	t_paquete* paqueteCantidadStrings = recibir(socket); // Recibo la cantidad de strings
+	int cantidad_keys = atoi(paqueteCantidadStrings->data);
+	liberar_paquete(paqueteCantidadStrings);
+
+	for(int i = 0;i < cantidad_keys;i++) {
+		t_paquete* paqueteString = recibir(socket); // Recibo el string
+		callback(paqueteString->data);
+		liberar_paquete(paqueteString);
+	}
+}
+

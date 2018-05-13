@@ -194,15 +194,20 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	enviar_informacion_tabla_entradas(instancia);
 
 	if (!instancia_nueva) {
-		enviar_keys_contenidas(instancia);
+		enviar_listado_de_strings(instancia->socket, instancia->keys_contenidas);
 	}
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
-	set("nombre", "tomas uriel chejanovich");
-	get("nombre");
-	store("nombre");
-	set("sdfsdf", "Cristiano ronaldo");
-	dump();
+	if (instancia_nueva) {
+		set("nombre", "tomas uriel chejanovich");
+			get("nombre");
+			store("nombre");
+			set("Futbolista 1", "Cristiano ronaldo");
+			set("Futbolista 2", "Carlos tevez");
+			set("Futbolista 3", "Ronaldo asis moreira junior");
+			set("Futbolista 4", "Giovani dos santos aveiro juse luis gomez");
+			dump();
+	}
 }
 
 int set(char* clave, char* valor) {
@@ -217,6 +222,7 @@ int set(char* clave, char* valor) {
 			list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
 			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
 			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
+			actualizar_keys_contenidas(instancia);
 			log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 			inserted = true;
 		} else {
@@ -224,6 +230,15 @@ int set(char* clave, char* valor) {
 		}
 	}
 	return 1;
+}
+
+int actualizar_keys_contenidas(t_instancia * instancia) {
+	list_destroy(instancia->keys_contenidas);
+	instancia->keys_contenidas = list_create();
+	void agregar_key_a_lista(char* key) {
+		list_add(instancia->keys_contenidas, copy_string(key));
+	}
+	recibir_listado_de_strings(instancia->socket, agregar_key_a_lista);
 }
 
 int ejecutar_get(int id_ESI, char* clave) {
@@ -295,6 +310,7 @@ int dump_instancia(t_instancia * instancia) {
 
 bool health_check(t_instancia * instancia) {
 	if (instancia->estado == desconectada) {
+		puts("SILA");
 		return false;
 	}
 	enviar(instancia->socket, codigo_healthcheck, size_of_string(""), ""); // Envio el request de healthcheck
@@ -310,6 +326,7 @@ bool health_check(t_instancia * instancia) {
 }
 
 t_instancia * get_instancia_con_clave(char * clave) {
+
 	bool instancia_tiene_clave(t_instancia * instancia){
 		bool clave_match(char * clave_comparar){
 			return strcmp(clave, clave_comparar) == 0 ? true : false;
@@ -348,20 +365,6 @@ int enviar_informacion_tabla_entradas(t_instancia * instancia) {
 	char* tamanio_entrada = string_itoa(configuracion.TAMANIO_ENTRADA);
 	enviar(instancia->socket, cop_generico, size_of_string(tamanio_entrada), tamanio_entrada);
 	free(tamanio_entrada);
-}
-
-int enviar_keys_contenidas(t_instancia * instancia) {
-	// Primero le mando la cantidad de claves que le voy a mandar
-	int cantidad_keys = list_size(instancia->keys_contenidas);
-	char* cantidad_keys_string = string_itoa(cantidad_keys);
-	enviar(instancia->socket, cop_generico, size_of_string(cantidad_keys_string), cantidad_keys_string);
-	free(cantidad_keys_string);
-
-	// Ahora le mando todas las keys
-	for(int i = 0;i < cantidad_keys;i++) {
-		char* key = list_get(instancia->keys_contenidas, i);
-		enviar(instancia->socket, cop_generico, size_of_string(key), key);
-	}
 }
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Instancia nueva, 1: Instancia reconectandose

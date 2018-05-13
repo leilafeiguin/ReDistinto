@@ -66,7 +66,7 @@ void inicializar_instancia(un_socket coordinador) {
 	if (instancia_nueva) {
 		log_info(logger, "Tabla de entradas creada \n");
 	} else {
-		restaurar_claves(coordinador);
+		recibir_listado_de_strings(coordinador, restaurar_clave);
 		log_info(logger, "Tabla de entradas restaurada del disco \n");
 		mostrar_tabla_entradas();
 	}
@@ -126,7 +126,10 @@ t_entrada * get_entrada_x_index(int index) {
 // Detecta si no hay espacio disponible a causa de fragmentacion (y especifica el tipo) y aplica el algoritmo de reemplazo
 t_entrada * get_entrada_a_guardar_algoritmo_reemplazo(char* clave, char* valor) {
 	log_info(logger, "No hay entradas disponibles. Aplicando algoritmo de reemplazo");
-	return get_entrada_x_index(0);
+	int id_entrada_reemplazante = 5; // Hardcodeado, aplicar algoritmo aca
+	t_entrada * entrada_reemplazante = get_entrada_x_index(id_entrada_reemplazante);
+	remover_clave(entrada_reemplazante->clave);
+	return entrada_reemplazante;
 }
 
 t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
@@ -176,19 +179,27 @@ int ejecutar_set(un_socket coordinador, char* clave) {
 	int estado_set = verificar_set(valor);
 	switch(estado_set) {
 		case cop_Instancia_Guardar_OK:
-			set(clave, valor);
+			set(clave, valor, true);
+			enviar_listado_de_strings(coordinador, instancia.keys_contenidas);
 		break;
 	}
 	liberar_paquete(paqueteValor);
 	return estado_set;
 }
 
-int set(char* clave, char* valor) {
+int set(char* clave, char* valor, bool log_mensaje) {
+	if (log_mensaje) {
+		log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
+	}
+
 	t_entrada * entrada = get_entrada_a_guardar(clave, valor);
 	// Guardo el valor en las entradas
 	char* valor_restante_a_guardar = copy_string(valor);
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
+		if (entrada->espacio_ocupado > 0) {	// Si la entrada estaba ocupada borro la clave entera
+			remover_clave(entrada->clave);
+		}
 		entrada->clave = copy_string(clave);
 		char* contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
 		entrada->contenido = copy_string(contenido);
@@ -209,8 +220,6 @@ int set(char* clave, char* valor) {
 
 	// Agrego la clave a la lista de claves
 	list_add(instancia.keys_contenidas, copy_string(clave));
-
-	log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 	return 0;
 }
 
@@ -255,6 +264,24 @@ int dump_clave(char* clave) {
 	free(file_path);
 }
 
+int remover_clave(char* clave) {
+	// Vacio todas las entradas que ocupaba esa clave
+	t_list * entradas = get_entradas_con_clave(clave);
+	void borrar_contenido(t_entrada * entrada) {
+		entrada->espacio_ocupado = 0;
+		entrada->clave = "";
+		entrada->contenido = "";
+	}
+	list_iterate(entradas, borrar_contenido);
+	list_destroy(entradas);
+
+	// Saco la clave de la lista de keys contenidas
+	bool clave_match(char* key_lista) {
+		return strcmp(clave, key_lista) == 0 ? true : false;
+	}
+	list_remove_by_condition(instancia.keys_contenidas, clave_match);
+}
+
 t_list * get_entradas_con_clave(char* clave) {
 	bool entrada_tiene_la_clave(t_entrada * entrada){
 		return strcmp(clave, entrada->clave) == 0 ? true : false;
@@ -285,10 +312,10 @@ void restaurar_clave(char* clave) {
 	}
 	/* !Implementacion mmap */
 
-	set(clave, valor);
+	set(clave, valor, false);
 }
 
-int restaurar_claves(un_socket coordinador) {
+/*int restaurar_claves(un_socket coordinador) {
 	t_paquete* paqueteCantidadClaves = recibir(coordinador); // Recibo la cantidad de claves
 	int cantidad_keys = atoi(paqueteCantidadClaves->data);
 	liberar_paquete(paqueteCantidadClaves);
@@ -298,7 +325,7 @@ int restaurar_claves(un_socket coordinador) {
 		restaurar_clave(paqueteClave->data);
 		liberar_paquete(paqueteClave);
 	}
-}
+}*/
 
 void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
 	instancia.entradas = list_create();

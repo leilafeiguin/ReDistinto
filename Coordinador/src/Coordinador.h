@@ -45,6 +45,8 @@ t_list * instancias_activas();
 
 int set(char* clave, char* valor);
 
+int actualizar_keys_contenidas(t_instancia * instancia);
+
 t_clave_tomada * nueva_clave_tomada(int id_ESI, char* clave);
 
 int ejecutar_get(int id_ESI, char* clave);
