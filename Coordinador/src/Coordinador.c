@@ -122,18 +122,14 @@ int main(void) {
 						break;
 						case cop_handshake_Instancia_Coordinador:
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
+							FD_CLR(socketActual, &master); //Elimino socket del master SET
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
 							char* nombre_instancia = copy_string(paqueteRecibido->data);
-							// instancia_conectada(socketActual, nombre_instancia);
-
 							t_list* thread_params = list_create();
 							list_add(thread_params, socketActual);
 							list_add(thread_params, nombre_instancia);
 							pthread_create(&threads_counter, NULL, instancia_conectada_funcion_thread, thread_params);
-							pthread_join(threads_counter, NULL);
 							threads_counter++;
-
-
 						break;
 					}
 					liberar_paquete(paqueteRecibido);
@@ -205,7 +201,7 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 		set("Futbolista 1", "Cristiano ronaldo");
 		set("Futbolista 2", "Carlos tevez");
 		set("Futbolista 3", "Ronaldo asis moreira junior");
-		set("Futbolista 4", "Giovani dos santos aveiro juse lui");
+		set("nombre2", "tomas uriel chejanovich");
 		dump();
 	}
 }
@@ -219,6 +215,7 @@ int set(char* clave, char* valor) {
 			return 0;
 		}
 		if (health_check(instancia)) {
+			validar_necesidad_compactacion(instancia, clave, valor);
 			setear(instancia, clave, valor);
 			actualizar_keys_contenidas(instancia);
 			actualizar_cantidad_entradas_ocupadas(instancia);
@@ -242,11 +239,21 @@ int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* v
 }
 
 void ejecutar_compactacion() {
+	log_info(logger, "Ejecutando compactacion de instancias \n ");
 	int cantidad_compactaciones_ejecutadas = 0;
+	t_list* list_instancias_activas = instancias_activas();
 	void enviar_mensaje_compactacion(t_instancia * instancia) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Compactacion, size_of_string(""), "");
+		t_paquete* paquete = recibir(instancia->socket);
+		if (paquete->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
+			cantidad_compactaciones_ejecutadas++;
+		}
+		if (cantidad_compactaciones_ejecutadas == list_size(list_instancias_activas)) {
+			// Signal instancias
+		}
 	}
-	list_iterate(lista_instancias, enviar_mensaje_compactacion);
+	list_iterate(list_instancias_activas, enviar_mensaje_compactacion);
+	list_destroy(list_instancias_activas);
 }
 
 int setear(t_instancia * instancia, char* clave, char* valor) {
@@ -323,6 +330,7 @@ int store(char* clave) {
 }
 
 int dump() {
+	log_info(logger,"DUMP instancias \n");
 	t_list* list_instancias_activas = instancias_activas();
 	list_iterate(list_instancias_activas, dump_instancia);
 	list_destroy(list_instancias_activas);
@@ -331,7 +339,12 @@ int dump() {
 int dump_instancia(t_instancia * instancia) {
 	if (health_check(instancia)) {
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
-		return 1;
+		t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
+		int estado_operacion = paqueteEstadoOperacion->codigo_operacion;
+		liberar_paquete(paqueteEstadoOperacion);
+		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
+			return 1;
+		}
 	}
 	log_and_free(logger, string_concat(3, "ERROR: No pudo ejecutarse el DUMP. ", instancia->nombre, " no disponible. \n"));
 	return 0;

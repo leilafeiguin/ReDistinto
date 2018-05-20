@@ -94,11 +94,16 @@ int esperar_instrucciones(un_socket coordinador) {
 				ejecutar_dump(coordinador);
 			break;
 
-			case cop_Instancia_Necesidad_Compactacion:
+			case cop_Instancia_Necesidad_Compactacion: ;
 				char* clave = paqueteRecibido->data;
 				t_paquete* paqueteValor = recibir(coordinador);
 				validar_necesidad_compactacion(coordinador, clave, paqueteValor->data);
 				liberar_paquete(paqueteValor);
+			break;
+
+			case cop_Instancia_Ejecutar_Compactacion:
+				compactar_tabla_entradas();
+				enviar(coordinador, cop_Instancia_Ejecutar_Compactacion, size_of_string(""), "");
 			break;
 
 			case codigo_error:
@@ -376,9 +381,9 @@ int cantidad_entradas_ocupadas() {
 }
 
 int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* valor) {
-	int cantidad_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
+	int cant_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
 	int cantidad_entradas_libres = cantidad_entradas- cantidad_entradas_ocupadas();
-	bool necesidad_compactacion = cantidad_entradas_necesarias <= cantidad_entradas_libres && get_entrada_a_guardar(clave, valor) == NULL; // Hay fragmentacion externa
+	bool necesidad_compactacion = cant_entradas_necesarias <= cantidad_entradas_libres && get_entrada_a_guardar(clave, valor) == NULL; // Hay fragmentacion externa
 	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;
 	enviar(coordinador, cod_op, size_of_string(""), "");
 }
