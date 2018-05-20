@@ -200,13 +200,13 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	// BORRAR PROXIMAMENTE: Para probar las funciones
 	if (instancia_nueva) {
 		set("nombre", "tomas uriel chejanovich");
-			get("nombre");
-			store("nombre");
-			set("Futbolista 1", "Cristiano ronaldo");
-			set("Futbolista 2", "Carlos tevez");
-			set("Futbolista 3", "Ronaldo asis moreira junior");
-			set("Futbolista 4", "Giovani dos santos aveiro juse lui");
-			dump();
+		get("nombre");
+		store("nombre");
+		set("Futbolista 1", "Cristiano ronaldo");
+		set("Futbolista 2", "Carlos tevez");
+		set("Futbolista 3", "Ronaldo asis moreira junior");
+		set("Futbolista 4", "Giovani dos santos aveiro juse lui");
+		dump();
 	}
 }
 
@@ -219,10 +219,9 @@ int set(char* clave, char* valor) {
 			return 0;
 		}
 		if (health_check(instancia)) {
-			list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
-			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
-			enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
+			setear(instancia, clave, valor);
 			actualizar_keys_contenidas(instancia);
+			actualizar_cantidad_entradas_ocupadas(instancia);
 			log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 			inserted = true;
 		} else {
@@ -232,6 +231,30 @@ int set(char* clave, char* valor) {
 	return 1;
 }
 
+int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* valor) {
+	enviar(instancia->socket, cop_Instancia_Necesidad_Compactacion, size_of_string(clave), clave);
+	enviar(instancia->socket, cop_Instancia_Necesidad_Compactacion, size_of_string(valor), valor);
+	t_paquete* paqueteResultado = recibir(instancia->socket);
+	if (paqueteResultado->codigo_operacion == cop_Instancia_Necesidad_Compactacion_True) { // Es necesario compactar
+		ejecutar_compactacion();
+	}
+	liberar_paquete(paqueteResultado);
+}
+
+void ejecutar_compactacion() {
+	int cantidad_compactaciones_ejecutadas = 0;
+	void enviar_mensaje_compactacion(t_instancia * instancia) {
+		enviar(instancia->socket, cop_Instancia_Ejecutar_Compactacion, size_of_string(""), "");
+	}
+	list_iterate(lista_instancias, enviar_mensaje_compactacion);
+}
+
+int setear(t_instancia * instancia, char* clave, char* valor) {
+	list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
+}
+
 int actualizar_keys_contenidas(t_instancia * instancia) {
 	list_destroy(instancia->keys_contenidas);
 	instancia->keys_contenidas = list_create();
@@ -239,6 +262,12 @@ int actualizar_keys_contenidas(t_instancia * instancia) {
 		list_add(instancia->keys_contenidas, copy_string(key));
 	}
 	recibir_listado_de_strings(instancia->socket, agregar_key_a_lista);
+}
+
+int actualizar_cantidad_entradas_ocupadas(t_instancia * instancia) {
+	t_paquete* paqueteCantidadEntradasOcupadas = recibir(instancia->socket); // Recibe la cantidad de entradas
+	instancia->cant_entradas_ocupadas = atoi(paqueteCantidadEntradasOcupadas->data);
+	liberar_paquete(paqueteCantidadEntradasOcupadas);
 }
 
 int ejecutar_get(int id_ESI, char* clave) {
@@ -310,7 +339,6 @@ int dump_instancia(t_instancia * instancia) {
 
 bool health_check(t_instancia * instancia) {
 	if (instancia->estado == desconectada) {
-		puts("SILA");
 		return false;
 	}
 	enviar(instancia->socket, codigo_healthcheck, size_of_string(""), ""); // Envio el request de healthcheck

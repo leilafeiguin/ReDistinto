@@ -45,7 +45,13 @@ t_list * instancias_activas();
 
 int set(char* clave, char* valor);
 
+int setear(t_instancia * instancia, char* clave, char* valor);
+
+int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* valor);
+
 int actualizar_keys_contenidas(t_instancia * instancia);
+
+int actualizar_cantidad_entradas_ocupadas(t_instancia * instancia);
 
 t_clave_tomada * nueva_clave_tomada(int id_ESI, char* clave);
 
@@ -70,6 +76,8 @@ int enviar_informacion_tabla_entradas(t_instancia * instancia); // Envia la info
 int enviar_keys_contenidas(t_instancia * instancia); // Envia las keys contenidas para la instancia que se esta restaurando
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado); // 0: Instancia nueva, 1: Instancia reconectandose
+
+void ejecutar_compactacion();
 
 void * equitative_load();
 

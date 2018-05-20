@@ -503,7 +503,7 @@ void enviar_listado_de_strings(un_socket socket, t_list * listado_strings) {
 	}
 }
 
-void recibir_listado_de_strings(un_socket socket, void(*callback)(void*)) {
+void recibir_listado_de_strings(un_socket socket, void(*callback)(char*)) {
 	t_paquete* paqueteCantidadStrings = recibir(socket); // Recibo la cantidad de strings
 	int cantidad_keys = atoi(paqueteCantidadStrings->data);
 	liberar_paquete(paqueteCantidadStrings);
@@ -513,5 +513,9 @@ void recibir_listado_de_strings(un_socket socket, void(*callback)(void*)) {
 		callback(paqueteString->data);
 		liberar_paquete(paqueteString);
 	}
+}
+
+int cantidad_entradas_necesarias(char* valor, int tamanio_entrada) {
+	return ceil((float)(size_of_string(valor) - 1) / tamanio_entrada);
 }
 

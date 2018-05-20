@@ -49,6 +49,10 @@ enum codigos_de_operacion {
 	cop_Instancia_Ejecutar_Get = 29,
 	cop_Instancia_Ejecutar_Store = 210,
 	cop_Instancia_Ejecutar_Dump = 211,
+	cop_Instancia_Ejecutar_Compactacion = 215,
+	cop_Instancia_Necesidad_Compactacion = 212,
+	cop_Instancia_Necesidad_Compactacion_True = 213, // Hay fragmentacion externa
+	cop_Instancia_Necesidad_Compactacion_False = 214,
 	cop_Instancia_Guardar_OK = 26,
 	cop_Instancia_Guardar_Error_FE = 27,
 	cop_Instancia_Guardar_Error_FI = 28,
@@ -219,7 +223,9 @@ char* copy_string(char* value);
 
 void enviar_listado_de_strings(un_socket socket, t_list * listado_strings);
 
-void recibir_listado_de_strings(un_socket socket, void(*callback)(void*));
+void recibir_listado_de_strings(un_socket socket, void(*callback)(char*));
+
+int cantidad_entradas_necesarias(char* valor, int tamanio_entrada);
 
 
 #endif /* LIBRARIES_H_ */

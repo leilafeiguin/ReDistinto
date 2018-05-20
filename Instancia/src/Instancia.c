@@ -94,6 +94,13 @@ int esperar_instrucciones(un_socket coordinador) {
 				ejecutar_dump(coordinador);
 			break;
 
+			case cop_Instancia_Necesidad_Compactacion:
+				char* clave = paqueteRecibido->data;
+				t_paquete* paqueteValor = recibir(coordinador);
+				validar_necesidad_compactacion(coordinador, clave, paqueteValor->data);
+				liberar_paquete(paqueteValor);
+			break;
+
 			case codigo_error:
 				log_info(logger, "Error en el coordinador. Abortando. \n");
 				return 0;
@@ -105,18 +112,6 @@ int esperar_instrucciones(un_socket coordinador) {
 		}
 		liberar_paquete(paqueteRecibido);
 	}
-}
-
-int verificar_set(char* valor) {
-	/*
-	 * TODO:
-	 * Verificar si un valor se puede guardar o no.
-	 * Valor de retorno:
-	 * 	- cop_Instancia_Guardar_OK (Se puede guardar)
-	 * 	- cop_Instancia_Guardar_Error_FE (No se puede guardar a causa de fragmentacion externa)
-	 * 	- cop_Instancia_Guardar_Error_FI (No se puede guardar a causa de fragmentacion interna)
-	 */
-	return cop_Instancia_Guardar_OK;
 }
 
 t_entrada * get_entrada_x_index(int index) {
@@ -139,7 +134,7 @@ t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
 	 * En caso de que no haya espacio disponible ya sea por fragmentacion interna o externa, lo comunicara y
 	 * luego aplicara el algoritmo de reemplazo.
 	 */
-	int cant_entradas_necesarias = ceil((float)(size_of_string(valor) - 1) / tamanio_entradas);
+	int cant_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
 	t_entrada * entrada_guardar = NULL;	// Entrada inicial donde se guardara el valor
 	int i_entrada = 0;
 	while(entrada_guardar == NULL && i_entrada < cantidad_entradas) {
@@ -164,7 +159,7 @@ t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
 		}
 		i_entrada++;
 	}
-	return entrada_guardar != NULL ? entrada_guardar : get_entrada_a_guardar_algoritmo_reemplazo(clave, valor);
+	return entrada_guardar;
 }
 
 t_entrada * get_next(t_entrada * entrada) {
@@ -176,15 +171,18 @@ t_entrada * get_next(t_entrada * entrada) {
 int ejecutar_set(un_socket coordinador, char* clave) {
 	t_paquete* paqueteValor = recibir(coordinador); // Recibo el valor a guardar
 	char* valor = paqueteValor->data;
-	int estado_set = verificar_set(valor);
-	switch(estado_set) {
-		case cop_Instancia_Guardar_OK:
-			set(clave, valor, true);
-			enviar_listado_de_strings(coordinador, instancia.keys_contenidas);
-		break;
-	}
+	set(clave, valor, true); // Seteo el valor
+	enviar_listado_de_strings(coordinador, instancia.keys_contenidas); // Le envio al coordinador el listado de claves actualizado
+	enviar_cantidad_entradas_ocupadas(coordinador);
 	liberar_paquete(paqueteValor);
-	return estado_set;
+	return 1;
+}
+
+int enviar_cantidad_entradas_ocupadas(un_socket coordinador) {
+	// Le envio al coordinador la cantidad de entradas ocupadas actualizadas
+	char* cant_entradas_ocupadas = string_itoa(cantidad_entradas_ocupadas());
+	enviar(coordinador, cop_generico, size_of_string(cant_entradas_ocupadas), cant_entradas_ocupadas);
+	free(cant_entradas_ocupadas);
 }
 
 int set(char* clave, char* valor, bool log_mensaje) {
@@ -193,6 +191,9 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	}
 
 	t_entrada * entrada = get_entrada_a_guardar(clave, valor);
+	if (entrada ==  NULL) { // Es necesario aplicar el algoritmo de reemplazo
+		entrada = get_entrada_a_guardar_algoritmo_reemplazo(clave, valor);
+	}
 	// Guardo el valor en las entradas
 	char* valor_restante_a_guardar = copy_string(valor);
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
@@ -361,4 +362,23 @@ void compactar_tabla_entradas() {
 		set(clave_valor->clave, clave_valor->valor, false);
 	}
 	list_iterate(lista_claves, restaurar_clave_valor);
+}
+
+int cantidad_entradas_ocupadas() {
+	int cant = 0;
+	void sumar_entradas(t_entrada * entrada) {
+		if (entrada->espacio_ocupado > 0) {
+			cant++;
+		}
+	}
+	list_iterate(instancia.entradas, sumar_entradas);
+	return cant;
+}
+
+int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* valor) {
+	int cantidad_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
+	int cantidad_entradas_libres = cantidad_entradas- cantidad_entradas_ocupadas();
+	bool necesidad_compactacion = cantidad_entradas_necesarias <= cantidad_entradas_libres && get_entrada_a_guardar(clave, valor) == NULL; // Hay fragmentacion externa
+	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;
+	enviar(coordinador, cod_op, size_of_string(""), "");
 }
