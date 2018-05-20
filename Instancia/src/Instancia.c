@@ -367,6 +367,7 @@ void compactar_tabla_entradas() {
 		set(clave_valor->clave, clave_valor->valor, false);
 	}
 	list_iterate(lista_claves, restaurar_clave_valor);
+	list_destroy(lista_claves);
 }
 
 int cantidad_entradas_ocupadas() {

@@ -251,6 +251,7 @@ void ejecutar_compactacion() {
 		if (cantidad_compactaciones_ejecutadas == list_size(list_instancias_activas)) {
 			// Signal instancias
 		}
+		liberar_paquete(paquete);
 	}
 	list_iterate(list_instancias_activas, enviar_mensaje_compactacion);
 	list_destroy(list_instancias_activas);
