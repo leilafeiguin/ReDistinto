@@ -576,3 +576,19 @@ void ordenar_por_sjf(){
 	pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
+void ordenar_por_hrrn(){
+	// rr = s + w / s
+
+	bool hrrn(void* esi1, void* esi2){
+		int s1 = ((t_ESI*)esi1)->cantidad_instrucciones;
+		int s2 = ((t_ESI*)esi2)->cantidad_instrucciones;
+		int w1 = 0;
+		int w2 = 0;
+		float responseRatio1 = (s1 + w1) / s1;
+		float responseRatio2 = (s2 + w2) / s2;
+		return responseRatio1 < responseRatio2;
+	}
+	list_sort(cola_de_listos,hrrn);
+
+}
+
