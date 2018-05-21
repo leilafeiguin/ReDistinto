@@ -527,6 +527,7 @@ void pasar_ESI_a_ejecutando(int id_ESI){
 	pthread_mutex_lock(&mutex_ESI_ejecutando);
 
 	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+	esi->w = 0;
 
 	switch(esi->estado){
 		case listo:
@@ -549,6 +550,16 @@ void pasar_ESI_a_ejecutando(int id_ESI){
 		break;
 	}
 	pthread_mutex_unlock(&mutex_ESI_ejecutando);
+
+	pthread_mutex_lock(&mutex_cola_de_listos);
+
+	void aumentarW(void* elem){
+		((t_ESI*)elem)->w = ((t_ESI*)elem)->w + esi->cantidad_instrucciones;
+	}
+	list_iterate(cola_de_listos, aumentarW);
+
+	pthread_mutex_unlock(&mutex_cola_de_listos);
+
 	free(esi);
 }
 
@@ -573,22 +584,20 @@ void ordenar_por_sjf(){
 		return ((t_ESI*)esi1)->cantidad_instrucciones < ((t_ESI*)esi2)->cantidad_instrucciones;
 	}
 	list_sort(cola_de_listos,sjf);
+
 	pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
 void ordenar_por_hrrn(){
-	// rr = s + w / s
+	pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool hrrn(void* esi1, void* esi2){
-		int s1 = ((t_ESI*)esi1)->cantidad_instrucciones;
-		int s2 = ((t_ESI*)esi2)->cantidad_instrucciones;
-		int w1 = 0;
-		int w2 = 0;
-		float responseRatio1 = (s1 + w1) / s1;
-		float responseRatio2 = (s2 + w2) / s2;
-		return responseRatio1 < responseRatio2;
+		float responseRatio1 = (((t_ESI*)esi1)->cantidad_instrucciones + ((t_ESI*)esi1)->w) / ((t_ESI*)esi1)->cantidad_instrucciones;
+		float responseRatio2 = (((t_ESI*)esi2)->cantidad_instrucciones + ((t_ESI*)esi2)->w) / ((t_ESI*)esi2)->cantidad_instrucciones;
+		return responseRatio1 > responseRatio2;
 	}
 	list_sort(cola_de_listos,hrrn);
 
+	pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 

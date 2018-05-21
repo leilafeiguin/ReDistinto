@@ -83,6 +83,7 @@ typedef struct {
 	un_socket socket;
 	int cantidad_instrucciones;
 	char* descripcion_estado;
+	int w;
 } t_ESI;
 
 typedef struct {
