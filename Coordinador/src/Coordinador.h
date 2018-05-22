@@ -87,9 +87,14 @@ void * crear_instancias_prueba_alan();
 
 
 // Funciones de hilos
-pthread_t threads_counter;
+
+void nuevo_thread(pthread_t thread, void *(*funcion_thread) (void *), void * argumentos);
 
 void* instancia_conectada_funcion_thread(void* argumentos);
+
+void* planificador_conectado_funcion_thread(void* argumentos);
+
+void* ESI_conectado_funcion_thread(void* argumentos);
 
 // !Funciones de hilos
 

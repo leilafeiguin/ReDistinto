@@ -23,8 +23,8 @@ int main(void) {
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
-	threads_counter = 1;
-
+	pthread_t threads[10];
+	int i_thread;
 
 /*
 --------------------------------------------------------
@@ -97,15 +97,18 @@ int main(void) {
 					free(handshake);
 				} else { //No es una nueva conexion -> Recibo el paquete
 					t_paquete* paqueteRecibido = recibir(socketActual);
+					t_list* thread_params;
 					switch(paqueteRecibido->codigo_operacion){
 						case cop_handshake_ESI_Coordinador:
-							if( !esEstadoInvalido ){ // Hay un planificador conectado
+							if( true ){ // Hay un planificador conectado
 								esperar_handshake(socketActual,paqueteRecibido,cop_handshake_ESI_Coordinador);
 								log_info(logger, "Realice handshake con ESI \n");
 								paqueteRecibido = recibir(socketActual); // Info sobre el ESI
-								//Todo actualizar estructuras necesarias con datos del ESI
-								//Todo abrir hilo para el ESI y pasar por parametro todos los datos necesarios
-
+								printf("Paquete ESI: %d \n", paqueteRecibido->codigo_operacion);
+								thread_params = list_create();
+								list_add(thread_params, socketActual);
+								pthread_create(&threads[i_thread], NULL, ESI_conectado_funcion_thread, thread_params);
+								i_thread++;
 							}else{ //No hay planificador, se debe rechazar la conexion
 								log_info(logger, "Se conecto un ESI estando en estado invalido. \n");
 								close(socketActual); //Se cierra el socket
@@ -117,19 +120,21 @@ int main(void) {
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Planificador_Coordinador);
 							log_info(logger, "Realice handshake con Planificador \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el Planificador
-							//Todo handle informacion que se requiera intercambiar y actualizar estructuras
-
+							thread_params = list_create();
+							list_add(thread_params, socketActual);
+							pthread_create(&threads[i_thread], NULL, planificador_conectado_funcion_thread, thread_params);
+							i_thread++;
 						break;
 						case cop_handshake_Instancia_Coordinador:
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_Instancia_Coordinador);
 							FD_CLR(socketActual, &master); //Elimino socket del master SET
 							paqueteRecibido = recibir(socketActual); // Info sobre la Instancia
 							char* nombre_instancia = copy_string(paqueteRecibido->data);
-							t_list* thread_params = list_create();
+							thread_params = list_create();
 							list_add(thread_params, socketActual);
 							list_add(thread_params, nombre_instancia);
-							pthread_create(&threads_counter, NULL, instancia_conectada_funcion_thread, thread_params);
-							threads_counter++;
+							pthread_create(&threads[i_thread], NULL, instancia_conectada_funcion_thread, thread_params);
+							i_thread++;
 						break;
 					}
 					liberar_paquete(paqueteRecibido);
@@ -141,8 +146,6 @@ int main(void) {
 }
 
 coordinador_configuracion get_configuracion() {
-//	  crear_instancias_prueba_alan();
-
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathCoordinadorConfig);
@@ -166,8 +169,46 @@ t_list * instancias_activas() {
 	return list_filter(lista_instancias, instancia_activa);
 }
 
+void nuevo_thread(pthread_t thread, void *(*funcion_thread) (void *), void * argumentos){
+	pthread_create(&thread, NULL, funcion_thread, argumentos);
+	threads_counter++;
+}
+
 void* instancia_conectada_funcion_thread(void* argumentos) {
 	instancia_conectada(list_get(argumentos, 0), list_get(argumentos, 1));
+	list_destroy(argumentos);
+}
+
+void* ESI_conectado_funcion_thread(void* argumentos) {
+	escuchar_ESI(list_get(argumentos, 0));
+	list_destroy(argumentos);
+}
+
+void escuchar_ESI(un_socket ESI) {
+	while(1) {
+		printf("Aguardando al ESI %d.. \n", ESI);
+		t_paquete* paqueteRecibido = recibir(ESI);
+		/* switch(paqueteRecibido->codigo_operacion) {
+			case:
+			break;
+		}*/
+	}
+}
+
+void* planificador_conectado_funcion_thread(void* argumentos) {
+	escuchar_planificador(list_get(argumentos, 0));
+	list_destroy(argumentos);
+}
+
+void escuchar_planificador(un_socket planificador) {
+	while(1) {
+		puts("Aguardando al planificador..");
+		t_paquete* paqueteRecibido = recibir(planificador);
+		/* switch(paqueteRecibido->codigo_operacion) {
+			case:
+			break;
+		}*/
+	}
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
