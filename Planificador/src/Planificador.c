@@ -554,7 +554,7 @@ void pasar_ESI_a_ejecutando(int id_ESI){
 	pthread_mutex_lock(&mutex_cola_de_listos);
 
 	void aumentarW(void* elem){
-		((t_ESI*)elem)->w = ((t_ESI*)elem)->w + esi->cantidad_instrucciones;
+		((t_ESI*)elem)->w ++;
 	}
 	list_iterate(cola_de_listos, aumentarW);
 
