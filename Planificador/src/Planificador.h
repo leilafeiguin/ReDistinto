@@ -11,6 +11,7 @@
 typedef struct planificador_configuracion {
 	char* PUERTO_ESCUCHA;
 	char* ALGORITMO_PLANIFICACION;
+	int ALFA_PLANIFICACION;
 	int ESTIMACION_INICIAL;
 	char* IP_COORDINADOR;
 	char* PUERTO_COORDINADOR;

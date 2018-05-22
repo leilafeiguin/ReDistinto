@@ -160,6 +160,7 @@ planificador_configuracion get_configuracion() {
 	t_config* archivo_configuracion = config_create(pathPlanificadorConfig);
 	configuracion.PUERTO_ESCUCHA = get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA");
 	configuracion.ALGORITMO_PLANIFICACION = get_campo_config_string(archivo_configuracion, "ALGORITMO_PLANIFICACION");
+	configuracion.ALFA_PLANIFICACION = get_campo_config_int(archivo_configuracion, "ALFA_PLANIFICACION");
 	configuracion.ESTIMACION_INICIAL = get_campo_config_int(archivo_configuracion, "ESTIMACION_INICIAL");
 	configuracion.IP_COORDINADOR = get_campo_config_string(archivo_configuracion, "IP_COORDINADOR");
 	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
@@ -603,8 +604,7 @@ void ordenar_por_hrrn(){
 
 
 float estimarRafaga(){
-	int alpha; // Entre 0 y 100
 	int tn; //Duracion de la rafaga anterior
 	float Tn = configuracion.ESTIMACION_INICIAL; // Estimacion anterior
-	return (alpha / 100)* tn + (1 - (alpha / 100))* Tn;
+	return (configuracion.ALFA_PLANIFICACION / 100)* tn + (1 - (configuracion.ALFA_PLANIFICACION / 100))* Tn;
 }
