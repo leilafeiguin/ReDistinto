@@ -102,6 +102,8 @@ void hiloEjecucionESIs(void* unused);
 void ordenar_por_sjf();
 
 void ordenar_por_hrrn();
+
+float estimarRafaga();
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------

@@ -601,3 +601,10 @@ void ordenar_por_hrrn(){
 	pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
+
+float estimarRafaga(){
+	int alpha; // Entre 0 y 100
+	int tn; //Duracion de la rafaga anterior
+	float Tn = configuracion.ESTIMACION_INICIAL; // Estimacion anterior
+	return (alpha / 100)* tn + (1 - (alpha / 100))* Tn;
+}
