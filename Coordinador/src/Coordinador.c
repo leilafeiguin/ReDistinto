@@ -169,10 +169,10 @@ t_list * instancias_activas() {
 	return list_filter(lista_instancias, instancia_activa);
 }
 
-void nuevo_thread(pthread_t thread, void *(*funcion_thread) (void *), void * argumentos){
-	pthread_create(&thread, NULL, funcion_thread, argumentos);
-	threads_counter++;
-}
+//void nuevo_thread(pthread_t thread, void *(*funcion_thread) (void *), void * argumentos){
+//	pthread_create(&thread, NULL, funcion_thread, argumentos);
+//	threads_counter++;
+//}
 
 void* instancia_conectada_funcion_thread(void* argumentos) {
 	instancia_conectada(list_get(argumentos, 0), list_get(argumentos, 1));
@@ -501,6 +501,16 @@ void * least_space_used(t_instancia * lista, int espacio_entradas) {
 	printf("%i", menorEspacioInstancia);
 }
 
+void * key_explicit(t_instancia * lista, char* clave) {
+	char* primeraLetra = string_to_lower(string_substring(clave, 0, 1));
+	int cantInstancias = list_size(lista);
+	int letras = 25;
+	int resto_ultimo = 0;
+
+	printf("%i", 25%4);
+
+}
+
 void * crear_instancias_prueba_alan() {
 	crear_instancia(3, " Alan\n");
 	crear_instancia(4, " Cheja\n");
@@ -512,5 +522,6 @@ void * crear_instancias_prueba_alan() {
 	least_space_used(lista_instancias, 5);
 	least_space_used(lista_instancias, 5);
 	least_space_used(lista_instancias, 5);
+	key_explicit(lista_instancias, "Pepe\n");
 }
 
