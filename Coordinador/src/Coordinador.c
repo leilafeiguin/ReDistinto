@@ -488,7 +488,8 @@ void * least_space_used(t_instancia * lista, int espacio_entradas) {
 	}
 
 	void instancia_mas_vacia() {
-		if (menorEspacioInstancia == -1 || menorEspacioInstancia > getEspacio(list_get(lista, i))){
+		if (menorEspacioInstancia == -1 || menorEspacioInstancia > getEspacio(list_get(lista, i)))
+		{
 			menorEspacioInstancia = getEspacio(list_get(lista, i));
 			instanciaConMayorEspacioDisponible = list_get(lista, i);
 		}
@@ -501,27 +502,62 @@ void * least_space_used(t_instancia * lista, int espacio_entradas) {
 	printf("%i", menorEspacioInstancia);
 }
 
-void * key_explicit(t_instancia * lista, char* clave) {
-	char* primeraLetra = string_to_lower(string_substring(clave, 0, 1));
-	int cantInstancias = list_size(lista);
+void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
+//	char* primeraLetra = string_substring(clave, 0, 1);
+	char primeraLetra = clave[0];
+	string_to_lower(primeraLetra);
+
+	void incrementar_entrada(t_instancia * element) {
+		(element)->cant_entradas_ocupadas += espacio_entradas;
+	}
+
 	int letras = 25;
+	int cantInstancias = list_size(lista);
 	int resto_ultimo = 0;
+	int resto_inicial = letras%cantInstancias;
+	int cantidad_letras_x_instancia = letras/cantInstancias;
 
-	printf("%i", 25%4);
+	if(resto_inicial) {
+		cantidad_letras_x_instancia ++;
+		resto_ultimo = (cantidad_letras_x_instancia * cantInstancias) - letras;
+	}
 
+	int valorLetra = 22;
+	int cont = 0;
+
+	for (int i = 0; i < letras; i+cantidad_letras_x_instancia) {
+		if(valorLetra > i && valorLetra < i+cantidad_letras_x_instancia) {
+			incrementar_entrada(list_get(lista, cont));
+		}
+		i += cantidad_letras_x_instancia;
+		cont ++;
+	}
+
+
+	printf("%i", primeraLetra);
+	//printf("%i", 'a'); //ESTO ES IGUAL A 97
+	//printf("%i", 'z'); //ESTO ES IGUAL A 122
 }
 
 void * crear_instancias_prueba_alan() {
+
+	void show_cant_entradas(t_instancia * element) {
+		printf("%i", (element)->cant_entradas_ocupadas);
+		printf((element)->nombre);
+	}
+
 	crear_instancia(3, " Alan\n");
 	crear_instancia(4, " Cheja\n");
 	crear_instancia(3, " Marco\n");
-	equitative_load(lista_instancias, 1);
-	equitative_load(lista_instancias, 3);
-	equitative_load(lista_instancias, 2);
-	least_space_used(lista_instancias, 5);
-	least_space_used(lista_instancias, 5);
-	least_space_used(lista_instancias, 5);
-	least_space_used(lista_instancias, 5);
-	key_explicit(lista_instancias, "Pepe\n");
+//	equitative_load(lista_instancias, 1);
+//	equitative_load(lista_instancias, 3);
+//	equitative_load(lista_instancias, 2);
+//	least_space_used(lista_instancias, 5);
+//	least_space_used(lista_instancias, 5);
+//	least_space_used(lista_instancias, 5);
+//	least_space_used(lista_instancias, 5);
+	key_explicit(lista_instancias, "Alberto\n", 5);
+
+	list_iterate(lista_instancias, show_cant_entradas);
 }
 

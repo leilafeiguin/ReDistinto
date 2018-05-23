@@ -79,11 +79,17 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado); // 0: Inst
 
 void ejecutar_compactacion();
 
+// ALGORITMOS DE DISTRIBUCION
+
 void * equitative_load();
 
 void * least_space_used();
 
+void * key_explicit();
+
 void * crear_instancias_prueba_alan();
+
+// !ALGORITMOS DE DISTRIBUCION
 
 
 // Funciones de hilos
