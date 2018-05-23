@@ -503,15 +503,13 @@ void * least_space_used(t_instancia * lista, int espacio_entradas) {
 }
 
 void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
-//	char* primeraLetra = string_substring(clave, 0, 1);
-	char primeraLetra = clave[0];
-	string_to_lower(primeraLetra);
 
 	void incrementar_entrada(t_instancia * element) {
 		(element)->cant_entradas_ocupadas += espacio_entradas;
 	}
 
-	int letras = 25;
+	char primeraLetra = tolower(clave[0]);
+	int letras = 26;
 	int cantInstancias = list_size(lista);
 	int resto_ultimo = 0;
 	int resto_inicial = letras%cantInstancias;
@@ -522,11 +520,11 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 		resto_ultimo = (cantidad_letras_x_instancia * cantInstancias) - letras;
 	}
 
-	int valorLetra = 22;
+	int valorLetra = primeraLetra;
 	int cont = 0;
 
-	for (int i = 0; i < letras; i+cantidad_letras_x_instancia) {
-		if(valorLetra > i && valorLetra < i+cantidad_letras_x_instancia) {
+	for (int i = 97; i < 97+letras-1; i+cantidad_letras_x_instancia) {
+		if(valorLetra >= i && valorLetra < i+cantidad_letras_x_instancia) {
 			incrementar_entrada(list_get(lista, cont));
 		}
 		i += cantidad_letras_x_instancia;
@@ -534,7 +532,6 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 	}
 
 
-	printf("%i", primeraLetra);
 	//printf("%i", 'a'); //ESTO ES IGUAL A 97
 	//printf("%i", 'z'); //ESTO ES IGUAL A 122
 }
@@ -557,6 +554,13 @@ void * crear_instancias_prueba_alan() {
 //	least_space_used(lista_instancias, 5);
 //	least_space_used(lista_instancias, 5);
 	key_explicit(lista_instancias, "Alberto\n", 5);
+	key_explicit(lista_instancias, "Ignacio\n", 5);
+	key_explicit(lista_instancias, "Javier\n", 5);
+	key_explicit(lista_instancias, "Marcelo\n", 5);
+	key_explicit(lista_instancias, "Ximenez\n", 5);
+	crear_instancia(3, " Leila\n");
+	key_explicit(lista_instancias, "Ignacio\n", 33);
+	key_explicit(lista_instancias, "Ximenez\n", 22);
 
 	list_iterate(lista_instancias, show_cant_entradas);
 }
