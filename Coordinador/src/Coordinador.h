@@ -7,7 +7,7 @@
 #include <commons/string.h>
 #include <pthread.h>
 
-bool esEstadoInvalido;
+bool planificador_conectado;
 
 typedef struct coordinador_configuracion {
 	char* PUERTO_ESCUCHA;
@@ -105,6 +105,7 @@ void* ESI_conectado_funcion_thread(void* argumentos);
 
 void* planificador_conectado_funcion_thread(void* argumentos);
 
+void iniciar_logger();
 
 // !Funciones de hilos
 
@@ -113,11 +114,11 @@ void* planificador_conectado_funcion_thread(void* argumentos);
 ----------------- Variables para el SV -----------------
 --------------------------------------------------------
 */
-fd_set master;    // master file descriptor list
-fd_set read_fds;  // temp file descriptor list for select()
-int fdmax;        // maximum file descriptor number
-int listener;     // listening socket descriptor
-int newfd;        // newly accept()ed socket descriptor
+void iniciar_servidor();
+
+void handle_coneccion(int socketActual);
+
+int listener;     // listening socket descriptors
 struct sockaddr_storage remoteaddr; // client address
 socklen_t addrlen;
 char buf[256];    // buffer for client data
