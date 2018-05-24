@@ -25,6 +25,7 @@ int main(void) {
 	pthread_t hiloPlanificadorConsola;
 	pthread_create(&hiloPlanificadorConsola, NULL, hiloPlanificador_Consola, NULL);
 	ESI_ejecutando = malloc(sizeof(t_ESI));
+	Ultimo_ESI_Ejecutado = malloc(sizeof(t_ESI));
 
 	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
 	realizar_handshake(Coordinador, cop_handshake_Planificador_Coordinador);
@@ -196,14 +197,14 @@ void hiloEjecucionESIs(void* unused){
 
 		//Ordenamos la cola de listos segun el algoritmo.
 		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") ){
-			ordenar_por_sjf();
+			ordenar_por_sjf_sd();
 		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") ){
 
 		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") ){
 
 		}
 		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
-
+		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 
 		//Todo revisar si este hilo puede comunicarse con el ESI.
 		void* buffer = malloc(sizeof(int));
@@ -578,7 +579,26 @@ bool validar_ESI_id(int id_ESI){
 	return false;
 }
 
-void ordenar_por_sjf(){
+void ordenar_por_sjf_sd(){
+	pthread_mutex_lock(&mutex_cola_de_listos);
+
+	bool sjf(void* esi1, void* esi2){
+		return ((t_ESI*)esi1)->cantidad_instrucciones < ((t_ESI*)esi2)->cantidad_instrucciones;
+	}
+	list_sort(cola_de_listos,sjf);
+
+	bool es_ultimo_ejecutado(void* esi){
+		return ((t_ESI*)esi)->id_ESI == Ultimo_ESI_Ejecutado->id_ESI;
+	}
+	if( list_find(cola_de_listos,es_ultimo_ejecutado) != NULL && Ultimo_ESI_Ejecutado->id_ESI != ((t_ESI*)list_get(cola_de_listos,0))->id_ESI ){
+		list_remove_by_condition(cola_de_listos,es_ultimo_ejecutado);
+		list_add_in_index(cola_de_listos,0,es_ultimo_ejecutado);
+	}
+
+	pthread_mutex_unlock(&mutex_cola_de_listos);
+}
+
+void ordenar_por_sjf_cd(){
 	pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool sjf(void* esi1, void* esi2){

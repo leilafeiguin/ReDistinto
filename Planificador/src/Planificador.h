@@ -62,6 +62,8 @@ t_list* cola_de_finalizados;
 pthread_mutex_t mutex_ESI_ejecutando;
 t_ESI* ESI_ejecutando; //Es un unico esi a la vez
 
+t_ESI* Ultimo_ESI_Ejecutado;
+
 pthread_mutex_t mutex_accion_a_tomar;
 t_list* accion_a_tomar;
 
@@ -100,9 +102,13 @@ void ejecutarListar(char** parametros);
 
 void hiloEjecucionESIs(void* unused);
 
-void ordenar_por_sjf();
+void ordenar_por_sjf_sd();
+
+void ordenar_por_sjf_cd();
 
 void ordenar_por_hrrn();
+
+void list_swap_elems(t_list,void*,void*);
 
 float estimarRafaga();
 /*
