@@ -215,20 +215,16 @@ bool esperar_handshake(un_socket socket_del_cliente, t_paquete* inicio_del_hands
 
 	liberar_paquete(inicio_del_handshake);
 
+	char * respuesta;
 	if (resultado) {
-
-		char * respuesta = malloc(12);
+		respuesta = malloc(12);
 		respuesta = "Autenticado";
 		enviar(socket_del_cliente, cop_handshake, 12, respuesta);
-
 	} else {
-
-		char * respuesta = malloc(6);
+		respuesta = malloc(6);
 		respuesta = "Error";
 		enviar(socket_del_cliente, cop_handshake, 6, respuesta);
-
 	}
-
 	return resultado;
 }
 
