@@ -97,7 +97,7 @@ void * crear_instancias_prueba_alan();
 int i_thread = 0;
 pthread_t threads[10];
 
-void nuevo_hilo(void *(* funcion ) (void *), t_list * parametros);
+pthread_t nuevo_hilo(void *(* funcion ) (void *), t_list * parametros);
 
 void* instancia_conectada_funcion_thread(void* argumentos);
 
