@@ -81,15 +81,21 @@ void ejecutar_compactacion();
 
 // ALGORITMOS DE DISTRIBUCION
 
+void * crear_instancias_prueba_alan();
+
 void * equitative_load();
 
 void * least_space_used();
 
 void * key_explicit();
 
-void * crear_instancias_prueba_alan();
-
 // !ALGORITMOS DE DISTRIBUCION
+
+// ALGORITMOS DE REEMPLAZO
+
+void * circular();
+
+// !ALGORITMOS DE REEMPLAZO
 
 
 // Funciones de hilos

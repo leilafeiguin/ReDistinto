@@ -452,6 +452,8 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 	log_and_free(logger, mensaje);
 }
 
+// ALGORITMOS DE DISTRIBUCION
+
 void * equitative_load(t_instancia * lista, int cant_entradas) {
 	void incrementar_entrada(t_instancia * element) {
 		(element)->cant_entradas_ocupadas += cant_entradas;
@@ -469,8 +471,6 @@ void * equitative_load(t_instancia * lista, int cant_entradas) {
 	list_add(new_list_instancias_organized, list_get(lista, 0));
 	list_take_and_remove(lista, list_size(lista));
 	list_add_all(lista, new_list_instancias_organized);
-
-//	list_iterate(lista, show_cant_entradas);
 
 }
 
@@ -527,10 +527,19 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 		cont ++;
 	}
 
-
 	//printf("%i", 'a'); //ESTO ES IGUAL A 97
 	//printf("%i", 'z'); //ESTO ES IGUAL A 122
 }
+
+// !ALGORITMOS DE DISTRIBUCION
+
+// ALGORITMOS DE REEMPLAZO
+
+void * circular(t_instancia * lista, int cant_entradas) {
+
+}
+
+// !ALGORITMOS DE REEMPLAZO
 
 void * crear_instancias_prueba_alan() {
 
@@ -549,14 +558,15 @@ void * crear_instancias_prueba_alan() {
 //	least_space_used(lista_instancias, 5);
 //	least_space_used(lista_instancias, 5);
 //	least_space_used(lista_instancias, 5);
-	key_explicit(lista_instancias, "Alberto\n", 5);
-	key_explicit(lista_instancias, "Ignacio\n", 5);
-	key_explicit(lista_instancias, "Javier\n", 5);
-	key_explicit(lista_instancias, "Marcelo\n", 5);
-	key_explicit(lista_instancias, "Ximenez\n", 5);
-	crear_instancia(3, " Leila\n");
-	key_explicit(lista_instancias, "Ignacio\n", 33);
-	key_explicit(lista_instancias, "Ximenez\n", 22);
+//	key_explicit(lista_instancias, "Alberto\n", 5);
+//	key_explicit(lista_instancias, "Ignacio\n", 5);
+//	key_explicit(lista_instancias, "Javier\n", 5);
+//	key_explicit(lista_instancias, "Marcelo\n", 5);
+//	key_explicit(lista_instancias, "Ximenez\n", 5);
+//	crear_instancia(3, " Leila\n");
+//	key_explicit(lista_instancias, "Ignacio\n", 33);
+//	key_explicit(lista_instancias, "Ximenez\n", 22);
+	circular(lista_instancias, 8);
 
 	list_iterate(lista_instancias, show_cant_entradas);
 }
