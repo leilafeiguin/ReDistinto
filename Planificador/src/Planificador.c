@@ -257,10 +257,16 @@ void* hiloPlanificador_Consola(void * unused){
 			if (strcmp(linea, "Pausar") == 0) {
 				log_info(logger, "Eligio la opcion Pausar\n");
 				pthread_mutex_lock(&mutex_pausa_por_consola);
+				if(parametros != NULL){
+					ejecutarPausar(parametros);
+				}
 				free(linea);
 			}else if (strcmp(linea, "Continuar") == 0) {
 				log_info(logger, "Eligio la opcion Continuar\n");
 				pthread_mutex_unlock(&mutex_pausa_por_consola);
+				if(parametros != NULL){
+					ejecutarContinuar(parametros);
+				}
 				free(linea);
 			} else if (strcmp(primeraPalabra, "bloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
@@ -286,11 +292,17 @@ void* hiloPlanificador_Consola(void * unused){
 			} else if (strcmp(primeraPalabra, "kill") == 0) {
 				log_info(logger, "Eligio la opcion Kill\n");
 				parametros = validaCantParametrosComando(linea,1);
+				if(parametros != NULL){
+					ejecutarKill(parametros);
+				}
 				//Todo
 				free(linea);
 			} else if (strcmp(primeraPalabra, "status") == 0) {
 				log_info(logger, "Eligio la opcion Status\n");
 				parametros = validaCantParametrosComando(linea,1);
+				if(parametros != NULL){
+					ejecutarStatus(parametros);
+				}
 				//Todo
 				free(linea);
 			} else if (strcmp(linea, "deadlock") == 0) {
@@ -307,6 +319,22 @@ void* hiloPlanificador_Consola(void * unused){
 				free(parametros);
 		}
 	}
+}
+
+void ejecutarPausar(char** parametros){
+
+}
+
+void ejecutarContinuar(char** parametros){
+
+}
+
+void ejecutarKill(char** parametros){
+
+}
+
+void ejecutarStatus(char** parametros){
+
 }
 
 void ejecutarBloquear(char** parametros){
