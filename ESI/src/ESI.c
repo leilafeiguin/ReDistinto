@@ -91,7 +91,6 @@ int main(int argc, char **argv) {
 
 	int instruccionAEjecutar;
 	int i =0;
-	t_list* instruccionesFallidas = list_create();
 
 	for(i=0;paqueteSentencias->cantidadInstrucciones !=0;i++){
 		t_paquete* paquete = recibir(Planificador);
@@ -100,15 +99,14 @@ int main(int argc, char **argv) {
 		/*instrucciones[i]; corregir */
 		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
 		t_paquete* resultado = recibir(Coordinador);
-			if(resultado==0){ // todo coordinador tiene que enviarme resultadOK=0
+
+			if(resultado->codigo_operacion==cop_Coordinador_Sentencia_Exito){
 				ejecutar(instruccionAEjecutar);
 				//mover puntero
 			}else{
-				i--; //preguntar marco
-				list_add(instruccionesFallidas, &instruccionAEjecutar);
+				i--;
 			}
 		}
-
 		return EXIT_SUCCESS;
 	}
 
