@@ -23,8 +23,6 @@ int main(int argc, char **argv) {
 
 	ejecutar_get("nombre");
 
-	while(1) {}
-
 	un_socket Planificador = conectar_a(configuracion.IP_PLANIFICADOR,configuracion.PUERTO_PLANIFICADOR);
 	realizar_handshake(Planificador, cop_handshake_ESI_Planificador);
 	int tamanio1 = 0; //Calcular el tamanio del paquete
@@ -32,13 +30,14 @@ int main(int argc, char **argv) {
 	enviar(Planificador,cop_generico,tamanio1,buffer1);
 	log_info(logger, "Me conecte con el Planificador. \n");
 
-	char* path_script = "pathProvisorio.txt"; // ver de donde sacar el script
+	char* path_script = "pathProvisorio.txt"; // script se ingresa por consola
 	leerScript(path_script);
 
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
 	t_list* instrucciones = list_create();
+	t_esi_operacion parsed = parse(line);
 
 	archivo = fopen(argv[1], "r");
 	if (archivo == NULL){
@@ -77,10 +76,8 @@ int main(int argc, char **argv) {
 	free(line);
 
 	int desplazamiento=0;
-
 	void* bufferSentencias = malloc(2*sizeof(int));
 	paqueteSentencias* paqueteSentencias = malloc(sizeof(paqueteSentencias));
-
 	paqueteSentencias->cantidadInstrucciones = list_size(instrucciones);
 
 	memcpy(bufferSentencias+desplazamiento, &paqueteSentencias->cantidadInstrucciones,sizeof(int));
@@ -89,24 +86,31 @@ int main(int argc, char **argv) {
 	desplazamiento+=sizeof(int);
 	enviar(Planificador,cop_ESI_Sentencia,sizeof(paqueteSentencias),bufferSentencias);
 
-	int instruccionAEjecutar;
+	free(bufferSentencias);
+	free(paqueteSentencias);
 
-	while(paqueteSentencias->cantidadInstrucciones != 0 ){
+	int instruccionAEjecutar;
+	int i =0;
+	t_list* instruccionesFallidas = list_create();
+
+	for(i=0;paqueteSentencias->cantidadInstrucciones !=0;i++){
 		t_paquete* paquete = recibir(Planificador);
 		memcpy(&instruccionAEjecutar,paquete->data,sizeof(int));
-		paqueteSentencias->cantidadInstrucciones--;
-		// todo ver que pasa si se desconecta del planificador
-	}
 
-	enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),instruccionAEjecutar);
-
-	while(1){
+		/*instrucciones[i]; corregir */
+		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
 		t_paquete* resultado = recibir(Coordinador);
-		enviar(Planificador, cop_Coordinador_Sentencia_Exito, sizeof(int),resultado);
-	}
+			if(resultado==0){ // todo coordinador tiene que enviarme resultadOK=0
+				ejecutar(instruccionAEjecutar);
+				//mover puntero
+			}else{
+				i--; //preguntar marco
+				list_add(instruccionesFallidas, &instruccionAEjecutar);
+			}
+		}
 
-	return EXIT_SUCCESS;
-}
+		return EXIT_SUCCESS;
+	}
 
 ESI_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso ESI\n");
@@ -149,6 +153,10 @@ void ejecutar_get(char* clave) {
 		break;
 	}
 	liberar_paquete(paqueteValor);
+}
+
+void ejecutar(instruccionAEjecutar) {
+//todo
 }
 
 
