@@ -137,15 +137,15 @@ void ejecutar_get(char* clave) {
 	t_paquete* paqueteValor = recibir(Coordinador);
 	switch(paqueteValor->codigo_operacion) {
 		case cop_Coordinador_Sentencia_Exito:
-			printf("El valor de clave %s es %s \n", clave, paqueteValor->data);
+			printf("El valor de clave '%s' es '%s' \n", clave, paqueteValor->data);
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			printf("La clave %s se encuentra tomada por otro ESI \n", clave);
+			printf("La clave '%s' se encuentra tomada por otro ESI \n", clave);
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada:
-			printf("La clave %s no fue ingresada en el sistema \n", clave);
+			printf("La clave '%s' no fue ingresada en el sistema \n", clave);
 		break;
 	}
 	liberar_paquete(paqueteValor);

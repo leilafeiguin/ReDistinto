@@ -338,15 +338,15 @@ int ejecutar_get(un_socket ESI, char* clave) {
 		if (validar_permiso_clave(ESI, clave)) {
 			nueva_clave_tomada(ESI, clave);
 			char* valor = get(clave);
-			printf("GET ejecutado con exito. El valor de la clave %s es %s. \n", clave, valor);
+			printf("GET ejecutado con exito. El valor de la clave '%s' es '%s'. \n", clave, valor);
 			enviar(ESI, cop_Coordinador_Sentencia_Exito, size_of_string(valor), valor);
 			free(valor);
 		} else {
-			printf("GET rechazado. La clave %s se encuentra tomada por otro ESI. \n", clave);
+			printf("GET rechazado. La clave '%s' se encuentra tomada por otro ESI. \n", clave);
 			enviar(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, size_of_string(""), "");
 		}
 	} else {
-		printf("GET rechazado. La clave %s no esta ingresada en el sistema. \n", clave);
+		printf("GET rechazado. La clave '%s' no esta ingresada en el sistema. \n", clave);
 		enviar(ESI, cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada, size_of_string(""), "");
 	}
 }
@@ -372,7 +372,7 @@ bool validar_clave_ingresada(char* clave) {
 t_clave_tomada * nueva_clave_tomada(int id_ESI, char* clave) {
 	t_clave_tomada * t_clave = malloc(sizeof(t_clave_tomada));
 	t_clave->id_ESI = id_ESI;
-	t_clave->clave = clave;
+	t_clave->clave = copy_string(clave);
 	list_add(lista_claves_tomadas, t_clave);
 	return t_clave;
 }
