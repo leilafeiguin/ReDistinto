@@ -14,12 +14,14 @@ int main(int argc, char **argv) {
 	ESI_configuracion configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
-	un_socket Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
+	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
 	realizar_handshake(Coordinador, cop_handshake_ESI_Coordinador);
 	int tamanio = 0; //Calcular el tamanio del paquete
 	void* buffer = malloc(tamanio); //Info que necesita enviar al coordinador.
 	enviar(Coordinador,cop_generico,tamanio,buffer);
 	log_info(logger, "Me conecte con el Coordinador. \n");
+
+	ejecutar_get("nombre");
 
 	while(1) {}
 
@@ -128,6 +130,25 @@ void leerScript(char* path_script){
 	int fd=open(path_script, O_RDWR);
 		fstat(fd, &sb);
 		archivo= mmap(NULL,sb.st_size,PROT_READ | PROT_WRITE,  MAP_SHARED,fd,0);
+}
+
+void ejecutar_get(char* clave) {
+	enviar(Coordinador,cop_Coordinador_Ejecutar_Get, size_of_string(clave), clave);
+	t_paquete* paqueteValor = recibir(Coordinador);
+	switch(paqueteValor->codigo_operacion) {
+		case cop_Coordinador_Sentencia_Exito:
+			printf("El valor de clave %s es %s \n", clave, paqueteValor->data);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
+			printf("La clave %s se encuentra tomada por otro ESI \n", clave);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada:
+			printf("La clave %s no fue ingresada en el sistema \n", clave);
+		break;
+	}
+	liberar_paquete(paqueteValor);
 }
 
 

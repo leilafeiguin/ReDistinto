@@ -7,6 +7,7 @@
 
 void* archivo;
 t_log* logger;
+un_socket Coordinador;
 
 typedef struct ESI_configuracion {
 	char* IP_COORDINADOR;
@@ -26,5 +27,7 @@ char* pathESIConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/configESI.c
 ESI_configuracion get_configuracion();
 
 void leerScript(char* path);
+
+void ejecutar_get(char* clave);
 
 #endif /* ESI_H_ */

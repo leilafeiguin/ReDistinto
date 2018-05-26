@@ -57,7 +57,7 @@ t_clave_tomada * nueva_clave_tomada(int id_ESI, char* clave);
 
 int ejecutar_get(int id_ESI, char* clave);
 
-int get(char* clave);
+char* get(char* clave);
 
 int store(char* clave);
 
@@ -78,6 +78,16 @@ int enviar_keys_contenidas(t_instancia * instancia); // Envia las keys contenida
 void mensaje_instancia_conectada(char* nombre_instancia, int estado); // 0: Instancia nueva, 1: Instancia reconectandose
 
 void ejecutar_compactacion();
+
+void handle_planificador(un_socket planificador, t_paquete* paquetePlanificador);
+
+void handle_instancia(un_socket instancia, t_paquete* paqueteInstancia);
+
+void handle_ESI(un_socket esi, t_paquete* paqueteESI);
+
+bool validar_permiso_clave(int id_ESI, char* clave);
+
+bool validar_clave_ingresada(char* clave);
 
 // ALGORITMOS DE DISTRIBUCION
 

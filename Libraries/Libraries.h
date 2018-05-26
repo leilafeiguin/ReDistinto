@@ -62,9 +62,9 @@ enum codigos_de_operacion {
 	cop_Planificador_Ejecutar_Sentencia = 30,
 	cop_ESI_Sentencia = 31,
 	cop_Coordinador_Sentencia_Exito = 32,
-	cop_Coordinador_Sentencia_Fallo_TC = 33,
-	cop_Coordinador_Sentencia_Fallo_CNI = 34,
-	cop_Coordinador_Sentencia_Fallo_CI = 35,
+	cop_Coordinador_Sentencia_Fallo_Clave_Tomada = 33,
+	cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada = 34,
+	cop_Coordinador_Ejecutar_Get = 35,
 
 	cop_handshake_Planificador_ejecucion = 50
 };

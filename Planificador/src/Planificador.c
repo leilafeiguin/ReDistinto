@@ -138,14 +138,11 @@ int main(void) {
 						case cop_Coordinador_Sentencia_Exito:
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
-						case cop_Coordinador_Sentencia_Fallo_TC:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_TC,paqueteRecibido->tamanio,paqueteRecibido->data);
+						case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_Tomada,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
-						case cop_Coordinador_Sentencia_Fallo_CNI:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_CNI,paqueteRecibido->tamanio,paqueteRecibido->data);
-						break;
-						case cop_Coordinador_Sentencia_Fallo_CI:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_CI,paqueteRecibido->tamanio,paqueteRecibido->data);
+						case cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada:
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
 					}
 				}

@@ -365,6 +365,7 @@ void compactar_tabla_entradas() {
 	list_iterate(instancia.keys_contenidas, remover_clave);
 	void restaurar_clave_valor(t_clave_valor* clave_valor) {
 		set(clave_valor->clave, clave_valor->valor, false);
+		free(clave_valor);
 	}
 	list_iterate(lista_claves, restaurar_clave_valor);
 	list_destroy(lista_claves);
