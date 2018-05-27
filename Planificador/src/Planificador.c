@@ -157,8 +157,8 @@ int main(void) {
 						case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_Tomada,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
-						case cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada,paqueteRecibido->tamanio,paqueteRecibido->data);
+						case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor,paqueteRecibido->tamanio,paqueteRecibido->data);
 						break;
 					}
 				}

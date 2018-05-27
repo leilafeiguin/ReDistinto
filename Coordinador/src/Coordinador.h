@@ -43,7 +43,7 @@ bool health_check(t_instancia * instancia);
 
 t_list * instancias_activas();
 
-int set(char* clave, char* valor);
+int ejecutar_set(un_socket ESI, char* clave, char* valor);
 
 int setear(t_instancia * instancia, char* clave, char* valor);
 
@@ -59,7 +59,7 @@ int ejecutar_get(int id_ESI, char* clave);
 
 char* get(char* clave);
 
-int store(char* clave);
+int ejecutar_store(un_socket ESI, char* clave);
 
 int dump(); // Ejecuta un dump en todas las instancias
 
@@ -88,6 +88,10 @@ void handle_ESI(un_socket esi, t_paquete* paqueteESI);
 bool validar_permiso_clave(int id_ESI, char* clave);
 
 bool validar_clave_ingresada(char* clave);
+
+void liberar_clave_tomada(char* clave);
+
+void liberar_claves_ESI(un_socket ESI);
 
 // ALGORITMOS DE DISTRIBUCION
 

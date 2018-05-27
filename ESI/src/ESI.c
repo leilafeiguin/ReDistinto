@@ -22,6 +22,11 @@ int main(int argc, char **argv) {
 	log_info(logger, "Me conecte con el Coordinador. \n");
 
 	ejecutar_get("nombre");
+	ejecutar_set("nombre", "cheja");
+	ejecutar_get("nombre");
+	ejecutar_store("nombre");
+
+	while(1) {}
 
 
 	char* path_script = "pathProvisorio.txt"; // script se ingresa por consola
@@ -137,18 +142,57 @@ void ejecutar_get(char* clave) {
 	t_paquete* paqueteValor = recibir(Coordinador);
 	switch(paqueteValor->codigo_operacion) {
 		case cop_Coordinador_Sentencia_Exito:
-			printf("El valor de clave '%s' es '%s' \n", clave, paqueteValor->data);
+			printf("El valor de clave '%s' es '%s'. \n", clave, paqueteValor->data);
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			printf("La clave '%s' se encuentra tomada por otro ESI \n", clave);
+			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
 		break;
 
-		case cop_Coordinador_Sentencia_Fallo_Clave_No_Ingresada:
-			printf("La clave '%s' no fue ingresada en el sistema \n", clave);
+		case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
+			printf("La clave '%s' todavia no tiene ningun valor. \n", clave);
 		break;
 	}
 	liberar_paquete(paqueteValor);
+}
+
+void ejecutar_set(char* clave, char* valor) {
+	enviar(Coordinador,cop_Coordinador_Ejecutar_Set, size_of_string(clave), clave);
+	enviar(Coordinador,cop_Coordinador_Ejecutar_Set, size_of_string(valor), valor);
+	t_paquete* paqueteResultadoOperacion = recibir(Coordinador);
+	switch(paqueteResultadoOperacion->codigo_operacion) {
+		case cop_Coordinador_Sentencia_Exito:
+			printf("La operacion SET '%s' : '%s' fue ejecutada exitosamente. \n", clave, valor);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
+			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
+			printf("La operacion SET '%s' : '%s' fallo. No hay instancias en el sistema. \n", clave, valor);
+		break;
+	}
+	liberar_paquete(paqueteResultadoOperacion);
+}
+
+void ejecutar_store(char* clave) {
+	enviar(Coordinador,cop_Coordinador_Ejecutar_Store, size_of_string(clave), clave);
+	t_paquete* paqueteResultadoOperacion = recibir(Coordinador);
+	switch(paqueteResultadoOperacion->codigo_operacion) {
+		case cop_Coordinador_Sentencia_Exito:
+			printf("La operacion STORE '%s' fue ejecutada exitosamente. \n", clave);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
+			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
+			printf("La operacion STORE '%s' fallo. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n", clave);
+		break;
+	}
+	liberar_paquete(paqueteResultadoOperacion);
 }
 
 void ejecutar(instruccionAEjecutar) {
