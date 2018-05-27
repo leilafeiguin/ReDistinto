@@ -23,12 +23,6 @@ int main(int argc, char **argv) {
 
 	ejecutar_get("nombre");
 
-	un_socket Planificador = conectar_a(configuracion.IP_PLANIFICADOR,configuracion.PUERTO_PLANIFICADOR);
-	realizar_handshake(Planificador, cop_handshake_ESI_Planificador);
-	int tamanio1 = 0; //Calcular el tamanio del paquete
-	void* buffer1 = malloc(tamanio1); //Info que necesita enviar al Planificador.
-	enviar(Planificador,cop_generico,tamanio1,buffer1);
-	log_info(logger, "Me conecte con el Planificador. \n");
 
 	char* path_script = "pathProvisorio.txt"; // script se ingresa por consola
 	leerScript(path_script);
@@ -71,6 +65,9 @@ int main(int argc, char **argv) {
 	        }
 	    }
 
+	un_socket Planificador = conectar_a(configuracion.IP_PLANIFICADOR,configuracion.PUERTO_PLANIFICADOR);
+	realizar_handshake(Planificador, cop_handshake_ESI_Planificador);
+
 	fclose(archivo);
 	if (line)
 	free(line);
@@ -84,7 +81,9 @@ int main(int argc, char **argv) {
 	desplazamiento+=sizeof(int);
 	memcpy(bufferSentencias+desplazamiento, &paqueteSentencias->idESI, sizeof(int));
 	desplazamiento+=sizeof(int);
-	enviar(Planificador,cop_ESI_Sentencia,sizeof(paqueteSentencias),bufferSentencias);
+	enviar(Planificador,cop_handshake_ESI_Planificador,sizeof(paqueteSentencias),bufferSentencias);
+	log_info(logger, "Me conecte con el Planificador. \n");
+
 
 	free(bufferSentencias);
 	free(paqueteSentencias);
