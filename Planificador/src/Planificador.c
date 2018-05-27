@@ -322,11 +322,21 @@ void* hiloPlanificador_Consola(void * unused){
 }
 
 void ejecutarPausar(char** parametros){
-
+	if(&mutex_pausa_por_consola.__data == 0){
+		log_info(logger, "Planificador ya estaba pausado\n");
+	}else{
+		pthread_mutex_lock(&mutex_pausa_por_consola);
+		log_info(logger, "Pausamos planificador\n");
+	}
 }
 
 void ejecutarContinuar(char** parametros){
-
+	if(&mutex_pausa_por_consola.__data==0){
+		pthread_mutex_unlock(&mutex_pausa_por_consola);
+		log_info(logger, "Habilitamos para dar ordenes de ejecucion\n");
+	}else{
+		log_info(logger, "Planificacion habilitado para dar ordenes de ejecucion\n");
+	}
 }
 
 void ejecutarKill(char** parametros){

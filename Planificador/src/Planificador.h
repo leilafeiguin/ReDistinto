@@ -47,6 +47,7 @@ planificador_configuracion configuracion;
 
 pthread_mutex_t mutex_pausa_por_consola;
 
+
 pthread_mutex_t mutex_lista_de_ESIs;
 t_list* lista_de_ESIs;
 
