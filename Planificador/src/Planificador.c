@@ -208,7 +208,6 @@ void hiloEjecucionESIs(void* unused){
 	while(list_size(cola_de_listos) != 0 || list_size(cola_de_bloqueados) != 0){
 		pthread_mutex_lock(&mutex_pausa_por_consola);
 
-		void actualizarRafaga();
 		//Ordenamos la cola de listos segun el algoritmo.
 		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") ){
 			ordenar_por_sjf_sd();
@@ -219,7 +218,6 @@ void hiloEjecucionESIs(void* unused){
 		}
 		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
 		ESI_ejecutando = list_get(cola_de_listos,0);
-		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 
 		//Todo revisar si este hilo puede comunicarse con el ESI.
 		void* buffer = malloc(sizeof(int));
@@ -248,6 +246,8 @@ void hiloEjecucionESIs(void* unused){
 					//Error de comunicacion
 				break;
 			}
+		void actualizarRafaga();
+		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 		pthread_mutex_unlock(&mutex_pausa_por_consola);
 	}
 	//Cuando termina settea el flag en false
@@ -692,8 +692,8 @@ float estimarRafaga(int id_ESI){
 
 void actualizarRafaga(){
 	if(Ultimo_ESI_Ejecutado == ESI_ejecutando){
-		Ultimo_ESI_Ejecutado->duracionRafaga += 1;
+		ESI_ejecutando->duracionRafaga += 1;
 	}else{
-		Ultimo_ESI_Ejecutado = 0;
+		Ultimo_ESI_Ejecutado->duracionRafaga = 0;
 	}
 }
