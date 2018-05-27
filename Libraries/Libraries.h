@@ -84,6 +84,8 @@ typedef struct {
 	int cantidad_instrucciones;
 	char* descripcion_estado;
 	int w;
+	float duracionRafaga;
+	float estimacionUltimaRafaga;
 } t_ESI;
 
 typedef struct {

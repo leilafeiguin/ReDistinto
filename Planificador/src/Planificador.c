@@ -119,7 +119,23 @@ int main(void) {
 							log_info(logger, "Realice handshake con ESI \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el ESI
 
+							int desp = 0;
+							int instrucciones;
+							int idESI;
+							memcpy(&instrucciones,paqueteRecibido->data,sizeof(int));
+							desp += sizeof(int);
+							memcpy(&idESI,paqueteRecibido->data,sizeof(int)+desp);
+
 							//Todo actualizar estructuras necesarias con datos del ESI
+							t_ESI* newESI = malloc(sizeof(t_ESI));
+							newESI->estimacionUltimaRafaga = configuracion.ESTIMACION_INICIAL;
+							newESI->estado = 0;
+							newESI->socket = socketActual;
+							newESI->id_ESI = idESI;
+							newESI->cantidad_instrucciones = instrucciones;
+							newESI->duracionRafaga = 0;
+
+							list_add(cola_de_listos,newESI);
 
 							//Todo corroborar que sea el primer ESI o que el hilo de ejecucion anterior finalizado
 							if(!estado_hiloEjecucionESIs){
@@ -192,6 +208,7 @@ void hiloEjecucionESIs(void* unused){
 	while(list_size(cola_de_listos) != 0 || list_size(cola_de_bloqueados) != 0){
 		pthread_mutex_lock(&mutex_pausa_por_consola);
 
+		void actualizarRafaga();
 		//Ordenamos la cola de listos segun el algoritmo.
 		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") ){
 			ordenar_por_sjf_sd();
@@ -201,6 +218,7 @@ void hiloEjecucionESIs(void* unused){
 
 		}
 		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
+		ESI_ejecutando = list_get(cola_de_listos,0);
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 
 		//Todo revisar si este hilo puede comunicarse con el ESI.
@@ -618,7 +636,7 @@ void ordenar_por_sjf_sd(){
 	pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool sjf(void* esi1, void* esi2){
-		return ((t_ESI*)esi1)->cantidad_instrucciones < ((t_ESI*)esi2)->cantidad_instrucciones;
+		return estimarRafaga(((t_ESI*)esi1)->id_ESI) < estimarRafaga(((t_ESI*)esi2)->id_ESI);
 	}
 	list_sort(cola_de_listos,sjf);
 
@@ -637,7 +655,7 @@ void ordenar_por_sjf_cd(){
 	pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool sjf(void* esi1, void* esi2){
-		return ((t_ESI*)esi1)->cantidad_instrucciones < ((t_ESI*)esi2)->cantidad_instrucciones;
+		return estimarRafaga(((t_ESI*)esi1)->id_ESI) < estimarRafaga(((t_ESI*)esi2)->id_ESI);
 	}
 	list_sort(cola_de_listos,sjf);
 
@@ -658,8 +676,24 @@ void ordenar_por_hrrn(){
 }
 
 
-float estimarRafaga(){
-	int tn; //Duracion de la rafaga anterior
-	float Tn = configuracion.ESTIMACION_INICIAL; // Estimacion anterior
-	return (configuracion.ALFA_PLANIFICACION / 100)* tn + (1 - (configuracion.ALFA_PLANIFICACION / 100))* Tn;
+float estimarRafaga(int id_ESI){
+
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+	int tn = esi->duracionRafaga; //Duracion de la rafaga anterior
+	float Tn = esi->estimacionUltimaRafaga; // Estimacion anterior
+	float estimacion = (configuracion.ALFA_PLANIFICACION / 100)* tn + (1 - (configuracion.ALFA_PLANIFICACION / 100))* Tn;
+	esi->estimacionUltimaRafaga = estimacion;
+	return estimacion;
+}
+
+void actualizarRafaga(){
+	if(Ultimo_ESI_Ejecutado == ESI_ejecutando){
+		Ultimo_ESI_Ejecutado->duracionRafaga += 1;
+	}else{
+		Ultimo_ESI_Ejecutado = 0;
+	}
 }
