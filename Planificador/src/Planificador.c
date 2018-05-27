@@ -212,9 +212,9 @@ void hiloEjecucionESIs(void* unused){
 		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") ){
 			ordenar_por_sjf_sd();
 		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") ){
-
+			ordenar_por_sjf_cd();
 		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") ){
-
+			ordenar_por_hrrn();
 		}
 		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
 		ESI_ejecutando = list_get(cola_de_listos,0);

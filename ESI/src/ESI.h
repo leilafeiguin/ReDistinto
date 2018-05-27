@@ -28,7 +28,7 @@ ESI_configuracion get_configuracion();
 
 void leerScript(char* path);
 
-void ejecutar(int instruccionAEjecutar);
+void ejecutar(t_esi_operacion*);
 
 void ejecutar_get(char* clave);
 

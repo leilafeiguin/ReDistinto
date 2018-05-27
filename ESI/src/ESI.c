@@ -93,12 +93,12 @@ int main(int argc, char **argv) {
 	free(bufferSentencias);
 	free(paqueteSentencias);
 
-	int instruccionAEjecutar;
 	int i =0;
 
-	for(i=0;paqueteSentencias->cantidadInstrucciones !=0;i++){
+	for(i=0;list_size(instrucciones);i++){
 		t_paquete* paquete = recibir(Planificador);
-		memcpy(&instruccionAEjecutar,paquete->data,sizeof(int));
+		t_esi_operacion* instruccionAEjecutar;
+		instruccionAEjecutar = list_get(instrucciones,i);
 
 		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
 		t_paquete* resultado = recibir(Coordinador);
@@ -195,8 +195,9 @@ void ejecutar_store(char* clave) {
 	liberar_paquete(paqueteResultadoOperacion);
 }
 
-void ejecutar(instruccionAEjecutar) {
+void ejecutar(t_esi_operacion* instruccionAEjecutar) {
 //todo
+	return;
 }
 
 
