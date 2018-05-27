@@ -666,8 +666,8 @@ void ordenar_por_hrrn(){
 	pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool hrrn(void* esi1, void* esi2){
-		float responseRatio1 = (((t_ESI*)esi1)->cantidad_instrucciones + ((t_ESI*)esi1)->w) / ((t_ESI*)esi1)->cantidad_instrucciones;
-		float responseRatio2 = (((t_ESI*)esi2)->cantidad_instrucciones + ((t_ESI*)esi2)->w) / ((t_ESI*)esi2)->cantidad_instrucciones;
+		float responseRatio1 = (estimarRafaga(((t_ESI*)esi1)->id_ESI) + ((t_ESI*)esi1)->w) / estimarRafaga(((t_ESI*)esi1)->id_ESI);
+		float responseRatio2 = (estimarRafaga(((t_ESI*)esi2)->id_ESI) + ((t_ESI*)esi2)->w) / estimarRafaga(((t_ESI*)esi2)->id_ESI);
 		return responseRatio1 > responseRatio2;
 	}
 	list_sort(cola_de_listos,hrrn);
@@ -677,7 +677,6 @@ void ordenar_por_hrrn(){
 
 
 float estimarRafaga(int id_ESI){
-
 	bool encontrar_esi(void* esi){
 		return ((t_ESI*)esi)->id_ESI == id_ESI;
 	}
