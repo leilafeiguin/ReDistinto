@@ -96,13 +96,12 @@ int main(int argc, char **argv) {
 		t_paquete* paquete = recibir(Planificador);
 		memcpy(&instruccionAEjecutar,paquete->data,sizeof(int));
 
-		/*instrucciones[i]; corregir */
 		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
 		t_paquete* resultado = recibir(Coordinador);
 
 			if(resultado->codigo_operacion==cop_Coordinador_Sentencia_Exito){
 				ejecutar(instruccionAEjecutar);
-				//mover puntero
+				instrucciones[i];
 			}else{
 				i--;
 			}
