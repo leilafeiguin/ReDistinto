@@ -189,7 +189,7 @@ void escuchar_ESI(un_socket ESI) {
 		t_paquete* paqueteRecibido = recibir(ESI);
 		switch(paqueteRecibido->codigo_operacion) {
 			case codigo_error:
-				liberar_claves_ESI(ESI);
+				// liberar_claves_ESI(ESI);
 				printf("Error en el ESI: %d. Abortando ESI. \n", ESI);
 				escuchar = false;
 			break;

@@ -515,3 +515,53 @@ int cantidad_entradas_necesarias(char* valor, int tamanio_entrada) {
 	return ceil((float)(size_of_string(valor) - 1) / tamanio_entrada);
 }
 
+void serializar_int(void * buffer, int * desplazamiento, int valor) {
+	memcpy(buffer + *desplazamiento, &valor, sizeof(int));
+	int nuevo_desplazamiento = *desplazamiento + sizeof(int);
+	memcpy(desplazamiento, &nuevo_desplazamiento, sizeof(int));
+}
+
+int deserializar_int(void * buffer, int * desplazamiento) {
+	int valor = NULL;
+	memcpy(&valor, buffer + *desplazamiento, sizeof(int));
+	int nuevo_desplazamiento = *desplazamiento + sizeof(int);
+	memcpy(desplazamiento, &nuevo_desplazamiento, sizeof(int));
+	return valor;
+}
+
+void serializar_string(void * buffer, int * desplazamiento, char* valor) {
+	int tamanio_valor = size_of_string(valor);
+	serializar_int(buffer, desplazamiento, tamanio_valor);
+	memcpy(buffer + *desplazamiento, valor, tamanio_valor);
+	int nuevo_desplazamiento = *desplazamiento + tamanio_valor;
+	memcpy(desplazamiento, &nuevo_desplazamiento, sizeof(int));
+}
+
+char* deserializar_string(void * buffer, int * desplazamiento) {
+	int tamanio_valor = deserializar_int(buffer, desplazamiento);
+	char* valor = malloc(tamanio_valor);
+	memcpy(valor, buffer + *desplazamiento, tamanio_valor);
+	int nuevo_desplazamiento = *desplazamiento + tamanio_valor;
+	memcpy(desplazamiento, &nuevo_desplazamiento, sizeof(int));
+	return valor;
+}
+
+void serializar_lista_strings(void * buffer, int * desplazamiento, t_list * lista) {
+	serializar_int(buffer, desplazamiento, list_size(lista));
+	void serializar_valor(char* valor) {
+		serializar_string(buffer, desplazamiento, valor);
+	}
+	list_iterate(lista, serializar_valor);
+}
+
+t_list * deserializar_lista_strings(void * buffer, int * desplazamiento) {
+	t_list * resultado = list_create();
+	int tamanio_lista = deserializar_int(buffer, desplazamiento);
+	for(int i = 0; i < tamanio_lista; i++) {
+		char* valor = deserializar_string(buffer, desplazamiento);
+		list_add(resultado, valor);
+	}
+	return resultado;
+}
+
+

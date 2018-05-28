@@ -233,5 +233,17 @@ void recibir_listado_de_strings(un_socket socket, void(*callback)(char*));
 
 int cantidad_entradas_necesarias(char* valor, int tamanio_entrada);
 
+void serializar_int(void * buffer, int * desplazamiento, int valor);
+
+int deserializar_int(void * buffer, int * desplazamiento);
+
+void serializar_string(void * buffer, int * desplazamiento, char* valor);
+
+char* deserializar_string(void * buffer, int * desplazamiento);
+
+void serializar_lista_strings(void * buffer, int * desplazamiento, t_list * lista);
+
+t_list * deserializar_lista_strings(void * buffer, int * desplazamiento);
+
 
 #endif /* LIBRARIES_H_ */
