@@ -3,6 +3,8 @@
 #include "Planificador.h"
 
 int main(void) {
+	int socketESI = 0;
+	int socketCoordinador = 0;
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/planif_image.txt");
 	char* fileLog;
 	fileLog = "planificador_logs.txt";
@@ -114,7 +116,7 @@ int main(void) {
 					t_paquete* paqueteRecibido = recibir(socketActual);
 					switch(paqueteRecibido->codigo_operacion){
 						case cop_handshake_ESI_Planificador:
-
+							socketESI = socketActual;
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_ESI_Planificador);
 							log_info(logger, "Realice handshake con ESI \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el ESI
@@ -142,24 +144,39 @@ int main(void) {
 								pthread_create(&hiloEjecucionESIs, NULL, hiloEjecucionESIs, NULL);
 							}
 
-						break;
+							break;
 						case cop_handshake_Planificador_ejecucion:
+							socketESI = socketActual;
 							socketHiloEjecicionESIs = socketActual;
-						break;
+							break;
 						case cop_Planificador_Ejecutar_Sentencia:
+							socketCoordinador = socketActual;
 							buffer = malloc(sizeof(int));
 							enviar(atoi(paqueteRecibido->data),cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
 							free(buffer);
-						break;
+							break;
 						case cop_Coordinador_Sentencia_Exito:
+							socketESI = socketActual;
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito,paqueteRecibido->tamanio,paqueteRecibido->data);
-						break;
+							break;
 						case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
+							socketESI = socketActual;
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_Tomada,paqueteRecibido->tamanio,paqueteRecibido->data);
-						break;
+							break;
 						case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
+							socketESI = socketActual;
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor,paqueteRecibido->tamanio,paqueteRecibido->data);
-						break;
+							break;
+						case -1:
+							//Hubo una desconexion
+							if(socketActual == socketESI){
+								log_error(logger, "Se desconectó un ESI. \n");
+
+							}else if(socketActual == socketCoordinador){
+								log_error(logger, "Se desconectó el Coordinador. \n");
+							}
+							break;
+
 					}
 				}
 			}
@@ -695,4 +712,8 @@ void actualizarRafaga(){
 	}else{
 		Ultimo_ESI_Ejecutado->duracionRafaga = 0;
 	}
+}
+
+void liberarESI(){
+
 }
