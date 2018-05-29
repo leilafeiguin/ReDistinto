@@ -100,6 +100,8 @@ int esperar_instrucciones(un_socket coordinador) {
 				char* clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				char* valor = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				validar_necesidad_compactacion(coordinador, clave, valor);
+				free(clave);
+				free(valor);
 			break;
 
 			case cop_Instancia_Ejecutar_Compactacion:
@@ -201,13 +203,13 @@ int set(char* clave, char* valor, bool log_mensaje) {
 		entrada = get_entrada_a_guardar_algoritmo_reemplazo(clave, valor);
 	}
 	// Guardo el valor en las entradas
-	char* valor_restante_a_guardar = copy_string(valor);
+	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
 		if (entrada->espacio_ocupado > 0) {	// Si la entrada estaba ocupada borro la clave entera
 			remover_clave(entrada->clave);
 		}
-		entrada->clave = copy_string(clave);
+		entrada->clave = clave;
 		char* contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
 		entrada->contenido = copy_string(contenido);
 		free(contenido);

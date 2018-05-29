@@ -189,8 +189,7 @@ void escuchar_ESI(un_socket ESI) {
 		t_paquete* paqueteRecibido = recibir(ESI);
 		switch(paqueteRecibido->codigo_operacion) {
 			case codigo_error:
-				// liberar_claves_ESI(ESI);
-				printf("Error en el ESI: %d. Abortando ESI. \n", ESI);
+				kill_ESI(ESI);
 				escuchar = false;
 			break;
 
@@ -203,6 +202,8 @@ void escuchar_ESI(un_socket ESI) {
 				char* clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				char* valor = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				ejecutar_set(ESI, copy_string(clave), valor);
+				free(clave);
+				free(valor);
 			break;
 
 			case cop_Coordinador_Ejecutar_Store:
@@ -604,10 +605,17 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 }
 
 void liberar_clave_tomada(char* clave) {
-	bool clave_match(t_clave_tomada * clave_tomada){
-		return strcmp(clave, clave_tomada->clave) == 0 ? true : false;
+	t_list * nueva_lista = list_create();
+	void add_clave_si_es_distinta(t_clave_tomada * clave_tomada){
+		if (strcmp(clave, clave_tomada->clave) == 0) {
+			free(clave_tomada->clave);
+		} else {
+			list_add(nueva_lista, clave_tomada->clave);
+		}
 	}
-	list_remove_by_condition(lista_claves_tomadas, clave_match);
+	list_iterate(lista_claves_tomadas, add_clave_si_es_distinta);
+	list_destroy(lista_claves_tomadas);
+	lista_claves_tomadas = nueva_lista;
 }
 
 void liberar_claves_ESI(un_socket ESI) {
@@ -617,10 +625,14 @@ void liberar_claves_ESI(un_socket ESI) {
 	void eliminar_clave_tomada(t_clave_tomada * clave_tomada){
 		liberar_clave_tomada(clave_tomada->clave);
 	}
-	t_list * claves_del_ESI = list_find(lista_claves_tomadas, ESI_match);
-	puts("aa");
+	t_list * claves_del_ESI = list_filter(lista_claves_tomadas, ESI_match);
 	list_iterate(claves_del_ESI, eliminar_clave_tomada);
 	list_destroy(claves_del_ESI);
+}
+
+void kill_ESI(un_socket ESI) {
+	liberar_claves_ESI(ESI);
+	printf("Error en el ESI: %d. Abortando ESI. \n", ESI);
 }
 
 // !ALGORITMOS DE DISTRIBUCION

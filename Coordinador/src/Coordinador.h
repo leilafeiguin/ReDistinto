@@ -127,6 +127,8 @@ void* planificador_conectado_funcion_thread(void* argumentos);
 
 void iniciar_logger();
 
+void kill_ESI(un_socket ESI);
+
 // !Funciones de hilos
 
 /*
