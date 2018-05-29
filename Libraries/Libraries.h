@@ -229,7 +229,7 @@ char* copy_string(char* value);
 
 void enviar_listado_de_strings(un_socket socket, t_list * listado_strings);
 
-void recibir_listado_de_strings(un_socket socket, void(*callback)(char*));
+t_list * recibir_listado_de_strings(un_socket socket);
 
 int cantidad_entradas_necesarias(char* valor, int tamanio_entrada);
 
@@ -244,6 +244,10 @@ char* deserializar_string(void * buffer, int * desplazamiento);
 void serializar_lista_strings(void * buffer, int * desplazamiento, t_list * lista);
 
 t_list * deserializar_lista_strings(void * buffer, int * desplazamiento);
+
+int size_of_strings(int cant_strings, ...);
+
+int size_of_list_of_strings_to_serialize(t_list * list);
 
 
 #endif /* LIBRARIES_H_ */

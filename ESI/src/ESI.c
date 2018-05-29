@@ -26,6 +26,8 @@ int main(int argc, char **argv) {
 	ejecutar_get("nombre");
 	ejecutar_store("nombre");
 
+
+
 	while(1) {}
 
 
@@ -157,8 +159,14 @@ void ejecutar_get(char* clave) {
 }
 
 void ejecutar_set(char* clave, char* valor) {
-	enviar(Coordinador,cop_Coordinador_Ejecutar_Set, size_of_string(clave), clave);
-	enviar(Coordinador,cop_Coordinador_Ejecutar_Set, size_of_string(valor), valor);
+	int tamanio_buffer = size_of_strings(2, clave, valor);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_string(buffer, &desplazamiento, clave);
+	serializar_string(buffer, &desplazamiento, valor);
+	enviar(Coordinador,cop_Coordinador_Ejecutar_Set, tamanio_buffer, buffer);
+	free(buffer);
+
 	t_paquete* paqueteResultadoOperacion = recibir(Coordinador);
 	switch(paqueteResultadoOperacion->codigo_operacion) {
 		case cop_Coordinador_Sentencia_Exito:

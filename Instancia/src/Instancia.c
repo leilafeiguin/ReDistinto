@@ -56,22 +56,23 @@ void inicializar_instancia(un_socket coordinador) {
 	t_paquete* paqueteEstadoInstancia = recibir(coordinador); // Recibo si es una instancia nueva o se esta reconectado
 	bool instancia_nueva = paqueteEstadoInstancia->codigo_operacion == cop_Instancia_Vieja ? false : true;
 	liberar_paquete(paqueteEstadoInstancia);
-	t_paquete* paqueteCantidadEntradas = recibir(coordinador) ; // Recibo la cantidad de entradas
-	t_paquete* paqueteTamanioEntradas = recibir(coordinador); // Recibo tamaño de cada entrada
-	cantidad_entradas = atoi(paqueteCantidadEntradas->data);
-	tamanio_entradas = atoi(paqueteTamanioEntradas->data);
+	t_paquete* paqueteTablaEntradas = recibir(coordinador) ; // Recibo la informacion de la tabla de entradas
+	int desplazamiento = 0;
+	cantidad_entradas = deserializar_int(paqueteTablaEntradas->data, &desplazamiento);
+	tamanio_entradas = deserializar_int(paqueteTablaEntradas->data, &desplazamiento);
 
 	// Se fija si la instancia es nueva o se esta reconectando, por ende tiene que levantar informacion del disco
 	crear_tabla_entradas(cantidad_entradas, tamanio_entradas);
 	if (instancia_nueva) {
 		log_info(logger, "Tabla de entradas creada \n");
 	} else {
-		recibir_listado_de_strings(coordinador, restaurar_clave);
+		t_list * claves = recibir_listado_de_strings(coordinador);
+		list_iterate(claves, restaurar_clave);
+		list_destroy(claves);
 		log_info(logger, "Tabla de entradas restaurada del disco \n");
 		mostrar_tabla_entradas();
 	}
-	liberar_paquete(paqueteCantidadEntradas);
-	liberar_paquete(paqueteTamanioEntradas);
+	liberar_paquete(paqueteTablaEntradas);
 }
 
 int esperar_instrucciones(un_socket coordinador) {
@@ -95,10 +96,10 @@ int esperar_instrucciones(un_socket coordinador) {
 			break;
 
 			case cop_Instancia_Necesidad_Compactacion: ;
-				char* clave = paqueteRecibido->data;
-				t_paquete* paqueteValor = recibir(coordinador);
-				validar_necesidad_compactacion(coordinador, clave, paqueteValor->data);
-				liberar_paquete(paqueteValor);
+				int desplazamiento = 0;
+				char* clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				char* valor = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				validar_necesidad_compactacion(coordinador, clave, valor);
 			break;
 
 			case cop_Instancia_Ejecutar_Compactacion:
@@ -173,13 +174,13 @@ t_entrada * get_next(t_entrada * entrada) {
 }
 
 // Recibo la clave como parametro y espero a que me envien en el valor
-int ejecutar_set(un_socket coordinador, char* clave) {
-	t_paquete* paqueteValor = recibir(coordinador); // Recibo el valor a guardar
-	char* valor = paqueteValor->data;
+int ejecutar_set(un_socket coordinador, void * clave_valor) {
+	int desplazamiento = 0;
+	char* clave = deserializar_string(clave_valor, &desplazamiento);
+	char* valor = deserializar_string(clave_valor, &desplazamiento);
 	set(clave, valor, true); // Seteo el valor
 	enviar_listado_de_strings(coordinador, instancia.keys_contenidas); // Le envio al coordinador el listado de claves actualizado
 	enviar_cantidad_entradas_ocupadas(coordinador);
-	liberar_paquete(paqueteValor);
 	return 1;
 }
 
@@ -383,9 +384,13 @@ int cantidad_entradas_ocupadas() {
 }
 
 int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* valor) {
+	log_info(logger, "Validando necesidad de compactar... \n");
 	int cant_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
 	int cantidad_entradas_libres = cantidad_entradas- cantidad_entradas_ocupadas();
 	bool necesidad_compactacion = cant_entradas_necesarias <= cantidad_entradas_libres && get_entrada_a_guardar(clave, valor) == NULL; // Hay fragmentacion externa
+	if (necesidad_compactacion) {
+		log_info(logger, "Es necesario compactar \n");
+	}
 	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;
 	enviar(coordinador, cod_op, size_of_string(""), "");
 }

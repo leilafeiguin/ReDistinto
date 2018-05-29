@@ -199,10 +199,10 @@ void escuchar_ESI(un_socket ESI) {
 			break;
 
 			case cop_Coordinador_Ejecutar_Set: ;
-				char* clave = paqueteRecibido->data;
-				t_paquete* paqueteValor = recibir(ESI);
-				ejecutar_set(ESI, copy_string(clave), paqueteValor->data);
-				liberar_paquete(paqueteValor);
+				int desplazamiento = 0;
+				char* clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				char* valor = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				ejecutar_set(ESI, copy_string(clave), valor);
 			break;
 
 			case cop_Coordinador_Ejecutar_Store:
@@ -261,16 +261,16 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	}
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
-	 /* if (instancia_nueva) {
-		set("nombre", "tomas uriel chejanovich");
-		get("nombre");
-		store("nombre");
-		set("Futbolista 1", "Cristiano ronaldo");
-		set("Futbolista 2", "Carlos tevez");
-		set("Futbolista 3", "Ronaldo asis moreira junior");
-		set("nombre2", "tomas uriel chejanovich");
+	/* if (instancia_nueva) {
+		ejecutar_set("nombre", "tomas uriel chejanovich");
+		ejecutar_get("nombre");
+		ejecutar_store("nombre");
+		ejecutar_set("Futbolista 1", "Cristiano ronaldo");
+		ejecutar_set("Futbolista 2", "Carlos tevez");
+		ejecutar_set("Futbolista 3", "Ronaldo asis moreira junior");
+		ejecutar_set("nombre2", "tomas uriel chejanovich");
 		dump();
-	} */
+	}*/
 }
 
 int ejecutar_set(un_socket ESI, char* clave, char* valor) {
@@ -289,7 +289,7 @@ int ejecutar_set(un_socket ESI, char* clave, char* valor) {
 				setear(instancia, clave, valor);
 				actualizar_keys_contenidas(instancia);
 				actualizar_cantidad_entradas_ocupadas(instancia);
-				log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
+				log_and_free(logger, string_concat(5, "SET '", clave, "':'", valor, "' \n"));
 				inserted = true;
 				enviar(ESI, cop_Coordinador_Sentencia_Exito, size_of_string(""), "");
 			} else {
@@ -304,8 +304,13 @@ int ejecutar_set(un_socket ESI, char* clave, char* valor) {
 }
 
 int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* valor) {
-	enviar(instancia->socket, cop_Instancia_Necesidad_Compactacion, size_of_string(clave), clave);
-	enviar(instancia->socket, cop_Instancia_Necesidad_Compactacion, size_of_string(valor), valor);
+	int tamanio_buffer = size_of_strings(2, clave, valor);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_string(buffer, &desplazamiento, clave);
+	serializar_string(buffer, &desplazamiento, valor);
+	enviar(instancia->socket, cop_Instancia_Necesidad_Compactacion, tamanio_buffer, buffer);
+	free(buffer);
 	t_paquete* paqueteResultado = recibir(instancia->socket);
 	if (paqueteResultado->codigo_operacion == cop_Instancia_Necesidad_Compactacion_True) { // Es necesario compactar
 		ejecutar_compactacion();
@@ -334,17 +339,18 @@ void ejecutar_compactacion() {
 
 int setear(t_instancia * instancia, char* clave, char* valor) {
 	list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(clave), clave); // Envio la clave en la que se guardara
-	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, size_of_string(valor), valor); // Envio el valor a guardar
+	int tamanio_buffer = size_of_strings(2, clave, valor);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_string(buffer, &desplazamiento, clave);
+	serializar_string(buffer, &desplazamiento, valor);
+	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, tamanio_buffer, buffer);
+	free(buffer);
 }
 
 int actualizar_keys_contenidas(t_instancia * instancia) {
 	list_destroy(instancia->keys_contenidas);
-	instancia->keys_contenidas = list_create();
-	void agregar_key_a_lista(char* key) {
-		list_add(instancia->keys_contenidas, copy_string(key));
-	}
-	recibir_listado_de_strings(instancia->socket, agregar_key_a_lista);
+	instancia->keys_contenidas = recibir_listado_de_strings(instancia->socket);
 }
 
 int actualizar_cantidad_entradas_ocupadas(t_instancia * instancia) {
@@ -502,15 +508,14 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 }
 
 int enviar_informacion_tabla_entradas(t_instancia * instancia) {
-	// Envio la cantidad de entradas que va a tener esa instancia
-	char* cant_entradas = string_itoa(configuracion.CANTIDAD_ENTRADAS);
-	enviar(instancia->socket, cop_generico, size_of_string(cant_entradas), cant_entradas);
-	free(cant_entradas);
-
-	// Envio el tamaño que va a tener cada entrada
-	char* tamanio_entrada = string_itoa(configuracion.TAMANIO_ENTRADA);
-	enviar(instancia->socket, cop_generico, size_of_string(tamanio_entrada), tamanio_entrada);
-	free(tamanio_entrada);
+	// Envio la cantidad de entradas que va a tener esa instancia y el tamaño que va a tener cada una
+	int tamanio_buffer = sizeof(int) * 2;
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_int(buffer, &desplazamiento, configuracion.CANTIDAD_ENTRADAS);
+	serializar_int(buffer, &desplazamiento, configuracion.TAMANIO_ENTRADA);
+	enviar(instancia->socket, cop_generico, tamanio_buffer, buffer);
+	free(buffer);
 }
 
 void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Instancia nueva, 1: Instancia reconectandose

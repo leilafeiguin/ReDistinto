@@ -23,7 +23,7 @@ t_instancia instancia;
 
 void inicializar_instancia(un_socket coordinador);
 int esperar_instrucciones(un_socket coordinador);
-int ejecutar_set(un_socket coordinador, char* clave);
+int ejecutar_set(un_socket coordinador, void * clave);
 int set(char* clave, char* valor, bool log_mensaje);
 int ejecutar_get(un_socket coordinador, char* clave);
 char* get(char* clave);
@@ -43,5 +43,6 @@ char* get_file_path(char* clave); // Devuelve el path del archivo .txt que almac
 int remover_clave(char* clave); // Borra el contenido de todas las entradas que guardan una determinada clave
 void compactar_tabla_entradas();
 int cantidad_entradas_ocupadas();
+int enviar_cantidad_entradas_ocupadas(un_socket coordinador);
 
 #endif /* INSTANCIA_H_ */
