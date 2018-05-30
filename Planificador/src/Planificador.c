@@ -3,8 +3,6 @@
 #include "Planificador.h"
 
 int main(void) {
-	int socketESI = 0;
-	int socketCoordinador = 0;
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/planif_image.txt");
 	char* fileLog;
 	fileLog = "planificador_logs.txt";
@@ -116,7 +114,6 @@ int main(void) {
 					t_paquete* paqueteRecibido = recibir(socketActual);
 					switch(paqueteRecibido->codigo_operacion){
 						case cop_handshake_ESI_Planificador:
-							socketESI = socketActual;
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_ESI_Planificador);
 							log_info(logger, "Realice handshake con ESI \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el ESI
@@ -146,37 +143,52 @@ int main(void) {
 
 							break;
 						case cop_handshake_Planificador_ejecucion:
-							socketESI = socketActual;
 							socketHiloEjecicionESIs = socketActual;
 							break;
 						case cop_Planificador_Ejecutar_Sentencia:
-							socketCoordinador = socketActual;
 							buffer = malloc(sizeof(int));
 							enviar(atoi(paqueteRecibido->data),cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
 							free(buffer);
 							break;
 						case cop_Coordinador_Sentencia_Exito:
-							socketESI = socketActual;
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito,paqueteRecibido->tamanio,paqueteRecibido->data);
 							break;
 						case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-							socketESI = socketActual;
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_Tomada,paqueteRecibido->tamanio,paqueteRecibido->data);
 							break;
 						case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
-							socketESI = socketActual;
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor,paqueteRecibido->tamanio,paqueteRecibido->data);
 							break;
 						case -1:
 							//Hubo una desconexion
-							if(socketActual == socketESI){
-								log_error(logger, "Se desconectó un ESI. \n");
-
-							}else if(socketActual == socketCoordinador){
-								log_error(logger, "Se desconectó el Coordinador. \n");
+						{
+							bool es_el_esi(void* esi){
+								return ((t_ESI*)esi)->socket == socketActual;
 							}
-							break;
+							t_ESI* esiListo = list_find(cola_de_listos, es_el_esi);
+							bool es_el_esi_bloqueado(void* esi){
+								return ((t_bloqueado*)esi)->ESI->socket == socketActual;
+							}
+							t_bloqueado* esiBloqueado = list_find(cola_de_bloqueados, es_el_esi_bloqueado);
 
+							if(esiListo != NULL){
+								log_info(logger, "Se desconectó un ESI listo. \n");
+								esiListo->estado = finalizado;
+								list_remove_by_condition(cola_de_listos, es_el_esi);
+							}else if(esiBloqueado != NULL){
+								esiBloqueado->ESI->estado = finalizado;
+								log_info(logger, "Se desconectó un ESI bloqueado. \n");
+								list_remove_by_condition(cola_de_bloqueados, es_el_esi_bloqueado);
+							}else if(ESI_ejecutando->socket == socketActual){
+								ESI_ejecutando->estado = finalizado;
+								log_info(logger, "Se desconectó el ESI que estaba ejecutando. \n");
+								free(ESI_ejecutando);
+							}else{
+								log_info(logger, "Se desconectó el coordinador. \n");
+							}
+
+							break;
+						}
 					}
 				}
 			}
