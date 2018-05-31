@@ -542,6 +542,7 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 	instancia_nueva->socket = socket;
 	instancia_nueva->nombre = nombre;
 	instancia_nueva->estado = conectada;
+	instancia_nueva->entradas = 0; //Este es el puntero de entradas
 	instancia_nueva->cant_entradas_ocupadas = 0; // Contador Cantidad de entradas
 	instancia_nueva->keys_contenidas = list_create();
 	list_add(lista_instancias, instancia_nueva);
@@ -706,8 +707,12 @@ void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
 
 // ALGORITMOS DE REEMPLAZO
 
-void * circular(t_instancia * lista, int cant_entradas) {
+void * algoritmo_circular(t_instancia * instancia, int cant_entradas) {
+	int inicio = (instancia)->entradas;
+	int fin = inicio + cant_entradas;
+	(instancia)->entradas += cant_entradas;
 
+	return fin;
 }
 
 // !ALGORITMOS DE REEMPLAZO
@@ -730,6 +735,12 @@ void * crear_instancias_prueba_alan() {
 	printf((instancia3)->nombre);
 	t_instancia * instancia4 = key_explicit(lista_instancias, "Susana\n", 5);
 	printf((instancia4)->nombre);
+	int entradasAEliminar = algoritmo_circular(instancia, 3);
+	printf("%i", entradasAEliminar);
+	printf("%i", (instancia)->entradas);
+	int entradasAEliminar2 = algoritmo_circular(instancia, 4);
+	printf("%i", entradasAEliminar2);
+	printf("%i", (instancia)->entradas);
 
 //	key_explicit(lista_instancias, "Alberto\n", 5);
 //	circular(lista_instancias, 8);

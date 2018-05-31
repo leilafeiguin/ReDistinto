@@ -117,7 +117,7 @@ void * key_explicit();
 
 // ALGORITMOS DE REEMPLAZO
 
-void * circular();
+void * algoritmo_circular();
 
 // !ALGORITMOS DE REEMPLAZO
 
