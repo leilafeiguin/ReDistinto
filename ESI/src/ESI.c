@@ -16,9 +16,15 @@ int main(int argc, char **argv) {
 
 	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
 	realizar_handshake(Coordinador, cop_handshake_ESI_Coordinador);
-	int tamanio = 0; //Calcular el tamanio del paquete
-	void* buffer = malloc(tamanio); //Info que necesita enviar al coordinador.
-	enviar(Coordinador,cop_generico,tamanio,buffer);
+
+	// Envia su ID al Coordinador
+	int ID = 10;
+	int tamanio_buffer = sizeof(int);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_int(buffer, &desplazamiento, ID);
+	enviar(Coordinador, cop_generico, tamanio_buffer, buffer);
+	free(buffer);
 	log_info(logger, "Me conecte con el Coordinador. \n");
 
 	ejecutar_get("nombre");
@@ -30,8 +36,7 @@ int main(int argc, char **argv) {
 
 	while(1) {}
 
-
-	char* path_script = "pathProvisorio.txt"; // script se ingresa por consola
+	char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt"; // script se ingresa por consola
 	leerScript(path_script);
 
 	char * line = NULL;
@@ -79,7 +84,7 @@ int main(int argc, char **argv) {
 	if (line)
 	free(line);
 
-	int desplazamiento=0;
+	desplazamiento=0;
 	void* bufferSentencias = malloc(2*sizeof(int));
 	paqueteSentencias* paqueteSentencias = malloc(sizeof(paqueteSentencias));
 	paqueteSentencias->cantidadInstrucciones = list_size(instrucciones);
@@ -154,6 +159,14 @@ void ejecutar_get(char* clave) {
 		case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
 			printf("La clave '%s' todavia no tiene ningun valor. \n", clave);
 		break;
+
+		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
+			printf("La operacion GET '%s' fallo. La instancia no se encuentra disponible.. \n", clave);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
+			printf("La operacion GET '%s' fallo. La clave supera los 40 caracteres. \n", clave);
+		break;
 	}
 	liberar_paquete(paqueteValor);
 }
@@ -180,6 +193,10 @@ void ejecutar_set(char* clave, char* valor) {
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
 			printf("La operacion SET '%s' : '%s' fallo. No hay instancias en el sistema. \n", clave, valor);
 		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
+			printf("La operacion SET '%s' : '%s' fallo. La clave supera los 40 caracteres. \n", clave, valor);
+		break;
 	}
 	liberar_paquete(paqueteResultadoOperacion);
 }
@@ -198,6 +215,10 @@ void ejecutar_store(char* clave) {
 
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
 			printf("La operacion STORE '%s' fallo. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n", clave);
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
+			printf("La operacion STORE '%s' fallo. La clave supera los 40 caracteres. \n", clave);
 		break;
 	}
 	liberar_paquete(paqueteResultadoOperacion);

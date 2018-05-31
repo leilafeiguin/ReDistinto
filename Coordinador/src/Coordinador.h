@@ -7,7 +7,7 @@
 #include <commons/string.h>
 #include <pthread.h>
 
-bool planificador_conectado;
+un_socket Planificador = codigo_error;
 
 typedef struct coordinador_configuracion {
 	char* PUERTO_ESCUCHA;
@@ -43,7 +43,7 @@ bool health_check(t_instancia * instancia);
 
 t_list * instancias_activas();
 
-int ejecutar_set(un_socket ESI, char* clave, char* valor);
+int ejecutar_set(t_ESI * ESI, char* clave, char* valor);
 
 int setear(t_instancia * instancia, char* clave, char* valor);
 
@@ -53,13 +53,13 @@ int actualizar_keys_contenidas(t_instancia * instancia);
 
 int actualizar_cantidad_entradas_ocupadas(t_instancia * instancia);
 
-t_clave_tomada * nueva_clave_tomada(int id_ESI, char* clave);
+t_clave_tomada * nueva_clave_tomada(t_ESI * id_ESI, char* clave);
 
-int ejecutar_get(int id_ESI, char* clave);
+int ejecutar_get(t_ESI * ESI, char* clave);
 
 char* get(char* clave);
 
-int ejecutar_store(un_socket ESI, char* clave);
+int ejecutar_store(t_ESI * ESI, char* clave);
 
 int dump(); // Ejecuta un dump en todas las instancias
 
@@ -83,15 +83,25 @@ void handle_planificador(un_socket planificador, t_paquete* paquetePlanificador)
 
 void handle_instancia(un_socket instancia, t_paquete* paqueteInstancia);
 
-void handle_ESI(un_socket esi, t_paquete* paqueteESI);
+void handle_ESI(un_socket socket_ESI, t_paquete* paqueteESI);
 
-bool validar_permiso_clave(int id_ESI, char* clave);
+int get_id_ESI_con_clave(char* clave);
 
 bool validar_clave_ingresada(char* clave);
 
 void liberar_clave_tomada(char* clave);
 
-void liberar_claves_ESI(un_socket ESI);
+void liberar_claves_ESI(t_ESI * ESI);
+
+void escuchar_ESI(t_ESI * ESI);
+
+void escuchar_planificador();
+
+t_ESI * generar_ESI(un_socket socket, int ID);
+
+bool validar_tamanio_clave(char* clave);
+
+void error_clave_larga(t_ESI * ESI, char* operacion, char* clave);
 
 // ALGORITMOS DE DISTRIBUCION
 
@@ -127,7 +137,7 @@ void* planificador_conectado_funcion_thread(void* argumentos);
 
 void iniciar_logger();
 
-void kill_ESI(un_socket ESI);
+void kill_ESI(t_ESI * ESI);
 
 // !Funciones de hilos
 
