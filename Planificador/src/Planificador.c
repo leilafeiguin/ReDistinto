@@ -127,7 +127,7 @@ int main(void) {
 
 							//Envio ID al ESI
 							idESI++;
-							enviar(socketActual, cop_handshake_ESI_Planificador, sizeof(int), (void*)idESI);
+							enviar(socketActual, cop_handshake_Planificador_ESI, sizeof(int), (void*)idESI);
 
 							//Todo actualizar estructuras necesarias con datos del ESI
 							t_ESI* newESI = malloc(sizeof(t_ESI));
