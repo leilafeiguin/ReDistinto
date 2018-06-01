@@ -114,6 +114,7 @@ typedef struct {
 	t_list * keys_contenidas; // Lista de keys que actuamente estan guardadas en la instancia
 	t_list * entradas; // Tabla de entradas de la instancia
 	int cant_entradas_ocupadas; // Contador de entradas que usa cada instancia
+	int puntero_entradas;
 } t_instancia;
 
 enum estados_instancia {

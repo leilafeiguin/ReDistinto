@@ -24,7 +24,6 @@ int main(void) {
 }
 
 coordinador_configuracion get_configuracion() {
-	crear_instancias_prueba_alan();
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathCoordinadorConfig);
@@ -542,7 +541,7 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 	instancia_nueva->socket = socket;
 	instancia_nueva->nombre = nombre;
 	instancia_nueva->estado = conectada;
-	instancia_nueva->entradas = 0; //Este es el puntero de entradas
+	instancia_nueva->puntero_entradas = 0; //Este es el puntero de entradas
 	instancia_nueva->cant_entradas_ocupadas = 0; // Contador Cantidad de entradas
 	instancia_nueva->keys_contenidas = list_create();
 	list_add(lista_instancias, instancia_nueva);
@@ -570,17 +569,6 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 // ALGORITMOS DE DISTRIBUCION
 
 void * equitative_load(t_instancia * lista, int cant_entradas) {
-//	void incrementar_entrada(t_instancia * element) {
-//		(element)->cant_entradas_ocupadas += cant_entradas;
-//	}
-//
-//	void show_cant_entradas(t_instancia * element) {
-//		printf("%i", (element)->cant_entradas_ocupadas);
-//		printf((element)->nombre);
-//	}
-//
-//	incrementar_entrada(list_get(lista, 0));
-
 	t_instancia * siguiente = list_get(lista, 0);
 	list_take_and_remove(new_list_instancias_organized, list_size(new_list_instancias_organized));
 	list_add_all(new_list_instancias_organized, lista);
@@ -607,16 +595,13 @@ void * least_space_used(t_instancia * lista, int espacio_entradas) {
 			menorEspacioInstancia = getEspacio(list_get(lista, i));
 			instanciaConMayorEspacioDisponible = list_get(lista, i);
 		}
+
 		i++;
 	}
 
 	list_iterate(lista, instancia_mas_vacia);
 
 	return instanciaConMayorEspacioDisponible;
-
-//	(instanciaConMayorEspacioDisponible)->cant_entradas_ocupadas += espacio_entradas;
-//	printf((instanciaConMayorEspacioDisponible)->nombre);
-//	printf("%i", menorEspacioInstancia);
 }
 
 void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
@@ -641,10 +626,11 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 	int valorLetra = primeraLetra;
 	int cont = 0;
 
-	for (int i = 97; i < 97+letras-1; i+cantidad_letras_x_instancia) {
-		if(valorLetra >= i && valorLetra < i+cantidad_letras_x_instancia) {
+	for (int i = 97; i < 97+letras-1; i+cantidad_letras_x_instancia)
+	{
+		if(valorLetra >= i && valorLetra < i+cantidad_letras_x_instancia)
+		{
 			instanciaSeleccionada = list_get(lista, cont);
-//			incrementar_entrada(list_get(lista, cont));
 		}
 		i += cantidad_letras_x_instancia;
 		cont ++;
@@ -659,12 +645,14 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 void liberar_clave_tomada(char* clave) {
 	t_list * nueva_lista = list_create();
 	void add_clave_si_es_distinta(t_clave_tomada * clave_tomada){
-		if (strcmp(clave, clave_tomada->clave) == 0) {
+		if (strcmp(clave, clave_tomada->clave) == 0)
+		{
 			free(clave_tomada->clave);
 		} else {
 			list_add(nueva_lista, clave_tomada->clave);
 		}
 	}
+
 	list_iterate(lista_claves_tomadas, add_clave_si_es_distinta);
 	list_destroy(lista_claves_tomadas);
 	lista_claves_tomadas = nueva_lista;
@@ -708,11 +696,23 @@ void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
 // ALGORITMOS DE REEMPLAZO
 
 void * algoritmo_circular(t_instancia * instancia, int cant_entradas) {
-	int inicio = (instancia)->entradas;
-	int fin = inicio + cant_entradas;
-	(instancia)->entradas += cant_entradas;
+	int inicio = (instancia)->puntero_entradas;
 
-	return fin;
+	(instancia)->puntero_entradas += cant_entradas;
+
+	return inicio;
+}
+
+void * least_recently_used(t_instancia * instancia) {
+	int entrada = 0;
+
+//	void show_entrada_mas_vieja() {
+//
+//	}
+//
+//	list_iterate(instancia, show_entrada_mas_vieja);
+
+	return entrada;
 }
 
 // !ALGORITMOS DE REEMPLAZO
@@ -727,23 +727,22 @@ void * crear_instancias_prueba_alan() {
 	crear_instancia(3, " Alan\n");
 	crear_instancia(4, " Cheja\n");
 	crear_instancia(3, " Marco\n");
-	t_instancia * instancia = equitative_load(lista_instancias, 1);
-	printf((instancia)->nombre);
-	t_instancia * instancia2 = equitative_load(lista_instancias, 1);
-	printf((instancia2)->nombre);
-	t_instancia * instancia3 = equitative_load(lista_instancias, 1);
-	printf((instancia3)->nombre);
-	t_instancia * instancia4 = key_explicit(lista_instancias, "Susana\n", 5);
-	printf((instancia4)->nombre);
-	int entradasAEliminar = algoritmo_circular(instancia, 3);
-	printf("%i", entradasAEliminar);
-	printf("%i", (instancia)->entradas);
-	int entradasAEliminar2 = algoritmo_circular(instancia, 4);
-	printf("%i", entradasAEliminar2);
-	printf("%i", (instancia)->entradas);
-
-//	key_explicit(lista_instancias, "Alberto\n", 5);
-//	circular(lista_instancias, 8);
+//	t_instancia * instancia = equitative_load(lista_instancias, 1);
+//	printf((instancia)->nombre);
+//	t_instancia * instancia2 = equitative_load(lista_instancias, 1);
+//	printf((instancia2)->nombre);
+//	t_instancia * instancia3 = equitative_load(lista_instancias, 1);
+//	printf((instancia3)->nombre);
+//	t_instancia * instancia4 = key_explicit(lista_instancias, "Susana\n", 5);
+//	printf((instancia4)->nombre);
+//	int punteroEntradas = algoritmo_circular(instancia, 3);
+//	printf("%i", punteroEntradas);
+//	int punteroEntradas2 = algoritmo_circular(instancia, 4);
+//	printf("%i", punteroEntradas2);
+//	int punteroEntradas3 = algoritmo_circular(instancia, 9);
+//	printf("%i", punteroEntradas3);
+//	int punteroEntradas4 = algoritmo_circular(instancia, 5);
+//	printf("%i", punteroEntradas4);
 
 //	list_iterate(instancia, show_cant_entradas);
 }
