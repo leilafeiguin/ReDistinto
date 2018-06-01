@@ -14,28 +14,6 @@ int main(int argc, char **argv) {
 	ESI_configuracion configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
-	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
-	realizar_handshake(Coordinador, cop_handshake_ESI_Coordinador);
-
-	// Envia su ID al Coordinador
-	int ID = 10;
-	int tamanio_buffer = sizeof(int);
-	void * buffer = malloc(tamanio_buffer);
-	int desplazamiento = 0;
-	serializar_int(buffer, &desplazamiento, ID);
-	enviar(Coordinador, cop_generico, tamanio_buffer, buffer);
-	free(buffer);
-	log_info(logger, "Me conecte con el Coordinador. \n");
-
-	ejecutar_get("nombre");
-	ejecutar_set("nombre", "cheja");
-	ejecutar_get("nombre");
-	ejecutar_store("nombre");
-
-
-
-	while(1) {}
-
 	char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt"; // script se ingresa por consola
 	leerScript(path_script);
 
@@ -43,7 +21,6 @@ int main(int argc, char **argv) {
 	size_t len = 0;
 	ssize_t read;
 	t_list* instrucciones = list_create();
-	t_esi_operacion parsed = parse(line);
 
 	archivo = fopen(argv[1], "r");
 	if (archivo == NULL){
@@ -84,7 +61,8 @@ int main(int argc, char **argv) {
 	if (line)
 	free(line);
 
-	desplazamiento=0;
+	int desplazamiento = 0;
+
 	void* bufferSentencias = malloc(2*sizeof(int));
 	paqueteSentencias* paqueteSentencias = malloc(sizeof(paqueteSentencias));
 	paqueteSentencias->cantidadInstrucciones = list_size(instrucciones);
@@ -96,9 +74,13 @@ int main(int argc, char **argv) {
 	enviar(Planificador,cop_handshake_ESI_Planificador,sizeof(paqueteSentencias),bufferSentencias);
 	log_info(logger, "Me conecte con el Planificador. \n");
 
-
 	free(bufferSentencias);
 	free(paqueteSentencias);
+
+	realizar_handshake(Planificador, cop_handshake_Planificador_ESI);
+
+	t_paquete* paquetePlanif = recibir(Planificador);
+	int ID = atoi(paquetePlanif->data);
 
 	int i =0;
 
@@ -117,8 +99,30 @@ int main(int argc, char **argv) {
 				i--;
 			}
 		}
-		return EXIT_SUCCESS;
-	}
+
+	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
+	realizar_handshake(Coordinador, cop_handshake_ESI_Coordinador);
+
+	// Envia su ID al Coordinador
+	int tamanio_buffer = sizeof(int);
+	void * buffer = malloc(tamanio_buffer);
+	int desp = 0;
+
+	serializar_int(buffer, &desp, ID);
+	enviar(Coordinador, cop_generico, tamanio_buffer, buffer);
+	free(buffer);
+	log_info(logger, "Me conecte con el Coordinador. \n");
+
+	ejecutar_get("nombre");
+	ejecutar_set("nombre", "cheja");
+	ejecutar_get("nombre");
+	ejecutar_store("nombre");
+
+
+while(1) {}
+
+	return EXIT_SUCCESS;
+}
 
 ESI_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso ESI\n");
