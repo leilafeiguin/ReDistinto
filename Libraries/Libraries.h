@@ -39,6 +39,7 @@ enum codigos_de_operacion {
 	cop_handshake_ESI_Planificador = 11,
 	cop_handshake_Planificador_Coordinador = 12,
 	cop_handshake_Instancia_Coordinador = 13,
+	cop_handshake_Planificador_ESI = 14,
 
 	cop_Coordinador_Ejecutar = 20,
 	cop_Instancia_Ejecucion_Fallo_TC = 21,

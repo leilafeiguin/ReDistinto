@@ -18,6 +18,7 @@ int main(void) {
 	cola_de_bloqueados = list_create();
 	cola_de_finalizados = list_create();
 	accion_a_tomar = list_create();
+	int idESI = 0;
 
 	pthread_t hiloEjecucionESIs;
 	un_socket socketHiloEjecicionESIs;
@@ -120,10 +121,13 @@ int main(void) {
 
 							int desp = 0;
 							int instrucciones;
-							int idESI;
+
 							memcpy(&instrucciones,paqueteRecibido->data,sizeof(int));
 							desp += sizeof(int);
-							memcpy(&idESI,paqueteRecibido->data,sizeof(int)+desp);
+
+							//Envio ID al ESI
+							idESI++;
+							enviar(socketActual, cop_handshake_ESI_Planificador, sizeof(int), (void*)idESI);
 
 							//Todo actualizar estructuras necesarias con datos del ESI
 							t_ESI* newESI = malloc(sizeof(t_ESI));
