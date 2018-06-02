@@ -8,6 +8,7 @@
 
 void* archivo;
 t_log* logger;
+int punteroInstancia = 0; //Algoritmo circular
 
 int main(int argc, char* arguments[]) {
 	nombre_instancia = arguments[1]; // BORRAR PROXIMAMENTE
@@ -408,36 +409,35 @@ int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* val
 
 // ALGORITMOS DE REEMPLAZO
 
-void * algoritmo_circular() {
-	int puntero = 5;
+void * algoritmo_circular(char* valor, char* clave) {
+	int puntero = punteroInstancia;
 
-//	(instancia)->puntero_entradas += cant_entradas;
+	punteroInstancia += cantidad_entradas_necesarias(valor, list_size(get_entradas_con_clave(clave)));
 
 	return puntero;
 }
 
 void * least_recently_used() {
-	int entrada = 0;
 
-//	void show_entrada_mas_vieja() {
-//
+//	void show_entrada_menos_accedida(t_entrada * entrada) {
+//		printf("%i", entrada->cant_veces_no_accedida);
 //	}
 //
-//	list_iterate(instancia, show_entrada_mas_vieja);
-
-	return entrada;
+//	list_iterate(instancia.entradas, show_entrada_menos_accedida);
+//
+//	return '';
 }
 
 void * biggest_space_used() {
-	int entrada = 0;
 
-//	void show_entrada_mas_grande() {
-//
+//	void show_entrada_mas_grande(t_entrada * entrada) {
+//		printf("%i", entrada->cant_veces_no_accedida);
 //	}
 //
-//	list_iterate(instancia, show_entrada_mas_grande);
+//	list_iterate(instancia.entradas, show_entrada_mas_grande);
 
-	return entrada;
+//	return entrada;
 }
+
 
 // !ALGORITMOS DE REEMPLAZO
