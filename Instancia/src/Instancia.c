@@ -405,3 +405,39 @@ int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* val
 	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;
 	enviar(coordinador, cod_op, size_of_string(""), "");
 }
+
+// ALGORITMOS DE REEMPLAZO
+
+void * algoritmo_circular() {
+	int puntero = 5;
+
+//	(instancia)->puntero_entradas += cant_entradas;
+
+	return puntero;
+}
+
+void * least_recently_used() {
+	int entrada = 0;
+
+//	void show_entrada_mas_vieja() {
+//
+//	}
+//
+//	list_iterate(instancia, show_entrada_mas_vieja);
+
+	return entrada;
+}
+
+void * biggest_space_used() {
+	int entrada = 0;
+
+//	void show_entrada_mas_grande() {
+//
+//	}
+//
+//	list_iterate(instancia, show_entrada_mas_grande);
+
+	return entrada;
+}
+
+// !ALGORITMOS DE REEMPLAZO

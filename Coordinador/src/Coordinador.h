@@ -128,15 +128,6 @@ void notificar_resultado_instruccion(t_ESI * ESI, int cop);
 
 // !ALGORITMOS DE DISTRIBUCION
 
-// ALGORITMOS DE REEMPLAZO
-
-void * algoritmo_circular();
-
-void * least_recently_used();
-
-// !ALGORITMOS DE REEMPLAZO
-
-
 // Funciones de hilos
 
 int i_thread = 0;

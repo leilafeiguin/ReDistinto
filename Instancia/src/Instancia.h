@@ -46,4 +46,14 @@ int cantidad_entradas_ocupadas();
 int enviar_cantidad_entradas_ocupadas(un_socket coordinador);
 void validar_directorio_data();
 
+// ALGORITMOS DE REEMPLAZO
+
+void * algoritmo_circular();
+
+void * least_recently_used();
+
+void * biggest_space_used();
+
+// !ALGORITMOS DE REEMPLAZO
+
 #endif /* INSTANCIA_H_ */

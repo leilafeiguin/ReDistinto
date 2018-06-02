@@ -4,8 +4,7 @@
 
 void* archivo;
 t_log* logger;
-int maxEntradas = -1; //Equitative Load
-char * nombreInstanciaEnUso = ""; //Equitative Load
+int siguiente_equitative_load = 0; //Equitative Load
 
 int main(void) {
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/coord_image.txt");
@@ -572,13 +571,14 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 // ALGORITMOS DE DISTRIBUCION
 
 void * equitative_load(t_instancia * lista, int cant_entradas) {
-	t_instancia * siguiente = list_get(lista, 0);
-	list_take_and_remove(new_list_instancias_organized, list_size(new_list_instancias_organized));
-	list_add_all(new_list_instancias_organized, lista);
-	list_remove(new_list_instancias_organized, 0);
-	list_add(new_list_instancias_organized, list_get(lista, 0));
-	list_take_and_remove(lista, list_size(lista));
-	list_add_all(lista, new_list_instancias_organized);
+	t_instancia * siguiente = list_get(lista, siguiente_equitative_load);
+
+	if(siguiente_equitative_load+1 == list_size(lista))
+	{
+		siguiente_equitative_load = 0;
+	} else {
+		siguiente_equitative_load += 1;
+	}
 
 	return siguiente;
 }
@@ -701,30 +701,6 @@ void notificar_resultado_instruccion(t_ESI * ESI, int cop) {
 
 // !ALGORITMOS DE DISTRIBUCION
 
-// ALGORITMOS DE REEMPLAZO
-
-void * algoritmo_circular(t_instancia * instancia, int cant_entradas) {
-	int inicio = (instancia)->puntero_entradas;
-
-	(instancia)->puntero_entradas += cant_entradas;
-
-	return inicio;
-}
-
-void * least_recently_used(t_instancia * instancia) {
-	int entrada = 0;
-
-//	void show_entrada_mas_vieja() {
-//
-//	}
-//
-//	list_iterate(instancia, show_entrada_mas_vieja);
-
-	return entrada;
-}
-
-// !ALGORITMOS DE REEMPLAZO
-
 void * crear_instancias_prueba_alan() {
 
 	void show_cant_entradas(t_instancia * element) {
@@ -735,12 +711,14 @@ void * crear_instancias_prueba_alan() {
 	crear_instancia(3, " Alan\n");
 	crear_instancia(4, " Cheja\n");
 	crear_instancia(3, " Marco\n");
-//	t_instancia * instancia = equitative_load(lista_instancias, 1);
-//	printf((instancia)->nombre);
-//	t_instancia * instancia2 = equitative_load(lista_instancias, 1);
-//	printf((instancia2)->nombre);
-//	t_instancia * instancia3 = equitative_load(lista_instancias, 1);
-//	printf((instancia3)->nombre);
+	t_instancia * instancia = equitative_load(lista_instancias, 1);
+	printf((instancia)->nombre);
+	t_instancia * instancia2 = equitative_load(lista_instancias, 1);
+	printf((instancia2)->nombre);
+	t_instancia * instancia3 = equitative_load(lista_instancias, 1);
+	printf((instancia3)->nombre);
+	t_instancia * instancia4 = equitative_load(lista_instancias, 1);
+	printf((instancia4)->nombre);
 //	t_instancia * instancia4 = key_explicit(lista_instancias, "Susana\n", 5);
 //	printf((instancia4)->nombre);
 //	int punteroEntradas = algoritmo_circular(instancia, 3);
