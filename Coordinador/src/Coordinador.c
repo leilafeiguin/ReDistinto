@@ -114,7 +114,7 @@ void handle_coneccion(int socketActual) {
 
 void handle_planificador(un_socket planificador, t_paquete* paquetePlanificador) {
 	Planificador = planificador;
-	esperar_handshake(planificador, paquetePlanificador,cop_handshake_Planificador_Coordinador);
+	esperar_handshake(Planificador, paquetePlanificador,cop_handshake_Planificador_Coordinador);
 	log_info(logger, "Realice handshake con Planificador \n");
 	t_paquete* paqueteRecibido = recibir(Planificador); // Info sobre el Planificador
 	// liberar_paquete(paqueteRecibido);
@@ -156,7 +156,10 @@ t_list * instancias_activas() {
 	bool instancia_activa(t_instancia * i) {
 		return i->estado == conectada ? true : false;
 	}
-	return list_filter(lista_instancias, instancia_activa);
+	pthread_mutex_lock(&sem_instancias);
+	t_list * result = list_filter(lista_instancias, instancia_activa);
+	pthread_mutex_unlock(&sem_instancias);
+	return result;
 }
 
 pthread_t nuevo_hilo(void *(* funcion ) (void *), t_list * parametros) {
@@ -244,23 +247,28 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 	bool instancia_ya_existente(t_instancia * ins){
 		return strcmp(ins->nombre, nombre_instancia) == 0 ? true : false;
 	}
+	pthread_mutex_lock(&sem_instancias);
 	t_instancia * instancia = list_find(lista_instancias, instancia_ya_existente);
+	pthread_mutex_unlock(&sem_instancias);
 	bool instancia_nueva = instancia == NULL;
-	int codigo_respuesta = cop_Instancia_Nueva;
+	int codigo_respuesta = instancia_nueva ? cop_Instancia_Nueva : cop_Instancia_Vieja;
+	if (instancia_nueva) {
+		instancia = crear_instancia(socket_instancia, nombre_instancia);
+	} else {
+		instancia->socket = socket_instancia;
+	}
+
+	enviar(instancia->socket, codigo_respuesta, size_of_string(""), "");
+	enviar_informacion_tabla_entradas(instancia);
 	if (instancia_nueva) { // Si es una instancia nueva
 		mensaje_instancia_conectada(nombre_instancia, 0);
-		instancia = crear_instancia(socket_instancia, nombre_instancia);
+		pthread_mutex_lock(&sem_instancias);
+		list_add(lista_instancias, instancia);
+		pthread_mutex_unlock(&sem_instancias);
 	} else { // Si es una instancia ya creada reconectandose
-		codigo_respuesta = cop_Instancia_Vieja;
-		mensaje_instancia_conectada(nombre_instancia, 1);
-		instancia->socket = socket_instancia;
-		instancia->estado = conectada;
-	}
-	enviar(instancia->socket, codigo_respuesta, sizeof(int), "0");
-	enviar_informacion_tabla_entradas(instancia);
-
-	if (!instancia_nueva) {
 		enviar_listado_de_strings(instancia->socket, instancia->keys_contenidas);
+		mensaje_instancia_conectada(nombre_instancia, 1);
+		instancia->estado = conectada;
 	}
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
@@ -319,12 +327,14 @@ int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* v
 	int desplazamiento = 0;
 	serializar_string(buffer, &desplazamiento, clave);
 	serializar_string(buffer, &desplazamiento, valor);
+	pthread_mutex_lock(&instancia->sem_instancia);
 	enviar(instancia->socket, cop_Instancia_Necesidad_Compactacion, tamanio_buffer, buffer);
 	free(buffer);
 	t_paquete* paqueteResultado = recibir(instancia->socket);
 	if (paqueteResultado->codigo_operacion == cop_Instancia_Necesidad_Compactacion_True) { // Es necesario compactar
 		ejecutar_compactacion();
 	}
+	pthread_mutex_unlock(&instancia->sem_instancia);
 	liberar_paquete(paqueteResultado);
 	return 0;
 }
@@ -334,8 +344,10 @@ void ejecutar_compactacion() {
 	int cantidad_compactaciones_ejecutadas = 0;
 	t_list* list_instancias_activas = instancias_activas();
 	void enviar_mensaje_compactacion(t_instancia * instancia) {
+		pthread_mutex_lock(&instancia->sem_instancia);
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Compactacion, size_of_string(""), "");
 		t_paquete* paquete = recibir(instancia->socket);
+		pthread_mutex_unlock(&instancia->sem_instancia);
 		if (paquete->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
 			cantidad_compactaciones_ejecutadas++;
 		}
@@ -355,19 +367,25 @@ int setear(t_instancia * instancia, char* clave, char* valor) {
 	int desplazamiento = 0;
 	serializar_string(buffer, &desplazamiento, clave);
 	serializar_string(buffer, &desplazamiento, valor);
+	pthread_mutex_lock(&instancia->sem_instancia);
 	enviar(instancia->socket, cop_Instancia_Ejecutar_Set, tamanio_buffer, buffer);
+	pthread_mutex_unlock(&instancia->sem_instancia);
 	free(buffer);
 	return 0;
 }
 
 int actualizar_keys_contenidas(t_instancia * instancia) {
+	pthread_mutex_lock(&instancia->sem_instancia);
 	list_destroy(instancia->keys_contenidas);
 	instancia->keys_contenidas = recibir_listado_de_strings(instancia->socket);
+	pthread_mutex_unlock(&instancia->sem_instancia);
 	return 0;
 }
 
 int actualizar_cantidad_entradas_ocupadas(t_instancia * instancia) {
+	pthread_mutex_lock(&instancia->sem_instancia);
 	t_paquete* paqueteCantidadEntradasOcupadas = recibir(instancia->socket); // Recibe la cantidad de entradas
+	pthread_mutex_unlock(&instancia->sem_instancia);
 	instancia->cant_entradas_ocupadas = atoi(paqueteCantidadEntradasOcupadas->data);
 	liberar_paquete(paqueteCantidadEntradasOcupadas);
 	return 0;
@@ -398,7 +416,7 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 		char* valor = get(clave);
 		printf("GET ejecutado con exito. El valor de la clave '%s' es '%s'. \n", clave, valor);
 		enviar(ESI->socket, cop_Coordinador_Sentencia_Exito, size_of_string(valor), valor);
-		enviar(Planificador, cop_Coordinador_Sentencia_Exito, size_of_string(""), "");
+		// enviar(Planificador, cop_Coordinador_Sentencia_Exito, size_of_string(""), "");
 		free(valor);
 	} else {
 		nueva_clave_tomada(ESI, clave);
@@ -426,22 +444,29 @@ bool validar_clave_ingresada(char* clave) {
 	bool instancia_tiene_clave(t_instancia * instancia){
 		return list_any_satisfy(instancia->keys_contenidas, clave_match);
 	}
-	return list_any_satisfy(lista_instancias, instancia_tiene_clave);
+	pthread_mutex_lock(&sem_instancias);
+	bool result = list_any_satisfy(lista_instancias, instancia_tiene_clave);
+	pthread_mutex_unlock(&sem_instancias);
+	return result;
 }
 
 t_clave_tomada * nueva_clave_tomada(t_ESI * ESI, char* clave) {
 	t_clave_tomada * t_clave = malloc(sizeof(t_clave_tomada));
 	t_clave->id_ESI = ESI->id_ESI;
 	t_clave->clave = copy_string(clave);
+	pthread_mutex_lock(&sem_claves_tomadas);
 	list_add(lista_claves_tomadas, t_clave);
+	pthread_mutex_unlock(&sem_claves_tomadas);
 	return t_clave;
 }
 
 char* get(char* clave) {
 	t_instancia * instancia = get_instancia_con_clave(clave);
 	if (health_check(instancia)) {
+		pthread_mutex_lock(&instancia->sem_instancia);
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Get, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteValor = recibir(instancia->socket); // Recibe el valor solicitado
+		pthread_mutex_unlock(&instancia->sem_instancia);
 		char* valor = copy_string(paqueteValor->data);
 		liberar_paquete(paqueteValor);
 		return valor;
@@ -466,8 +491,10 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 	liberar_clave_tomada(clave);
 	t_instancia * instancia = get_instancia_con_clave(clave);
 	if (instancia != NULL && health_check(instancia)) {
+		pthread_mutex_lock(&instancia->sem_instancia);
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
 		t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
+		pthread_mutex_unlock(&instancia->sem_instancia);
 		int estado_operacion = paqueteEstadoOperacion->codigo_operacion;
 		liberar_paquete(paqueteEstadoOperacion);
 		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
@@ -491,8 +518,10 @@ int dump() {
 
 int dump_instancia(t_instancia * instancia) {
 	if (health_check(instancia)) {
+		pthread_mutex_lock(&instancia->sem_instancia);
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Dump, size_of_string(""), "");
 		t_paquete* paqueteEstadoOperacion = recibir(instancia->socket); // Aguarda a que la instancia le comunique que el STORE se ejectuo de forma exitosa
+		pthread_mutex_unlock(&instancia->sem_instancia);
 		int estado_operacion = paqueteEstadoOperacion->codigo_operacion;
 		liberar_paquete(paqueteEstadoOperacion);
 		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
@@ -507,8 +536,10 @@ bool health_check(t_instancia * instancia) {
 	if (instancia->estado == desconectada) {
 		return false;
 	}
+	pthread_mutex_lock(&instancia->sem_instancia);
 	enviar(instancia->socket, codigo_healthcheck, size_of_string(""), ""); // Envio el request de healthcheck
 	t_paquete* paqueteRecibido = recibir(instancia->socket); // Aguardo a recbir el OK de la instancia
+	pthread_mutex_unlock(&instancia->sem_instancia);
 	int codigo_recibido = paqueteRecibido->codigo_operacion;
 	liberar_paquete(paqueteRecibido);
 	if (codigo_recibido == codigo_healthcheck) {
@@ -520,14 +551,16 @@ bool health_check(t_instancia * instancia) {
 }
 
 t_instancia * get_instancia_con_clave(char * clave) {
-
 	bool instancia_tiene_clave(t_instancia * instancia){
 		bool clave_match(char * clave_comparar){
 			return strcmp(clave, clave_comparar) == 0 ? true : false;
 		}
 		return list_find(instancia->keys_contenidas, clave_match) != NULL ? true :  false;
 	}
-	return list_find(lista_instancias, instancia_tiene_clave);
+	pthread_mutex_lock(&sem_instancias);
+	t_instancia * result = list_find(lista_instancias, instancia_tiene_clave);
+	pthread_mutex_unlock(&sem_instancias);
+	return result;
 }
 
 t_instancia * instancia_a_guardar() {
@@ -546,7 +579,6 @@ t_instancia * crear_instancia(un_socket socket, char* nombre) {
 	instancia_nueva->puntero_entradas = 0; //Este es el puntero de entradas
 	instancia_nueva->cant_entradas_ocupadas = 0; // Contador Cantidad de entradas
 	instancia_nueva->keys_contenidas = list_create();
-	list_add(lista_instancias, instancia_nueva);
 	return instancia_nueva;
 }
 
@@ -655,10 +687,11 @@ void liberar_clave_tomada(char* clave) {
 			list_add(nueva_lista, clave_tomada->clave);
 		}
 	}
-
+	pthread_mutex_lock(&sem_claves_tomadas);
 	list_iterate(lista_claves_tomadas, add_clave_si_es_distinta);
 	list_destroy(lista_claves_tomadas);
 	lista_claves_tomadas = nueva_lista;
+	pthread_mutex_unlock(&sem_claves_tomadas);
 }
 
 void liberar_claves_ESI(t_ESI * ESI) {
@@ -695,7 +728,9 @@ void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
 }
 
 void notificar_resultado_instruccion(t_ESI * ESI, int cop) {
-	enviar(Planificador, cop, size_of_string(""), "");
+	pthread_mutex_lock(&sem_planificador);
+	// enviar(Planificador, cop, size_of_string(""), "");
+	pthread_mutex_unlock(&sem_planificador);
 	enviar(ESI->socket, cop, size_of_string(""), "");
 }
 

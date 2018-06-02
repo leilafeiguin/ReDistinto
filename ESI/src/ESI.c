@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
 
 	ejecutar_get("nombre");
 		ejecutar_set("nombre", "cheja");
+		ejecutar_set("nombre", "carlos");
 		ejecutar_get("nombre");
 		ejecutar_store("nombre");
 
@@ -199,7 +200,6 @@ void leer_archivo(char* path) {
 	fclose(archivo);
 	if (line)
 	free(line);
-	puts("archivo leido");
 }
 
 void conectar_con_planificador() {
