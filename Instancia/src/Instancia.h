@@ -44,5 +44,6 @@ int remover_clave(char* clave); // Borra el contenido de todas las entradas que 
 void compactar_tabla_entradas();
 int cantidad_entradas_ocupadas();
 int enviar_cantidad_entradas_ocupadas(un_socket coordinador);
+void validar_directorio_data();
 
 #endif /* INSTANCIA_H_ */

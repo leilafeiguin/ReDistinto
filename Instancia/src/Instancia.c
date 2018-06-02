@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "Instancia.h"
@@ -299,7 +300,15 @@ t_list * get_entradas_con_clave(char* clave) {
 	return list_filter(instancia.entradas, entrada_tiene_la_clave);
 }
 
+void validar_directorio_data() {
+	struct stat st = {0};
+	if (stat(pathInstanciaData, &st) == -1) {
+		mkdir(pathInstanciaData, 0700);
+	}
+}
+
 char* get_file_path(char* clave) {
+	validar_directorio_data();
 	return string_concat(3, pathInstanciaData, clave, ".txt");
 }
 

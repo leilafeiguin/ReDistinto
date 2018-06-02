@@ -7,7 +7,24 @@
 #include <commons/string.h>
 #include <pthread.h>
 
+// Variables globales
+pthread_mutex_t sem_instancias;
+
+pthread_mutex_t sem_planificador;
+
+pthread_mutex_t sem_claves_tomadas;
+
 un_socket Planificador = codigo_error;
+
+int MAX_TAMANIO_CLAVE = 40;
+
+t_list* lista_instancias;
+
+t_list* lista_claves_tomadas;
+
+t_list* new_list_instancias_organized;
+
+// !Variables globales
 
 typedef struct coordinador_configuracion {
 	char* PUERTO_ESCUCHA;
@@ -21,12 +38,6 @@ typedef struct coordinador_configuracion {
 coordinador_configuracion configuracion;
 
 char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/configCoordinador.cfg";
-
-t_list* lista_instancias;
-
-t_list* new_list_instancias_organized;
-
-t_list* lista_claves_tomadas;
 
 typedef struct {
 	int id_ESI; // ID del ESI que tiene la clave
@@ -112,6 +123,8 @@ void * equitative_load();
 void * least_space_used();
 
 void * key_explicit();
+
+void notificar_resultado_instruccion(t_ESI * ESI, int cop);
 
 // !ALGORITMOS DE DISTRIBUCION
 

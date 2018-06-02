@@ -26,6 +26,7 @@
 #include <ifaddrs.h>
 #include <stdarg.h>
 #include <math.h>
+#include <pthread.h>
 #define MAX_LEN 128
 
 
@@ -116,6 +117,7 @@ typedef struct {
 	t_list * entradas; // Tabla de entradas de la instancia
 	int cant_entradas_ocupadas; // Contador de entradas que usa cada instancia
 	int puntero_entradas;
+	pthread_mutex_t sem_instancia;
 } t_instancia;
 
 enum estados_instancia {

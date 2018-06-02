@@ -163,6 +163,12 @@ int main(void) {
 						case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
 							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor,paqueteRecibido->tamanio,paqueteRecibido->data);
 							break;
+						case cop_Coordinador_Sentencia_Fallo_No_Instancias:
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_No_Instancias,paqueteRecibido->tamanio,paqueteRecibido->data);
+							break;
+						case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
+							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_Larga,paqueteRecibido->tamanio,paqueteRecibido->data);
+							break;
 						case -1:
 							//Hubo una desconexion
 						{

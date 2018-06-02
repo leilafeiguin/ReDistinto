@@ -117,7 +117,7 @@ void handle_planificador(un_socket planificador, t_paquete* paquetePlanificador)
 	Planificador = planificador;
 	esperar_handshake(planificador, paquetePlanificador,cop_handshake_Planificador_Coordinador);
 	log_info(logger, "Realice handshake con Planificador \n");
-	t_paquete* paqueteRecibido = recibir(planificador); // Info sobre el Planificador
+	t_paquete* paqueteRecibido = recibir(Planificador); // Info sobre el Planificador
 	// liberar_paquete(paqueteRecibido);
 	t_list* thread_params;
 	nuevo_hilo(planificador_conectado_funcion_thread, thread_params);
@@ -287,7 +287,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
 		printf("SET rechazado. La clave '%s' se encuentra tomada por otro ESI. \n", clave);
-		enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, size_of_string(""), "");
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada);
 		return 0;
 	}
 
@@ -296,7 +296,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 		t_instancia * instancia = instancia_a_guardar();
 		if (instancia == NULL) {
 			log_info(logger, "ERROR: No pudo ejecutarse el SET. No hay instancias disponibles. \n ");
-			enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_No_Instancias, size_of_string(""), "");
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias);
 			return 0;
 		}
 		if (health_check(instancia)) {
@@ -306,7 +306,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 			actualizar_cantidad_entradas_ocupadas(instancia);
 			log_and_free(logger, string_concat(5, "SET '", clave, "':'", valor, "' \n"));
 			inserted = true;
-			enviar(ESI->socket, cop_Coordinador_Sentencia_Exito, size_of_string(""), "");
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito);
 		} else {
 			log_and_free(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
 		}
@@ -384,7 +384,7 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
 		printf("GET rechazado. La clave '%s' se encuentra tomada por otro ESI. \n", clave);
-		enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, size_of_string(""), "");
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada);
 		return 0;
 	}
 
@@ -393,17 +393,18 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 		t_instancia * instancia = get_instancia_con_clave(clave);
 		if (instancia == NULL || !health_check(instancia)) {
 			log_info(logger, "ERROR: GET rechazado. La instancia no se encuentra disponible. \n");
-			enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_No_Instancias, size_of_string(""), "");
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias);
 			return 0;
 		}
 		char* valor = get(clave);
 		printf("GET ejecutado con exito. El valor de la clave '%s' es '%s'. \n", clave, valor);
 		enviar(ESI->socket, cop_Coordinador_Sentencia_Exito, size_of_string(valor), valor);
+		enviar(Planificador, cop_Coordinador_Sentencia_Exito, size_of_string(""), "");
 		free(valor);
 	} else {
 		nueva_clave_tomada(ESI, clave);
 		printf("GET ejecutado con exito. La clave '%s' todavia no tiene ningun valor. \n", clave);
-		enviar(ESI->socket, cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor, size_of_string(""), "");
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor);
 	}
 
 	return 1;
@@ -413,7 +414,9 @@ int get_id_ESI_con_clave(char* clave) {
 	bool clave_match(t_clave_tomada * clave_comparar){
 		return strcmp(clave, clave_comparar->clave) == 0 ? true : false;
 	}
+	pthread_mutex_lock(&sem_claves_tomadas);
 	t_clave_tomada * t_clave = list_find(lista_claves_tomadas, clave_match);
+	pthread_mutex_unlock(&sem_claves_tomadas);
 	return t_clave == NULL ? NULL : t_clave->id_ESI;
 }
 
@@ -457,7 +460,7 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
 		log_and_free(logger, string_concat(3, "ERROR: STORE rechazado. La clave '", clave , "' se encuentra tomada por otro ESI \n"));
-		enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, size_of_string(""), "");
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada);
 		return 0;
 	}
 
@@ -470,11 +473,11 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 		liberar_paquete(paqueteEstadoOperacion);
 		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
 			log_and_free(logger, string_concat(3, "STORE ejecutado con exito. La clave '", clave, "' fue guardada y liberada. \n"));
-			enviar(ESI->socket, cop_Coordinador_Sentencia_Exito, size_of_string(""), "");
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito);
 		}
 	} else {
 		log_info(logger, "ERROR: STORE rechazado. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n");
-		enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_No_Instancias, size_of_string(""), "");
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias);
 	}
 	return 1;
 }
@@ -683,12 +686,17 @@ t_ESI * generar_ESI(un_socket socket, int ID) {
 }
 
 bool validar_tamanio_clave(char* clave) {
-	return strlen(clave) <= 40;
+	return strlen(clave) <= MAX_TAMANIO_CLAVE;
 }
 
 void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
-	printf("%s rechazado. La clave '%s' supera los 40 caracteres. \n", operacion, clave);
-	enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_Clave_Larga, size_of_string(""), "");
+	printf("%s rechazado. La clave '%s' supera los %d caracteres. \n", operacion, clave, MAX_TAMANIO_CLAVE);
+	notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Larga);
+}
+
+void notificar_resultado_instruccion(t_ESI * ESI, int cop) {
+	enviar(Planificador, cop, size_of_string(""), "");
+	enviar(ESI->socket, cop, size_of_string(""), "");
 }
 
 // !ALGORITMOS DE DISTRIBUCION
