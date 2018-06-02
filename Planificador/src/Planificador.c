@@ -32,7 +32,7 @@ int main(void) {
 	realizar_handshake(Coordinador, cop_handshake_Planificador_Coordinador);
 	int tamanio = 0; //Calcular el tamanio del paquete
 	void* buffer = malloc(tamanio); //Info que necesita enviar al coordinador.
-	enviar(Coordinador,cop_generico,tamanio,buffer);
+	enviar(Coordinador,cop_generico,size_of_string(""),"");
 	log_info(logger, "Me conecte con el Coordinador. \n");
 	free(buffer);
 

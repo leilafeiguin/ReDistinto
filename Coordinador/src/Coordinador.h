@@ -6,6 +6,7 @@
 #include <commons/collections/list.h>
 #include <commons/string.h>
 #include <pthread.h>
+#include <signal.h>
 
 // Variables globales
 pthread_mutex_t sem_instancias;
@@ -23,6 +24,8 @@ t_list* lista_instancias;
 t_list* lista_claves_tomadas;
 
 t_list* new_list_instancias_organized;
+
+t_config* archivo_configuracion;
 
 // !Variables globales
 
@@ -114,6 +117,16 @@ bool validar_tamanio_clave(char* clave);
 
 void error_clave_larga(t_ESI * ESI, char* operacion, char* clave);
 
+void iniciar_logger();
+
+void kill_ESI(t_ESI * ESI);
+
+void notificar_resultado_instruccion(t_ESI * ESI, int cop);
+
+void funcion_exit(int sig);
+
+void liberar_instancia(t_instancia * instancia);
+
 // ALGORITMOS DE DISTRIBUCION
 
 void * crear_instancias_prueba_alan();
@@ -123,8 +136,6 @@ void * equitative_load();
 void * least_space_used();
 
 void * key_explicit();
-
-void notificar_resultado_instruccion(t_ESI * ESI, int cop);
 
 // !ALGORITMOS DE DISTRIBUCION
 
@@ -141,9 +152,7 @@ void* ESI_conectado_funcion_thread(void* argumentos);
 
 void* planificador_conectado_funcion_thread(void* argumentos);
 
-void iniciar_logger();
-
-void kill_ESI(t_ESI * ESI);
+void clave_tomada_destroyer(t_clave_tomada * clave_tomada);
 
 // !Funciones de hilos
 
