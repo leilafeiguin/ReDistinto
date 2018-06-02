@@ -11,113 +11,38 @@ int main(int argc, char **argv) {
 	logger = log_create(fileLog, "ESI Logs", 1, 1);
 	log_info(logger, "Inicializando proceso ESI. \n");
 
-	ESI_configuracion configuracion = get_configuracion();
+	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
 	char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt"; // script se ingresa por consola
 	leerScript(path_script);
 
-	char * line = NULL;
-	size_t len = 0;
-	ssize_t read;
-	t_list* instrucciones = list_create();
+	leer_archivo(argv[1]);
+	conectar_con_planificador();
+	conectar_con_coordinador();
 
-	archivo = fopen(argv[1], "r");
-	if (archivo == NULL){
-		perror("Error al abrir el archivo: ");
-		exit(EXIT_FAILURE);
-	}
-
-	while ((read = getline(&line, &len, archivo)) != -1) {
-	        t_esi_operacion parsed = parse(line);
-	        list_add(instrucciones, &parsed);
-	        if(parsed.valido){
-	            switch(parsed.keyword){
-	                case GET:
-	                    printf("GET\tclave: <%s>\n", parsed.argumentos.GET.clave);
-	                    break;
-	                case SET:
-	                    printf("SET\tclave: <%s>\tvalor: <%s>\n", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
-	                    break;
-	                case STORE:
-	                    printf("STORE\tclave: <%s>\n", parsed.argumentos.STORE.clave);
-	                    break;
-	                default:
-	                    fprintf(stderr, "No pude interpretar <%s>\n", line);
-	                    exit(EXIT_FAILURE);
-	            }
-
-	            destruir_operacion(parsed);
-	        } else {
-	            fprintf(stderr, "La linea <%s> no es valida\n", line);
-	            exit(EXIT_FAILURE);
-	        }
-	    }
-
-	un_socket Planificador = conectar_a(configuracion.IP_PLANIFICADOR,configuracion.PUERTO_PLANIFICADOR);
-	realizar_handshake(Planificador, cop_handshake_ESI_Planificador);
-
-	fclose(archivo);
-	if (line)
-	free(line);
-
-	int desplazamiento = 0;
-
-	void* bufferSentencias = malloc(2*sizeof(int));
-	paqueteSentencias* paqueteSentencias = malloc(sizeof(paqueteSentencias));
-	paqueteSentencias->cantidadInstrucciones = list_size(instrucciones);
-
-	memcpy(bufferSentencias+desplazamiento, &paqueteSentencias->cantidadInstrucciones,sizeof(int));
-	desplazamiento+=sizeof(int);
-	memcpy(bufferSentencias+desplazamiento, &paqueteSentencias->idESI, sizeof(int));
-	desplazamiento+=sizeof(int);
-	enviar(Planificador,cop_handshake_ESI_Planificador,sizeof(paqueteSentencias),bufferSentencias);
-	log_info(logger, "Me conecte con el Planificador. \n");
-
-	free(bufferSentencias);
-	free(paqueteSentencias);
-
-	realizar_handshake(Planificador, cop_handshake_Planificador_ESI);
-
-	t_paquete* paquetePlanif = recibir(Planificador);
-	int ID = atoi(paquetePlanif->data);
+	ejecutar_get("nombre");
+		ejecutar_set("nombre", "cheja");
+		ejecutar_get("nombre");
+		ejecutar_store("nombre");
 
 	int i =0;
 
 	for(i=0;list_size(instrucciones);i++){
-		t_paquete* paquete = recibir(Planificador);
-		t_esi_operacion* instruccionAEjecutar;
-		instruccionAEjecutar = list_get(instrucciones,i);
+	t_paquete* paquete = recibir(Planificador);
+	t_esi_operacion* instruccionAEjecutar;
+	instruccionAEjecutar = list_get(instrucciones,i);
 
-		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
-		t_paquete* resultado = recibir(Coordinador);
+	enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
+	t_paquete* resultado = recibir(Coordinador);
 
-			if(resultado->codigo_operacion==cop_Coordinador_Sentencia_Exito){
-				ejecutar(instruccionAEjecutar);
-				instrucciones[i];
-			}else{
-				i--;
-			}
+		if(resultado->codigo_operacion==cop_Coordinador_Sentencia_Exito){
+			ejecutar(instruccionAEjecutar);
+			instrucciones[i];
+		}else{
+			i--;
 		}
-
-	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
-	realizar_handshake(Coordinador, cop_handshake_ESI_Coordinador);
-
-	// Envia su ID al Coordinador
-	int tamanio_buffer = sizeof(int);
-	void * buffer = malloc(tamanio_buffer);
-	int desp = 0;
-
-	serializar_int(buffer, &desp, ID);
-	enviar(Coordinador, cop_generico, tamanio_buffer, buffer);
-	free(buffer);
-	log_info(logger, "Me conecte con el Coordinador. \n");
-
-	ejecutar_get("nombre");
-	ejecutar_set("nombre", "cheja");
-	ejecutar_get("nombre");
-	ejecutar_store("nombre");
-
+	}
 
 while(1) {}
 
@@ -231,6 +156,89 @@ void ejecutar_store(char* clave) {
 void ejecutar(t_esi_operacion* instruccionAEjecutar) {
 //todo
 	return;
+}
+
+void leer_archivo(char* path) {
+	instrucciones = list_create();
+	char * line = NULL;
+	size_t len = 0;
+	ssize_t read;
+
+	archivo = fopen(path, "r");
+	if (archivo == NULL){
+		perror("Error al abrir el archivo: ");
+		exit(EXIT_FAILURE);
+	}
+
+	while ((read = getline(&line, &len, archivo)) != -1) {
+		t_esi_operacion parsed = parse(line);
+		list_add(instrucciones, &parsed);
+		if(parsed.valido){
+			switch(parsed.keyword){
+				case GET:
+					printf("GET\tclave: <%s>\n", parsed.argumentos.GET.clave);
+					break;
+				case SET:
+					printf("SET\tclave: <%s>\tvalor: <%s>\n", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
+					break;
+				case STORE:
+					printf("STORE\tclave: <%s>\n", parsed.argumentos.STORE.clave);
+					break;
+				default:
+					fprintf(stderr, "No pude interpretar <%s>\n", line);
+					exit(EXIT_FAILURE);
+			}
+
+			destruir_operacion(parsed);
+		} else {
+			fprintf(stderr, "La linea <%s> no es valida\n", line);
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	fclose(archivo);
+	if (line)
+	free(line);
+	puts("archivo leido");
+}
+
+void conectar_con_planificador() {
+	Planificador = conectar_a(configuracion.IP_PLANIFICADOR,configuracion.PUERTO_PLANIFICADOR);
+	realizar_handshake(Planificador, cop_handshake_ESI_Planificador);
+	int desplazamiento = 0;
+	void* bufferSentencias = malloc(sizeof(int));
+	paqueteSentencias* paqueteSentencias = malloc(sizeof(paqueteSentencias));
+	paqueteSentencias->cantidadInstrucciones = list_size(instrucciones);
+
+	memcpy(bufferSentencias+desplazamiento, &paqueteSentencias->cantidadInstrucciones,sizeof(int));
+	desplazamiento+=sizeof(int);
+	enviar(Planificador,cop_handshake_ESI_Planificador,sizeof(paqueteSentencias),bufferSentencias);
+	log_info(logger, "Me conecte con el Planificador. \n");
+	free(bufferSentencias);
+	free(paqueteSentencias);
+
+
+	// Recibo mi ID
+	t_paquete* paquetePlanif = recibir(Planificador);
+	desplazamiento = 0;
+	ID = deserializar_int(paquetePlanif->data, &desplazamiento);
+	liberar_paquete(paquetePlanif);
+	printf("Mi ID: %d \n", ID);
+}
+
+void conectar_con_coordinador() {
+	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
+	realizar_handshake(Coordinador, cop_handshake_ESI_Coordinador);
+
+	// Envia su ID al Coordinador
+	int tamanio_buffer = sizeof(int);
+	void * buffer = malloc(tamanio_buffer);
+	int desp = 0;
+
+	serializar_int(buffer, &desp, ID);
+	enviar(Coordinador, cop_generico, tamanio_buffer, buffer);
+	free(buffer);
+	log_info(logger, "Me conecte con el Coordinador. \n");
 }
 
 

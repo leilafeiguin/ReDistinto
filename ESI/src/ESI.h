@@ -5,10 +5,6 @@
 #include <commons/log.h>
 #include <parsi/parser.h>
 
-void* archivo;
-t_log* logger;
-un_socket Coordinador;
-
 typedef struct ESI_configuracion {
 	char* IP_COORDINADOR;
 	char* PUERTO_COORDINADOR;
@@ -16,6 +12,15 @@ typedef struct ESI_configuracion {
 	char* PUERTO_PLANIFICADOR;
 
 } ESI_configuracion;
+
+void* archivo;
+t_log* logger;
+un_socket Coordinador;
+ESI_configuracion configuracion;
+un_socket Planificador;
+t_list* instrucciones;
+
+int ID;
 
 typedef struct paqueteSentencias {
 	int cantidadInstrucciones;
@@ -31,5 +36,11 @@ void leerScript(char* path);
 void ejecutar(t_esi_operacion*);
 
 void ejecutar_get(char* clave);
+
+void leer_archivo(char* path);
+
+void conectar_con_planificador();
+
+void conectar_con_coordinador();
 
 #endif /* ESI_H_ */

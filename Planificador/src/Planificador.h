@@ -101,7 +101,7 @@ void ejecutarDesbloquear(char** parametros);
 
 void ejecutarListar(char** parametros);
 
-void hiloEjecucionESIs(void* unused);
+void funcionHiloEjecucionESIs(void* unused);
 
 void ordenar_por_sjf_sd();
 

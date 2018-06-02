@@ -18,7 +18,7 @@ int main(void) {
 	cola_de_bloqueados = list_create();
 	cola_de_finalizados = list_create();
 	accion_a_tomar = list_create();
-	int idESI = 0;
+	int idESI = 1;
 
 	pthread_t hiloEjecucionESIs;
 	un_socket socketHiloEjecicionESIs;
@@ -118,16 +118,19 @@ int main(void) {
 							esperar_handshake(socketActual,paqueteRecibido,cop_handshake_ESI_Planificador);
 							log_info(logger, "Realice handshake con ESI \n");
 							paqueteRecibido = recibir(socketActual); // Info sobre el ESI
-
+							// Recibo la cantidad de instrucciones del ESI
 							int desp = 0;
-							int instrucciones;
+							int instrucciones = deserializar_int(paqueteRecibido->data, &desp);
+							liberar_paquete(paqueteRecibido);
 
-							memcpy(&instrucciones,paqueteRecibido->data,sizeof(int));
-							desp += sizeof(int);
-
-							//Envio ID al ESI
+							// Envio al ESI su ID
+							int tamanio_buffer = sizeof(int);
+							void * buffer = malloc(tamanio_buffer);
+							desp = 0;
+							serializar_int(buffer, &desp, idESI);
+							enviar(socketActual, cop_handshake_Planificador_ESI, tamanio_buffer, buffer);
+							free(buffer);
 							idESI++;
-							enviar(socketActual, cop_handshake_Planificador_ESI, sizeof(int), (void*)idESI);
 
 							//Todo actualizar estructuras necesarias con datos del ESI
 							t_ESI* newESI = malloc(sizeof(t_ESI));
@@ -139,10 +142,9 @@ int main(void) {
 							newESI->duracionRafaga = 0;
 
 							list_add(cola_de_listos,newESI);
-
 							//Todo corroborar que sea el primer ESI o que el hilo de ejecucion anterior finalizado
 							if(!estado_hiloEjecucionESIs){
-								pthread_create(&hiloEjecucionESIs, NULL, hiloEjecucionESIs, NULL);
+								pthread_create(&hiloEjecucionESIs, NULL, funcionHiloEjecucionESIs, NULL);
 							}
 
 							break;
@@ -236,8 +238,7 @@ void salir(int motivo){
 	exit(motivo);
 }
 
-void hiloEjecucionESIs(void* unused){
-
+void funcionHiloEjecucionESIs(void* unused){
 	estado_hiloEjecucionESIs = true;
 
 	un_socket hiloPrincipal = conectar_a("127.0.0.1",configuracion.PUERTO_ESCUCHA);
