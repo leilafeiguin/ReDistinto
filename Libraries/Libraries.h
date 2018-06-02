@@ -254,5 +254,7 @@ int size_of_strings(int cant_strings, ...);
 
 int size_of_list_of_strings_to_serialize(t_list * list);
 
+void destruir_lista_strings(t_list * lista);
+
 
 #endif /* LIBRARIES_H_ */

@@ -22,10 +22,9 @@ int main(int argc, char **argv) {
 	conectar_con_coordinador();
 
 	ejecutar_get("nombre");
-		ejecutar_set("nombre", "cheja");
-		ejecutar_set("nombre", "carlos");
-		ejecutar_get("nombre");
-		ejecutar_store("nombre");
+	ejecutar_set("nombre", "cheja");
+	ejecutar_set("nombre", "carlos");
+	ejecutar_get("nombre");
 
 	int i =0;
 

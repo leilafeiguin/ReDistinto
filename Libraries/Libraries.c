@@ -577,5 +577,12 @@ int size_of_list_of_strings_to_serialize(t_list * list) {
 	return result;
 }
 
+void destruir_lista_strings(t_list * lista) {
+	void string_destroyer(void * string) {
+		free(string);
+	}
+	list_destroy_and_destroy_elements(lista, string_destroyer);
+}
+
 
 

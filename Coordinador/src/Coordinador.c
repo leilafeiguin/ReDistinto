@@ -7,6 +7,7 @@ t_log* logger;
 int siguiente_equitative_load = 0; //Equitative Load
 
 int main(void) {
+	(void) signal(SIGINT, funcion_exit);
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/coord_image.txt");
 	iniciar_logger();
 	log_info(logger, "Inicializando proceso Coordinador. \n");
@@ -25,7 +26,7 @@ int main(void) {
 coordinador_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
-	t_config* archivo_configuracion = config_create(pathCoordinadorConfig);
+	archivo_configuracion = config_create(pathCoordinadorConfig);
 	configuracion.PUERTO_ESCUCHA = get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA");
 	configuracion.ALGORITMO_DISTRIBUCION = get_campo_config_string(archivo_configuracion, "ALGORITMO_DISTRIBUCION");
 	configuracion.CANTIDAD_ENTRADAS = get_campo_config_int(archivo_configuracion, "CANTIDAD_ENTRADAS");
@@ -117,7 +118,7 @@ void handle_planificador(un_socket planificador, t_paquete* paquetePlanificador)
 	esperar_handshake(Planificador, paquetePlanificador,cop_handshake_Planificador_Coordinador);
 	log_info(logger, "Realice handshake con Planificador \n");
 	t_paquete* paqueteRecibido = recibir(Planificador); // Info sobre el Planificador
-	// liberar_paquete(paqueteRecibido);
+	liberar_paquete(paqueteRecibido);
 	t_list* thread_params;
 	nuevo_hilo(planificador_conectado_funcion_thread, thread_params);
 }
@@ -142,7 +143,7 @@ void handle_ESI(un_socket socket_ESI, t_paquete* paqueteESI) {
 		int desplazamiento = 0;
 		int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 		t_ESI * ESI = generar_ESI(socket_ESI, id_ESI);
-		// liberar_paquete(paqueteRecibido);
+		liberar_paquete(paqueteRecibido);
 		t_list* thread_params = list_create();
 		list_add(thread_params, ESI);
 		nuevo_hilo(ESI_conectado_funcion_thread, thread_params);
@@ -680,16 +681,13 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 void liberar_clave_tomada(char* clave) {
 	t_list * nueva_lista = list_create();
 	void add_clave_si_es_distinta(t_clave_tomada * clave_tomada){
-		if (strcmp(clave, clave_tomada->clave) == 0)
-		{
-			free(clave_tomada->clave);
-		} else {
-			list_add(nueva_lista, clave_tomada->clave);
+		if (strcmp(clave, clave_tomada->clave) != 0) {
+			list_add(nueva_lista, clave_tomada);
 		}
 	}
 	pthread_mutex_lock(&sem_claves_tomadas);
 	list_iterate(lista_claves_tomadas, add_clave_si_es_distinta);
-	list_destroy(lista_claves_tomadas);
+	list_destroy_and_destroy_elements(lista_claves_tomadas, clave_tomada_destroyer);
 	lista_claves_tomadas = nueva_lista;
 	pthread_mutex_unlock(&sem_claves_tomadas);
 }
@@ -729,9 +727,32 @@ void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
 
 void notificar_resultado_instruccion(t_ESI * ESI, int cop) {
 	pthread_mutex_lock(&sem_planificador);
-	// enviar(Planificador, cop, size_of_string(""), "");
+	enviar(Planificador, cop, size_of_string(""), "");
 	pthread_mutex_unlock(&sem_planificador);
 	enviar(ESI->socket, cop, size_of_string(""), "");
+}
+
+void funcion_exit(int sig) {
+	puts("Abortando Coordinador..");
+	config_destroy(archivo_configuracion);
+	list_iterate(lista_instancias, liberar_instancia);
+	list_destroy_and_destroy_elements(lista_claves_tomadas, clave_tomada_destroyer);
+
+	for(int i = 0; i < 10;i++) {
+		pthread_join(threads[i], NULL);
+	}
+	(void) signal(SIGINT, SIG_DFL);
+}
+
+void liberar_instancia(t_instancia * instancia) {
+	free(instancia->nombre);
+	destruir_lista_strings(instancia->keys_contenidas);
+	free(instancia);
+}
+
+void clave_tomada_destroyer(t_clave_tomada * clave_tomada) {
+	free(clave_tomada->clave);
+	free(clave_tomada);
 }
 
 // !ALGORITMOS DE DISTRIBUCION
