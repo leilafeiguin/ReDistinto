@@ -398,6 +398,12 @@ void ejecutarContinuar(char** parametros){
 }
 
 void ejecutarKill(char** parametros){
+	int idESI = atoi(parametros[1]);
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == idESI;
+	}
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+	pasar_ESI_a_finalizado(idESI, esi->descripcion_estado);
 
 }
 
