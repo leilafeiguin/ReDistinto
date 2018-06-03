@@ -151,6 +151,9 @@ int main(void) {
 						case cop_handshake_Planificador_ejecucion:
 							socketHiloEjecicionESIs = socketActual;
 							break;
+						case cop_Planificador_kill_ESI:
+							enviar(atoi(paqueteRecibido->data), cop_Planificador_kill_ESI, sizeof(int), paqueteRecibido->data);
+						break;
 						case cop_Planificador_Ejecutar_Sentencia:
 							buffer = malloc(sizeof(int));
 							enviar(atoi(paqueteRecibido->data),cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
@@ -399,16 +402,27 @@ void ejecutarContinuar(char** parametros){
 
 void ejecutarKill(char** parametros){
 	int idESI = atoi(parametros[1]);
+
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == idESI;
+	}
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+	if(esi == NULL){
+		log_info(logger, "El ESI no existe. \n");
+	}
+	un_socket hiloPrincipal = conectar_a("127.0.0.1",configuracion.PUERTO_ESCUCHA);
+	realizar_handshake(hiloPrincipal,cop_handshake_Planificador_Consola);
+	log_info(logger, "Me conecte con el Hilo principal. \n");
+
+	void* buffer = malloc(sizeof(int));
+	memcpy(buffer, &esi->socket, sizeof(int));
+	enviar(hiloPrincipal, cop_Planificador_kill_ESI, sizeof(int), buffer);
+
 	pasar_ESI_a_finalizado(idESI, ""); //todo descripcion de estado
-
-
 }
 
 void ejecutarStatus(char** parametros){
 	int clave = atoi(parametros[1]);
-
-
-
 
 }
 

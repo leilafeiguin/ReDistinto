@@ -29,16 +29,19 @@ int main(int argc, char **argv) {
 	int i =0;
 
 	for(i=0;list_size(instrucciones);i++){
-	t_paquete* paquete = recibir(Planificador);
-	t_esi_operacion* instruccionAEjecutar;
-	instruccionAEjecutar = list_get(instrucciones,i);
+		t_paquete* paquete = recibir(Planificador);
+		if(paquete->codigo_operacion == cop_Planificador_kill_ESI){
+			//todo liberar memoria
+			exit(0);
+		}
+		t_esi_operacion* instruccionAEjecutar;
+		instruccionAEjecutar = list_get(instrucciones,i);
 
-	enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
-	t_paquete* resultado = recibir(Coordinador);
+		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
+		t_paquete* resultado = recibir(Coordinador);
 
 		if(resultado->codigo_operacion==cop_Coordinador_Sentencia_Exito){
 			ejecutar(instruccionAEjecutar);
-			instrucciones[i];
 		}else{
 			i--;
 		}
@@ -154,7 +157,17 @@ void ejecutar_store(char* clave) {
 }
 
 void ejecutar(t_esi_operacion* instruccionAEjecutar) {
-//todo
+	switch(instruccionAEjecutar->keyword){
+		case GET:
+			ejecutar_get(instruccionAEjecutar->argumentos.GET.clave);
+		break;
+		case SET:
+			ejecutar_set(instruccionAEjecutar->argumentos.SET.clave, instruccionAEjecutar->argumentos.SET.valor);
+		break;
+		case STORE:
+			ejecutar_store(instruccionAEjecutar->argumentos.STORE.clave);
+		break;
+	}
 	return;
 }
 
