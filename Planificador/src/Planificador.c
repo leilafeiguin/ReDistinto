@@ -18,6 +18,7 @@ int main(void) {
 	cola_de_bloqueados = list_create();
 	cola_de_finalizados = list_create();
 	accion_a_tomar = list_create();
+	int idESI = 1;
 
 	pthread_t hiloEjecucionESIs;
 	un_socket socketHiloEjecicionESIs;
