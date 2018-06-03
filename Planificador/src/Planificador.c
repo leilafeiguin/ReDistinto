@@ -419,6 +419,7 @@ void ejecutarKill(char** parametros){
 	enviar(hiloPrincipal, cop_Planificador_kill_ESI, sizeof(int), buffer);
 
 	pasar_ESI_a_finalizado(idESI, ""); //todo descripcion de estado
+	free(buffer);
 }
 
 void ejecutarStatus(char** parametros){
@@ -519,6 +520,7 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 			list_remove_by_condition(cola_de_listos,encontrar_esi);
 			list_add(cola_de_bloqueados,esi_bloqueado);
 			free(esi_bloqueado);
+			free(clave_de_bloqueo);
 		}
 		break;
 		case ejecutando:
@@ -531,6 +533,7 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 			strcpy(clave_de_bloqueo,esi_accion_a_tomar->clave_de_bloqueo);
 			esi_accion_a_tomar->motivo = motivo;
 			free(esi_accion_a_tomar);
+			free(clave_de_bloqueo);
 		}
 		break;
 	}
