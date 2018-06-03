@@ -18,7 +18,6 @@ int main(void) {
 	cola_de_bloqueados = list_create();
 	cola_de_finalizados = list_create();
 	accion_a_tomar = list_create();
-	int idESI = 1;
 
 	pthread_t hiloEjecucionESIs;
 	un_socket socketHiloEjecicionESIs;
@@ -399,16 +398,16 @@ void ejecutarContinuar(char** parametros){
 
 void ejecutarKill(char** parametros){
 	int idESI = atoi(parametros[1]);
-	bool encontrar_esi(void* esi){
-		return ((t_ESI*)esi)->id_ESI == idESI;
-	}
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-	pasar_ESI_a_finalizado(idESI, esi->descripcion_estado);
+	pasar_ESI_a_finalizado(idESI, ""); //todo descripcion de estado
+
 
 }
 
 void ejecutarStatus(char** parametros){
 	int clave = atoi(parametros[1]);
+
+
+
 
 }
 
