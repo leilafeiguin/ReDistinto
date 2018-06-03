@@ -408,6 +408,7 @@ void ejecutarKill(char** parametros){
 }
 
 void ejecutarStatus(char** parametros){
+	int clave = atoi(parametros[1]);
 
 }
 
@@ -552,7 +553,7 @@ void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado){
 		{
 			pthread_mutex_lock(&mutex_ESI_ejecutando);
 			ESI_ejecutando->estado = finalizado;
-			ESI_ejecutando->descripcion_estado = malloc(strlen(descripcion_estado));
+			ESI_ejecutando->descripcion_estado = malloc(strlen(descripcion_estado)+1);
 			strcpy(ESI_ejecutando->descripcion_estado,descripcion_estado);
 			list_add(cola_de_finalizados,ESI_ejecutando);
 			//Todo liberar ESI Ejecutando
@@ -563,7 +564,7 @@ void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado){
 		{
 			pthread_mutex_lock(&mutex_cola_de_bloqueados);
 			esi->estado = finalizado;
-			esi->descripcion_estado = malloc(strlen(descripcion_estado));
+			esi->descripcion_estado = malloc(strlen(descripcion_estado)+1);
 			strcpy(esi->descripcion_estado,descripcion_estado);
 			list_remove_by_condition(cola_de_bloqueados,encontrar_esi_bloqueado);
 			list_add(cola_de_finalizados,esi);
