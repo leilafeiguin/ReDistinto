@@ -197,8 +197,8 @@ int main(void) {
 								free(ESI_ejecutando);
 							}else{
 								log_info(logger, "Se desconectó el coordinador. \n");
+								exit(-1);
 							}
-
 							break;
 						}
 					}
