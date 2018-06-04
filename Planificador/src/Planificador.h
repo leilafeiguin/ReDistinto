@@ -112,6 +112,8 @@ void ordenar_por_hrrn();
 void list_swap_elems(t_list,void*,void*);
 
 float estimarRafaga();
+
+t_ESI* esi_por_id(int );
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------

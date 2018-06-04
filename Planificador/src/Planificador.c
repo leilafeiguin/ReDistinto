@@ -36,6 +36,8 @@ int main(void) {
 	log_info(logger, "Me conecte con el Coordinador. \n");
 	free(buffer);
 
+	pthread_mutex_lock(&mutex_ESI_ejecutando);
+
 /*
 --------------------------------------------------------
 ----------------- Implementacion Select ----------------
@@ -141,6 +143,7 @@ int main(void) {
 							newESI->cantidad_instrucciones = instrucciones;
 							newESI->duracionRafaga = 0;
 
+							list_add(lista_de_ESIs,newESI);
 							list_add(cola_de_listos,newESI);
 							//Todo corroborar que sea el primer ESI o que el hilo de ejecucion anterior finalizado
 							if(!estado_hiloEjecucionESIs){
@@ -148,31 +151,50 @@ int main(void) {
 							}
 
 							break;
-						case cop_handshake_Planificador_ejecucion:
-							socketHiloEjecicionESIs = socketActual;
-							break;
-						case cop_Planificador_kill_ESI:
-							enviar(atoi(paqueteRecibido->data), cop_Planificador_kill_ESI, sizeof(int), paqueteRecibido->data);
-						break;
 						case cop_Planificador_Ejecutar_Sentencia:
 							buffer = malloc(sizeof(int));
 							enviar(atoi(paqueteRecibido->data),cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
 							free(buffer);
 							break;
 						case cop_Coordinador_Sentencia_Exito:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito,paqueteRecibido->tamanio,paqueteRecibido->data);
+							pthread_mutex_lock(&mutex_ESI_ejecutando);
+							ESI_ejecutando->cantidad_instrucciones --;
+
+							if(ESI_ejecutando->cantidad_instrucciones == 0){
+								pasar_ESI_a_finalizado(ESI_ejecutando->id_ESI, "Finalizo correctamente");
+							}else{
+								pasar_ESI_a_listo(ESI_ejecutando->id_ESI);
+							}
+							pthread_mutex_unlock(&mutex_ESI_ejecutando);
+							pthread_mutex_unlock(&mutex_ESI_ejecutando);
 							break;
 						case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_Tomada,paqueteRecibido->tamanio,paqueteRecibido->data);
+						{
+							t_ESI* esi = esi_por_id(atoi(paqueteRecibido->data));
+							enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
+							//Matar al ESI
+						}
 							break;
 						case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor,paqueteRecibido->tamanio,paqueteRecibido->data);
+						{
+							t_ESI* esi = esi_por_id(atoi(paqueteRecibido->data));
+							enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
+							//Matar al ESI
+						}
 							break;
 						case cop_Coordinador_Sentencia_Fallo_No_Instancias:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_No_Instancias,paqueteRecibido->tamanio,paqueteRecibido->data);
+						{
+							t_ESI* esi = esi_por_id(atoi(paqueteRecibido->data));
+							enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
+							//Matar al ESI
+						}
 							break;
 						case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-							enviar(socketHiloEjecicionESIs,cop_Coordinador_Sentencia_Fallo_Clave_Larga,paqueteRecibido->tamanio,paqueteRecibido->data);
+						{
+							t_ESI* esi = esi_por_id(atoi(paqueteRecibido->data));
+							enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
+							//Matar al ESI
+						}
 							break;
 						case -1:
 							//Hubo una desconexion
@@ -252,11 +274,11 @@ void funcionHiloEjecucionESIs(void* unused){
 		pthread_mutex_lock(&mutex_pausa_por_consola);
 
 		//Ordenamos la cola de listos segun el algoritmo.
-		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") ){
+		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") == 0 ){
 			ordenar_por_sjf_sd();
-		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") ){
+		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") == 0 ){
 			ordenar_por_sjf_cd();
-		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") ){
+		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") == 0 ){
 			ordenar_por_hrrn();
 		}
 		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
@@ -265,32 +287,18 @@ void funcionHiloEjecucionESIs(void* unused){
 		//Todo revisar si este hilo puede comunicarse con el ESI.
 		void* buffer = malloc(sizeof(int));
 		strcpy(buffer,&ESI_ejecutando->socket);
-		enviar(hiloPrincipal,cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
+		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
 		free(buffer);
-		t_paquete* paqueteRecibido = recibir(hiloPrincipal);
-			switch(paqueteRecibido->codigo_operacion){
-				case cop_Instancia_Ejecucion_Exito:
-					pthread_mutex_lock(&mutex_ESI_ejecutando);
-					ESI_ejecutando->cantidad_instrucciones --;
-					pthread_mutex_unlock(&mutex_ESI_ejecutando);
-					if(ESI_ejecutando->cantidad_instrucciones == 0){
-						pasar_ESI_a_finalizado(ESI_ejecutando->id_ESI, "Finalizo correctamente");
-					}else{
-						pasar_ESI_a_listo(ESI_ejecutando->id_ESI);
-					}
-				break;
-				case cop_Instancia_Ejecucion_Fallo_TC:
-					//Se debe matar al ESI
-				break;
-				case cop_Instancia_Ejecucion_Fallo_CNI:
-					//Se debe matar al ESI
-				break;
-				case cop_Instancia_Ejecucion_Fallo_CI:
-					//Error de comunicacion
-				break;
-			}
+		pthread_mutex_unlock(&mutex_pausa_por_consola);
+
+		//Espero respuesta del coordinador
+		pthread_mutex_lock(&mutex_ESI_ejecutando);
+
+
+		pthread_mutex_lock(&mutex_pausa_por_consola);
 		void actualizarRafaga();
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
+		pthread_mutex_lock(&mutex_ESI_ejecutando);
 		pthread_mutex_unlock(&mutex_pausa_por_consola);
 	}
 	//Cuando termina settea el flag en false
@@ -410,15 +418,12 @@ void ejecutarKill(char** parametros){
 	if(esi == NULL){
 		log_info(logger, "El ESI no existe. \n");
 	}
-	un_socket hiloPrincipal = conectar_a("127.0.0.1",configuracion.PUERTO_ESCUCHA);
-	realizar_handshake(hiloPrincipal,cop_handshake_Planificador_Consola);
-	log_info(logger, "Me conecte con el Hilo principal. \n");
 
 	void* buffer = malloc(sizeof(int));
 	memcpy(buffer, &esi->socket, sizeof(int));
-	enviar(hiloPrincipal, cop_Planificador_kill_ESI, sizeof(int), buffer);
+	enviar(esi->socket, cop_Planificador_kill_ESI, sizeof(int), buffer);
 
-	pasar_ESI_a_finalizado(idESI, ""); //todo descripcion de estado
+	pasar_ESI_a_finalizado(idESI, "Finalizado por consola"); //todo descripcion de estado
 	free(buffer);
 }
 
@@ -759,6 +764,15 @@ void actualizarRafaga(){
 	}else{
 		Ultimo_ESI_Ejecutado->duracionRafaga = 0;
 	}
+}
+
+t_ESI* esi_por_id(int id_ESI){
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+
+	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
+	return esi;
 }
 
 void liberarESI(){

@@ -4,6 +4,7 @@
 
 
 int main(int argc, char **argv) {
+	char* script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt";
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/esi_image.txt");
 	char* fileLog;
 	fileLog = "ESI_logs.txt";
@@ -17,14 +18,10 @@ int main(int argc, char **argv) {
 	char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt"; // script se ingresa por consola
 	leerScript(path_script);
 
-	leer_archivo(argv[1]);
+	//leer_archivo(argv[1]);
+	leer_archivo(script);
 	conectar_con_planificador();
 	conectar_con_coordinador();
-
-	ejecutar_get("nombre");
-	ejecutar_set("nombre", "cheja");
-	ejecutar_set("nombre", "carlos");
-	ejecutar_get("nombre");
 
 	int i =0;
 
@@ -46,8 +43,6 @@ int main(int argc, char **argv) {
 			i--;
 		}
 	}
-
-while(1) {}
 
 	return EXIT_SUCCESS;
 }
