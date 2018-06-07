@@ -431,7 +431,7 @@ void * least_recently_used() {
 
 	list_iterate(instancia.entradas, show_entrada_menos_accedida);
 
-	return entradaMenosAccedida;
+	return entradaMenosAccedida->id;
 }
 
 void * biggest_space_used() {
@@ -448,7 +448,7 @@ void * biggest_space_used() {
 
 	list_iterate(instancia.entradas, show_entrada_mas_grande);
 
-	return entradaMasGrande;
+	return entradaMasGrande->id;
 }
 
 
