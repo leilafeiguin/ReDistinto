@@ -26,22 +26,25 @@ int main(int argc, char **argv) {
 	int i =0;
 
 	for(i=0;list_size(instrucciones);i++){
+		log_info(logger, "Aguardando al planificador... \n");
 		t_paquete* paquete = recibir(Planificador);
 		if(paquete->codigo_operacion == cop_Planificador_kill_ESI){
 			//todo liberar memoria
 			exit(0);
 		}
-		t_esi_operacion* instruccionAEjecutar;
-		instruccionAEjecutar = list_get(instrucciones,i);
-
+		t_esi_operacion* instruccionAEjecutar = list_get(instrucciones,i);
+		ejecutar(instruccionAEjecutar);
+		/* instruccionAEjecutar = list_get(instrucciones,i);
+		puts("a");
 		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
+		puts("b");
 		t_paquete* resultado = recibir(Coordinador);
-
+		puts("c");
 		if(resultado->codigo_operacion==cop_Coordinador_Sentencia_Exito){
 			ejecutar(instruccionAEjecutar);
 		}else{
 			i--;
-		}
+		}*/
 	}
 
 	return EXIT_SUCCESS;
@@ -152,14 +155,18 @@ void ejecutar_store(char* clave) {
 }
 
 void ejecutar(t_esi_operacion* instruccionAEjecutar) {
+	puts(instruccionAEjecutar->argumentos.GET.clave);
 	switch(instruccionAEjecutar->keyword){
 		case GET:
+			puts("get");
 			ejecutar_get(instruccionAEjecutar->argumentos.GET.clave);
 		break;
 		case SET:
+			puts("set");
 			ejecutar_set(instruccionAEjecutar->argumentos.SET.clave, instruccionAEjecutar->argumentos.SET.valor);
 		break;
 		case STORE:
+			puts("store");
 			ejecutar_store(instruccionAEjecutar->argumentos.STORE.clave);
 		break;
 	}

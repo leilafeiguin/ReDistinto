@@ -7,6 +7,7 @@
 #include <readline/history.h>
 #include <commons/collections/list.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 typedef struct planificador_configuracion {
 	char* PUERTO_ESCUCHA;
@@ -42,6 +43,11 @@ enum acciones_a_tomar {
 	bloquear = 1,
 	desbloquear = 2,
 };
+
+int idESI = 1;
+
+sem_t sem_planificar; // Semaforo binario para saber si hay que planificar
+sem_t sem_ESIs; // Semaforo contador que contiene el numero de ESIs actuales (incluyendo los listos y los bloqueados)
 
 planificador_configuracion configuracion;
 
@@ -79,7 +85,7 @@ planificador_configuracion get_configuracion();
 
 void salir(int motivo);
 
-void* hiloPlanificador_Consola(void * unused);
+void* ejecutar_consola(void * unused);
 
 char** validaCantParametrosComando(char* comando, int cantParametros);
 
@@ -89,7 +95,7 @@ void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado);
 
 void pasar_ESI_a_listo(int id_ESI);
 
-void pasar_ESI_a_ejecutando(int id_ESI);
+void pasar_ESI_a_ejecutando(t_ESI* ESI);
 
 bool validar_ESI_id(int id);
 
@@ -99,7 +105,7 @@ void ejecutarDesbloquear(char** parametros);
 
 void ejecutarListar(char** parametros);
 
-void planificar(void* unused);
+void * planificar(void* unused);
 
 void ordenar_por_sjf_sd();
 
@@ -117,8 +123,6 @@ t_ESI* esi_por_id(int );
 
 
 
-int idESI = 1;
-
 void conectar_con_coordinador();
 
 void * escuchar_coordinador(void * argumentos);
@@ -126,6 +130,15 @@ void * escuchar_coordinador(void * argumentos);
 void ESI_conectado(un_socket socket, t_paquete* paqueteRecibido);
 
 int nuevo_ESI(un_socket socket, int cantidad_instrucciones);
+
+void ordenar_cola_listos();
+
+void aumentar_espera_ESIs_listos()
+;
+void remover_ESI_listo(t_ESI* ESI);
+
+void remover_ESI_bloqueado(t_ESI* ESI);
+
 
 /*
 --------------------------------------------------------

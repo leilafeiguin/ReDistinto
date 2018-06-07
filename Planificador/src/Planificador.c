@@ -19,9 +19,13 @@ int main(void) {
 	cola_de_finalizados = list_create();
 	accion_a_tomar = list_create();
 
+	// Inicializo los semaforos
+	sem_init(&sem_planificar, 0, 1);
+	sem_init(&sem_ESIs, 0, 0);
+
 	// Ejecutar consola
 	pthread_t hilo_consola;
-	pthread_create(&hilo_consola, NULL, hiloPlanificador_Consola, NULL);
+	pthread_create(&hilo_consola, NULL, ejecutar_consola, NULL);
 
 	// Ejecutar hilo de planificacion
 	pthread_t hilo_de_planificacion;
@@ -32,7 +36,7 @@ int main(void) {
 
 	conectar_con_coordinador();
 
-	pthread_mutex_lock(&mutex_ESI_ejecutando);
+	// pthread_mutex_lock(&mutex_ESI_ejecutando);
 
 /*
 --------------------------------------------------------
@@ -114,11 +118,6 @@ int main(void) {
 						case cop_handshake_ESI_Planificador:
 							ESI_conectado(socketActual, paqueteRecibido);
 							break;
-						/*case cop_Planificador_Ejecutar_Sentencia:
-							buffer = malloc(sizeof(int));
-							enviar(atoi(paqueteRecibido->data),cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
-							free(buffer);
-							break;*/
 						case -1:
 							//Hubo una desconexion
 						{
@@ -173,58 +172,42 @@ planificador_configuracion get_configuracion() {
 }
 
 void salir(int motivo){
-	pthread_mutex_lock(&mutex_lista_de_ESIs);
+	// pthread_mutex_lock(&mutex_lista_de_ESIs);
 	list_destroy(lista_de_ESIs);
-	pthread_mutex_lock(&mutex_cola_de_finalizados);
+	// pthread_mutex_lock(&mutex_cola_de_finalizados);
 	list_destroy(cola_de_finalizados);
-	pthread_mutex_lock(&mutex_cola_de_bloqueados);
+	// pthread_mutex_lock(&mutex_cola_de_bloqueados);
 	list_destroy(cola_de_bloqueados);
-	pthread_mutex_lock(&mutex_cola_de_listos);
+	// pthread_mutex_lock(&mutex_cola_de_listos);
 	list_destroy(cola_de_listos);
-	pthread_mutex_lock(&mutex_accion_a_tomar);
+	// pthread_mutex_lock(&mutex_accion_a_tomar);
 	list_destroy(accion_a_tomar);
 	free(ESI_ejecutando);
 	exit(motivo);
 }
 
-void planificar(void* unused){
+void * planificar(void* unused){
 	log_info(logger, "Aguardando para planificar... \n");
-	while(list_size(cola_de_listos) != 0 || list_size(cola_de_bloqueados) != 0){
-		pthread_mutex_lock(&mutex_pausa_por_consola);
+
+	while(1) {
+		sem_wait(&sem_planificar); // Espero a a ver si tengo que planificar
+		sem_wait(&sem_ESIs); // Espero a que haya ESIs
+
 		log_info(logger, "Planificando \n");
+		ordenar_cola_listos();
+		t_ESI* ESI_a_ejecutar = list_get(cola_de_listos,0);
+		pasar_ESI_a_ejecutando(ESI_a_ejecutar);
+		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
 
-		//Ordenamos la cola de listos segun el algoritmo.
-		if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") == 0 ){
-			ordenar_por_sjf_sd();
-		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") == 0 ){
-			ordenar_por_sjf_cd();
-		}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") == 0 ){
-			ordenar_por_hrrn();
-		}
-		pasar_ESI_a_ejecutando(((t_ESI*) list_get(cola_de_listos,0))->id_ESI);
-		ESI_ejecutando = list_get(cola_de_listos,0);
-
-		//Todo revisar si este hilo puede comunicarse con el ESI.
-		void* buffer = malloc(sizeof(int));
-		strcpy(buffer,&ESI_ejecutando->socket);
-		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia,sizeof(int),buffer);
-		free(buffer);
-		pthread_mutex_unlock(&mutex_pausa_por_consola);
-
-		//Espero respuesta del coordinador
-		pthread_mutex_lock(&mutex_ESI_ejecutando);
-
-
-		pthread_mutex_lock(&mutex_pausa_por_consola);
-		void actualizarRafaga();
+		actualizarRafaga();
+		puts("d");
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
-		pthread_mutex_lock(&mutex_ESI_ejecutando);
-		pthread_mutex_unlock(&mutex_pausa_por_consola);
+		//pthread_mutex_lock(&mutex_ESI_ejecutando);
+		//pthread_mutex_unlock(&mutex_pausa_por_consola);
 	}
-	puts("offf");
 }
 
-void* hiloPlanificador_Consola(void * unused){
+void* ejecutar_consola(void * unused){
 	log_info(logger, "Consola Iniciada. Ingrese una opcion: \n");
 	char * linea;
 	char* primeraPalabra;
@@ -244,14 +227,14 @@ void* hiloPlanificador_Consola(void * unused){
 
 			if (strcmp(linea, "Pausar") == 0) {
 				log_info(logger, "Eligio la opcion Pausar\n");
-				pthread_mutex_lock(&mutex_pausa_por_consola);
+				// pthread_mutex_lock(&mutex_pausa_por_consola);
 				if(parametros != NULL){
 					ejecutarPausar(parametros);
 				}
 				free(linea);
 			}else if (strcmp(linea, "Continuar") == 0) {
 				log_info(logger, "Eligio la opcion Continuar\n");
-				pthread_mutex_unlock(&mutex_pausa_por_consola);
+				// pthread_mutex_unlock(&mutex_pausa_por_consola);
 				if(parametros != NULL){
 					ejecutarContinuar(parametros);
 				}
@@ -313,14 +296,14 @@ void ejecutarPausar(char** parametros){
 	if(&mutex_pausa_por_consola.__data == 0){
 		log_info(logger, "Planificador ya estaba pausado\n");
 	}else{
-		pthread_mutex_lock(&mutex_pausa_por_consola);
+		// pthread_mutex_lock(&mutex_pausa_por_consola);
 		log_info(logger, "Pausamos planificador\n");
 	}
 }
 
 void ejecutarContinuar(char** parametros){
 	if(&mutex_pausa_por_consola.__data==0){
-		pthread_mutex_unlock(&mutex_pausa_por_consola);
+		// pthread_mutex_unlock(&mutex_pausa_por_consola);
 		log_info(logger, "Habilitamos para dar ordenes de ejecucion\n");
 	}else{
 		log_info(logger, "Planificacion habilitado para dar ordenes de ejecucion\n");
@@ -477,43 +460,43 @@ void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado){
 	}
 
 	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-	pthread_mutex_lock(&mutex_cola_de_finalizados);
+	// pthread_mutex_lock(&mutex_cola_de_finalizados);
 	switch(esi->estado){
 		case listo:
 		{
-			pthread_mutex_lock(&mutex_cola_de_listos);
+			// pthread_mutex_lock(&mutex_cola_de_listos);
 			esi->descripcion_estado = malloc(strlen(descripcion_estado));
 			strcpy(esi->descripcion_estado,descripcion_estado);
 			esi->estado = finalizado;
 			list_remove_by_condition(cola_de_listos,encontrar_esi);
 			list_add(cola_de_finalizados,esi);
-			pthread_mutex_unlock(&mutex_cola_de_listos);
+			// pthread_mutex_unlock(&mutex_cola_de_listos);
 		}
 		break;
 		case ejecutando:
 		{
-			pthread_mutex_lock(&mutex_ESI_ejecutando);
+			// pthread_mutex_lock(&mutex_ESI_ejecutando);
 			ESI_ejecutando->estado = finalizado;
 			ESI_ejecutando->descripcion_estado = malloc(strlen(descripcion_estado)+1);
 			strcpy(ESI_ejecutando->descripcion_estado,descripcion_estado);
 			list_add(cola_de_finalizados,ESI_ejecutando);
 			//Todo liberar ESI Ejecutando
-			pthread_mutex_unlock(&mutex_ESI_ejecutando);
+			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
 		}
 		break;
 		case bloqueado:
 		{
-			pthread_mutex_lock(&mutex_cola_de_bloqueados);
+			// pthread_mutex_lock(&mutex_cola_de_bloqueados);
 			esi->estado = finalizado;
 			esi->descripcion_estado = malloc(strlen(descripcion_estado)+1);
 			strcpy(esi->descripcion_estado,descripcion_estado);
 			list_remove_by_condition(cola_de_bloqueados,encontrar_esi_bloqueado);
 			list_add(cola_de_finalizados,esi);
-			pthread_mutex_unlock(&mutex_cola_de_bloqueados);
+			// pthread_mutex_unlock(&mutex_cola_de_bloqueados);
 		}
 		break;
 	}
-	pthread_mutex_unlock(&mutex_cola_de_finalizados);
+	// pthread_mutex_unlock(&mutex_cola_de_finalizados);
 	free(esi);
 }
 
@@ -533,22 +516,22 @@ void pasar_ESI_a_listo(int id_ESI){
 	switch(esi->estado){
 		case ejecutando:
 		{
-			pthread_mutex_lock(&mutex_ESI_ejecutando);
-			pthread_mutex_lock(&mutex_cola_de_listos);
+			// pthread_mutex_lock(&mutex_ESI_ejecutando);
+			// pthread_mutex_lock(&mutex_cola_de_listos);
 			ESI_ejecutando->estado = listo;
 			//Librar ESI Ejecutando
 			list_add(cola_de_listos,ESI_ejecutando);
-			pthread_mutex_unlock(&mutex_cola_de_listos);
-			pthread_mutex_unlock(&mutex_ESI_ejecutando);
+			// pthread_mutex_unlock(&mutex_cola_de_listos);
+			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
 		}
 		break;
 		case bloqueado:
 		{
-			pthread_mutex_lock(&mutex_cola_de_bloqueados);
+			// pthread_mutex_lock(&mutex_cola_de_bloqueados);
 			esi->estado = listo;
 			list_remove_by_condition(cola_de_bloqueados,encontrar_esi_bloqueado);
 			list_add(cola_de_listos,esi);
-			pthread_mutex_unlock(&mutex_cola_de_bloqueados);
+			// pthread_mutex_unlock(&mutex_cola_de_bloqueados);
 		}
 		break;
 	}
@@ -556,54 +539,19 @@ void pasar_ESI_a_listo(int id_ESI){
 	free(esi);
 }
 
-void pasar_ESI_a_ejecutando(int id_ESI){
-	//Se debe considerar los posibles estandos en los que puede estar el ESI
+void pasar_ESI_a_ejecutando(t_ESI* ESI){
+	ESI->w = 0;
+	ESI->estado = ejecutando;
 
-	bool encontrar_esi(void* esi){
-		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	// Lo saco de la cola actual en la que se encuentra
+	if (ESI->estado == listo) {
+		remover_ESI_listo(ESI);
+	} else {
+		remover_ESI_bloqueado(ESI);
 	}
 
-	bool encontrar_esi_bloqueado(void* esi){
-		return ((t_bloqueado*)esi)->ESI->id_ESI == id_ESI;
-	}
-
-	pthread_mutex_lock(&mutex_ESI_ejecutando);
-
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-	esi->w = 0;
-
-	switch(esi->estado){
-		case listo:
-		{
-			pthread_mutex_lock(&mutex_cola_de_listos);
-			esi->estado = ejecutando;
-			list_remove_by_condition(cola_de_listos, encontrar_esi);
-			ESI_ejecutando = esi;
-			pthread_mutex_unlock(&mutex_cola_de_listos);
-		}
-		break;
-		case bloqueado:
-		{
-			pthread_mutex_lock(&mutex_cola_de_bloqueados);
-			esi->estado = ejecutando;
-			list_remove_by_condition(cola_de_bloqueados, encontrar_esi_bloqueado);
-			ESI_ejecutando = esi;
-			pthread_mutex_unlock(&mutex_cola_de_bloqueados);
-		}
-		break;
-	}
-	pthread_mutex_unlock(&mutex_ESI_ejecutando);
-
-	pthread_mutex_lock(&mutex_cola_de_listos);
-
-	void aumentarW(void* elem){
-		((t_ESI*)elem)->w ++;
-	}
-	list_iterate(cola_de_listos, aumentarW);
-
-	pthread_mutex_unlock(&mutex_cola_de_listos);
-
-	free(esi);
+	ESI_ejecutando = ESI;
+	aumentar_espera_ESIs_listos();
 }
 
 bool validar_ESI_id(int id_ESI){
@@ -621,7 +569,7 @@ bool validar_ESI_id(int id_ESI){
 }
 
 void ordenar_por_sjf_sd(){
-	pthread_mutex_lock(&mutex_cola_de_listos);
+	// pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool sjf(void* esi1, void* esi2){
 		return estimarRafaga(((t_ESI*)esi1)->id_ESI) < estimarRafaga(((t_ESI*)esi2)->id_ESI);
@@ -636,22 +584,22 @@ void ordenar_por_sjf_sd(){
 		list_add_in_index(cola_de_listos,0,es_ultimo_ejecutado);
 	}
 
-	pthread_mutex_unlock(&mutex_cola_de_listos);
+	// pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
 void ordenar_por_sjf_cd(){
-	pthread_mutex_lock(&mutex_cola_de_listos);
+	// pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool sjf(void* esi1, void* esi2){
 		return estimarRafaga(((t_ESI*)esi1)->id_ESI) < estimarRafaga(((t_ESI*)esi2)->id_ESI);
 	}
 	list_sort(cola_de_listos,sjf);
 
-	pthread_mutex_unlock(&mutex_cola_de_listos);
+	// pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
 void ordenar_por_hrrn(){
-	pthread_mutex_lock(&mutex_cola_de_listos);
+	// pthread_mutex_lock(&mutex_cola_de_listos);
 
 	bool hrrn(void* esi1, void* esi2){
 		float responseRatio1 = (estimarRafaga(((t_ESI*)esi1)->id_ESI) + ((t_ESI*)esi1)->w) / estimarRafaga(((t_ESI*)esi1)->id_ESI);
@@ -660,7 +608,7 @@ void ordenar_por_hrrn(){
 	}
 	list_sort(cola_de_listos,hrrn);
 
-	pthread_mutex_unlock(&mutex_cola_de_listos);
+	// pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
 
@@ -690,8 +638,7 @@ t_ESI* esi_por_id(int id_ESI){
 		return ((t_ESI*)esi)->id_ESI == id_ESI;
 	}
 
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-	return esi;
+	return list_find(lista_de_ESIs, encontrar_esi);
 }
 
 void liberarESI(){
@@ -703,16 +650,16 @@ void conectar_con_coordinador() {
 	realizar_handshake(Coordinador, cop_handshake_Planificador_Coordinador);
 	enviar(Coordinador,cop_generico,size_of_string(""),"");
 	log_info(logger, "Me conecte con el Coordinador. \n");
-	void * argumentos;
 	pthread_t hilo_coordinador;
-	pthread_create(&hilo_coordinador, NULL, escuchar_coordinador, argumentos);
+	pthread_create(&hilo_coordinador, NULL, escuchar_coordinador, NULL);
 }
 
 void * escuchar_coordinador(void * argumentos) {
 	bool escuhar = true;
 	while(escuhar) {
 		log_info(logger, "Aguardando al coordinador... \n");
-		t_paquete* paqueteRecibido = recibir(Coordinador);
+		sem_post(&sem_planificar); // Libera al hilo de planificacion para que continue
+		t_paquete* paqueteRecibido = recibir(Coordinador); // Recibe el feedback de la instruccion ejecutada por el ESI
 		t_ESI* esi = esi_por_id(atoi(paqueteRecibido->data));
 
 		switch(paqueteRecibido->codigo_operacion) {
@@ -722,7 +669,7 @@ void * escuchar_coordinador(void * argumentos) {
 		 break;
 
 		 case cop_Coordinador_Sentencia_Exito:
-			pthread_mutex_lock(&mutex_ESI_ejecutando);
+			 // pthread_mutex_lock(&mutex_ESI_ejecutando);
 			ESI_ejecutando->cantidad_instrucciones --;
 
 			if(ESI_ejecutando->cantidad_instrucciones == 0){
@@ -730,8 +677,8 @@ void * escuchar_coordinador(void * argumentos) {
 			}else{
 				pasar_ESI_a_listo(ESI_ejecutando->id_ESI);
 			}
-			pthread_mutex_unlock(&mutex_ESI_ejecutando);
-			pthread_mutex_unlock(&mutex_ESI_ejecutando);
+			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
+			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
 			break;
 		 case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
 			 enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
@@ -769,10 +716,12 @@ void ESI_conectado(un_socket socketESI, t_paquete* paqueteRecibido) {
 	int tamanio_buffer = sizeof(int);
 	void * buffer = malloc(tamanio_buffer);
 	desp = 0;
-	int id_nuevo_ESI = nuevo_ESI(socketESI, cantidad_instrucciones);
+	int id_nuevo_ESI = nuevo_ESI(socketESI, cantidad_instrucciones); // Genera la estructura y la agrega a la lista
 	serializar_int(buffer, &desp, id_nuevo_ESI);
 	enviar(socketESI, cop_handshake_Planificador_ESI, tamanio_buffer, buffer);
 	free(buffer);
+
+	sem_post(&sem_ESIs); // Suma un nuevo ESI al semaforo contador
 }
 
 int nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
@@ -784,10 +733,43 @@ int nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 	newESI->id_ESI = idESI;
 	newESI->cantidad_instrucciones = cantidad_instrucciones;
 	newESI->duracionRafaga = 0;
-	list_add(lista_de_ESIs,newESI);
+	list_add(lista_de_ESIs, newESI);
 	list_add(cola_de_listos,newESI);
 	idESI++;
 	return newESI->id_ESI;
 }
+
+void ordenar_cola_listos() {
+	//Ordenamos la cola de listos segun el algoritmo.
+	if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") == 0 ){
+		ordenar_por_sjf_sd();
+	}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") == 0 ){
+		ordenar_por_sjf_cd();
+	}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") == 0 ){
+		ordenar_por_hrrn();
+	}
+}
+
+void aumentar_espera_ESIs_listos() {
+	void aumentarW(void* elem){
+		((t_ESI*)elem)->w ++;
+	}
+	list_iterate(cola_de_listos, aumentarW);
+}
+
+void remover_ESI_listo(t_ESI* ESI) {
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == ESI->id_ESI;
+	}
+	list_remove_by_condition(cola_de_listos, encontrar_esi);
+}
+
+void remover_ESI_bloqueado(t_ESI* ESI) {
+	bool encontrar_esi_bloqueado(void* esi){
+		return ((t_bloqueado*)esi)->ESI->id_ESI == ESI->id_ESI;
+	}
+	list_remove_by_condition(cola_de_bloqueados, encontrar_esi_bloqueado);
+}
+
 
 
