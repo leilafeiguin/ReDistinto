@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 			//todo liberar memoria
 			exit(0);
 		}
-		t_esi_operacion* instruccionAEjecutar = list_get(instrucciones,i);
+		t_esi_operacion * instruccionAEjecutar = list_get(instrucciones,i);
 		ejecutar(instruccionAEjecutar);
 		/* instruccionAEjecutar = list_get(instrucciones,i);
 		puts("a");
@@ -154,19 +154,15 @@ void ejecutar_store(char* clave) {
 	liberar_paquete(paqueteResultadoOperacion);
 }
 
-void ejecutar(t_esi_operacion* instruccionAEjecutar) {
-	puts(instruccionAEjecutar->argumentos.GET.clave);
+void ejecutar(t_esi_operacion * instruccionAEjecutar) {
 	switch(instruccionAEjecutar->keyword){
 		case GET:
-			puts("get");
 			ejecutar_get(instruccionAEjecutar->argumentos.GET.clave);
 		break;
 		case SET:
-			puts("set");
 			ejecutar_set(instruccionAEjecutar->argumentos.SET.clave, instruccionAEjecutar->argumentos.SET.valor);
 		break;
 		case STORE:
-			puts("store");
 			ejecutar_store(instruccionAEjecutar->argumentos.STORE.clave);
 		break;
 	}
@@ -186,25 +182,26 @@ void leer_archivo(char* path) {
 	}
 
 	while ((read = getline(&line, &len, archivo)) != -1) {
-		t_esi_operacion parsed = parse(line);
-		list_add(instrucciones, &parsed);
-		if(parsed.valido){
-			switch(parsed.keyword){
+		t_esi_operacion * parsed = malloc(sizeof(t_esi_operacion));
+		*parsed = parse(line);
+		list_add(instrucciones, parsed);
+		if(parsed->valido){
+			switch(parsed->keyword){
 				case GET:
-					printf("GET\tclave: <%s>\n", parsed.argumentos.GET.clave);
+					printf("GET\tclave: <%s>\n", parsed->argumentos.GET.clave);
 					break;
 				case SET:
-					printf("SET\tclave: <%s>\tvalor: <%s>\n", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
+					printf("SET\tclave: <%s>\tvalor: <%s>\n", parsed->argumentos.SET.clave, parsed->argumentos.SET.valor);
 					break;
 				case STORE:
-					printf("STORE\tclave: <%s>\n", parsed.argumentos.STORE.clave);
+					printf("STORE\tclave: <%s>\n", parsed->argumentos.STORE.clave);
 					break;
 				default:
 					fprintf(stderr, "No pude interpretar <%s>\n", line);
 					exit(EXIT_FAILURE);
 			}
 
-			destruir_operacion(parsed);
+			// destruir_operacion(*parsed);
 		} else {
 			fprintf(stderr, "La linea <%s> no es valida\n", line);
 			exit(EXIT_FAILURE);

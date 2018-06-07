@@ -200,7 +200,6 @@ void * planificar(void* unused){
 		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
 
 		actualizarRafaga();
-		puts("d");
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 		//pthread_mutex_lock(&mutex_ESI_ejecutando);
 		//pthread_mutex_unlock(&mutex_pausa_por_consola);

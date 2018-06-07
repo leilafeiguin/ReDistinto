@@ -727,7 +727,12 @@ void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
 
 void notificar_resultado_instruccion(t_ESI * ESI, int cop) {
 	pthread_mutex_lock(&sem_planificador);
-	enviar(Planificador, cop, sizeof(int), ESI->id_ESI);
+	int tamanio_buffer = sizeof(int);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_int(buffer, &desplazamiento, ESI->id_ESI);
+	enviar(Planificador, cop, tamanio_buffer, buffer);
+	free(buffer);
 	pthread_mutex_unlock(&sem_planificador);
 	enviar(ESI->socket, cop, size_of_string(""), "");
 }
