@@ -48,8 +48,8 @@ instancia_configuracion get_configuracion() {
 	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
 	configuracion.ALGORITMO_REEMPLAZO = get_campo_config_string(archivo_configuracion, "ALGORITMO_REEMPLAZO");
 	configuracion.PUNTO_MONTAJE = get_campo_config_string(archivo_configuracion, "PUNTO_MONTAJE");
-	configuracion.NOMBRE_INSTANCIA = get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA");
-	//configuracion.NOMBRE_INSTANCIA = nombre_instancia; // BORRAR PROXIMAMENTE
+	//configuracion.NOMBRE_INSTANCIA = get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA");
+	configuracion.NOMBRE_INSTANCIA = nombre_instancia; // BORRAR PROXIMAMENTE
 	configuracion.INTERVALO_DUMP = get_campo_config_int(archivo_configuracion, "INTERVALO_DUMP");
 	return configuracion;
 }

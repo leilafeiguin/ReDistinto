@@ -68,8 +68,6 @@ t_ESI* Ultimo_ESI_Ejecutado;
 pthread_mutex_t mutex_accion_a_tomar;
 t_list* accion_a_tomar;
 
-bool estado_hiloEjecucionESIs;
-
 void* archivo;
 t_log* logger;
 
@@ -101,7 +99,7 @@ void ejecutarDesbloquear(char** parametros);
 
 void ejecutarListar(char** parametros);
 
-void funcionHiloEjecucionESIs(void* unused);
+void planificar(void* unused);
 
 void ordenar_por_sjf_sd();
 
@@ -114,6 +112,21 @@ void list_swap_elems(t_list,void*,void*);
 float estimarRafaga();
 
 t_ESI* esi_por_id(int );
+
+
+
+
+
+int idESI = 1;
+
+void conectar_con_coordinador();
+
+void * escuchar_coordinador(void * argumentos);
+
+void ESI_conectado(un_socket socket, t_paquete* paqueteRecibido);
+
+int nuevo_ESI(un_socket socket, int cantidad_instrucciones);
+
 /*
 --------------------------------------------------------
 ----------------- Variables para el SV -----------------
