@@ -409,34 +409,46 @@ int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* val
 
 // ALGORITMOS DE REEMPLAZO
 
-void * algoritmo_circular(char* valor, char* clave) {
+void * algoritmo_circular(char* valor) {
 	int puntero = punteroInstancia;
 
-	punteroInstancia += cantidad_entradas_necesarias(valor, list_size(get_entradas_con_clave(clave)));
+	punteroInstancia += cantidad_entradas_necesarias(valor, tamanio_entradas);
 
 	return puntero;
 }
 
 void * least_recently_used() {
+	t_entrada * entradaMenosAccedida = list_get(instancia.entradas, 0);
 
-//	void show_entrada_menos_accedida(t_entrada * entrada) {
-//		printf("%i", entrada->cant_veces_no_accedida);
-//	}
-//
-//	list_iterate(instancia.entradas, show_entrada_menos_accedida);
-//
-//	return '';
+	void show_entrada_menos_accedida(t_entrada * entrada) {
+
+		if(entrada->cant_veces_no_accedida > entradaMenosAccedida->cant_veces_no_accedida)
+		{
+			entradaMenosAccedida = entrada;
+		}
+
+	}
+
+	list_iterate(instancia.entradas, show_entrada_menos_accedida);
+
+	return entradaMenosAccedida;
 }
 
 void * biggest_space_used() {
+	t_entrada * entradaMasGrande = list_get(instancia.entradas, 0);
 
-//	void show_entrada_mas_grande(t_entrada * entrada) {
-//		printf("%i", entrada->cant_veces_no_accedida);
-//	}
-//
-//	list_iterate(instancia.entradas, show_entrada_mas_grande);
+	void show_entrada_mas_grande(t_entrada * entrada) {
 
-//	return entrada;
+		if(entrada->espacio_ocupado > entradaMasGrande->espacio_ocupado)
+		{
+			entradaMasGrande = entrada;
+		}
+
+	}
+
+	list_iterate(instancia.entradas, show_entrada_mas_grande);
+
+	return entradaMasGrande;
 }
 
 
