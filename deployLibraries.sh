@@ -28,3 +28,7 @@ cd ../parsi
 # Instalar
 echo "Ingrese password para instalar el parsi..."
 sudo make install
+
+echo "export LD_LIBRARY_PATH$=LD_LIBRARY_PATH:/home/utnso/tp-2018-1c-PuntoZip/Libraries/Release" >> /home/utnso/.bashrc
+
+
