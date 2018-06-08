@@ -25,11 +25,14 @@ endif
 # All Target
 all: Coordinador
 
+dependents:
+	-cd /home/utnso/workspace/tp-2018-1c-PuntoZip/Libraries/Debug && $(MAKE) all
+
 # Tool invocations
-Coordinador: $(OBJS) $(USER_OBJS)
+Coordinador: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2018-1c-PuntoZip/Libraries/Debug/libLibraries.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc  -o "Coordinador" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc -L"/home/utnso/workspace/tp-2018-1c-PuntoZip/Libraries/Debug" -o "Coordinador" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -39,5 +42,6 @@ clean:
 	-@echo ' '
 
 .PHONY: all clean dependents
+/home/utnso/workspace/tp-2018-1c-PuntoZip/Libraries/Debug/libLibraries.so:
 
 -include ../makefile.targets
