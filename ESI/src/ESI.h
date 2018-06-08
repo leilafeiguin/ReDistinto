@@ -21,6 +21,7 @@ un_socket Planificador;
 t_list* instrucciones;
 
 int ID;
+int index_proxima_instruccion = 0;
 
 typedef struct paqueteSentencias {
 	int cantidadInstrucciones;

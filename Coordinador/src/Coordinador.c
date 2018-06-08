@@ -191,8 +191,8 @@ void* ESI_conectado_funcion_thread(void* argumentos) {
 void escuchar_ESI(t_ESI * ESI) {
 	bool escuchar = true;
 	while(escuchar) {
-		printf("Aguardando al ESI %d.. \n", ESI->id_ESI);
 		t_paquete* paqueteRecibido = recibir(ESI->socket);
+		printf("Ejecutando instrucciones del ESI %d.. \n", ESI->id_ESI);
 		switch(paqueteRecibido->codigo_operacion) {
 			case codigo_error:
 				kill_ESI(ESI);
@@ -706,7 +706,7 @@ void liberar_claves_ESI(t_ESI * ESI) {
 
 void kill_ESI(t_ESI * ESI) {
 	liberar_claves_ESI(ESI);
-	printf("Error en el ESI: %d. Abortando ESI. \n", ESI->id_ESI);
+	printf("ESI: %d desconectado. \n", ESI->id_ESI);
 }
 
 t_ESI * generar_ESI(un_socket socket, int ID) {

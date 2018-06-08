@@ -89,11 +89,11 @@ void* ejecutar_consola(void * unused);
 
 char** validaCantParametrosComando(char* comando, int cantParametros);
 
-void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo);
+void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo);
 
-void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado);
+void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado);
 
-void pasar_ESI_a_listo(int id_ESI);
+void pasar_ESI_a_listo(t_ESI* ESI);
 
 void pasar_ESI_a_ejecutando(t_ESI* ESI);
 
@@ -119,7 +119,7 @@ float estimarRafaga();
 
 t_ESI* esi_por_id(int );
 
-
+void actualizarRafaga();
 
 
 
@@ -138,6 +138,10 @@ void aumentar_espera_ESIs_listos()
 void remover_ESI_listo(t_ESI* ESI);
 
 void remover_ESI_bloqueado(t_ESI* ESI);
+
+void ESI_ejecutado_exitosamente(t_ESI * ESI);
+
+void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo);
 
 
 /*

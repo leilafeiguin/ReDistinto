@@ -23,30 +23,36 @@ int main(int argc, char **argv) {
 	conectar_con_planificador();
 	conectar_con_coordinador();
 
-	int i =0;
-
-	for(i=0;list_size(instrucciones);i++){
+	bool ejecutar_ESI = true;
+	while(ejecutar_ESI){
 		log_info(logger, "Aguardando al planificador... \n");
 		t_paquete* paquete = recibir(Planificador);
-		if(paquete->codigo_operacion == cop_Planificador_kill_ESI){
-			//todo liberar memoria
-			exit(0);
-		}
-		t_esi_operacion * instruccionAEjecutar = list_get(instrucciones,i);
-		ejecutar(instruccionAEjecutar);
-		/* instruccionAEjecutar = list_get(instrucciones,i);
-		puts("a");
-		enviar(Coordinador,cop_ESI_Sentencia,sizeof(int),&instruccionAEjecutar);
-		puts("b");
-		t_paquete* resultado = recibir(Coordinador);
-		puts("c");
-		if(resultado->codigo_operacion==cop_Coordinador_Sentencia_Exito){
-			ejecutar(instruccionAEjecutar);
-		}else{
-			i--;
-		}*/
-	}
 
+		switch(paquete->codigo_operacion) {
+			case codigo_error:
+				puts("Error en el Planificador. Abortando.");
+				ejecutar_ESI = false;
+			break;
+
+			case cop_Planificador_kill_ESI:
+				puts("Finalizando por el Planificador. Abortando.");
+				ejecutar_ESI = false;
+			break;
+
+			case cop_ESI_finalizado:
+				puts("Proceso finalizado exitosamente.");
+				ejecutar_ESI = false;
+			break;
+
+			case cop_Planificador_Ejecutar_Sentencia: ;
+				t_esi_operacion * instruccionAEjecutar = list_get(instrucciones, index_proxima_instruccion);
+				ejecutar(instruccionAEjecutar);
+				index_proxima_instruccion++;
+			break;
+		}
+
+	}
+	// TODO liberar memoria
 	return EXIT_SUCCESS;
 }
 
@@ -84,6 +90,7 @@ void ejecutar_get(char* clave) {
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
 			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
@@ -92,10 +99,12 @@ void ejecutar_get(char* clave) {
 
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
 			printf("La operacion GET '%s' fallo. La instancia no se encuentra disponible.. \n", clave);
+			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
 			printf("La operacion GET '%s' fallo. La clave supera los 40 caracteres. \n", clave);
+			index_proxima_instruccion--;
 		break;
 	}
 	liberar_paquete(paqueteValor);
@@ -118,14 +127,17 @@ void ejecutar_set(char* clave, char* valor) {
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
 			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
 			printf("La operacion SET '%s' : '%s' fallo. No hay instancias en el sistema. \n", clave, valor);
+			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
 			printf("La operacion SET '%s' : '%s' fallo. La clave supera los 40 caracteres. \n", clave, valor);
+			index_proxima_instruccion--;
 		break;
 	}
 	liberar_paquete(paqueteResultadoOperacion);
@@ -141,14 +153,17 @@ void ejecutar_store(char* clave) {
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
 			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
 			printf("La operacion STORE '%s' fallo. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n", clave);
+			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
 			printf("La operacion STORE '%s' fallo. La clave supera los 40 caracteres. \n", clave);
+			index_proxima_instruccion--;
 		break;
 	}
 	liberar_paquete(paqueteResultadoOperacion);

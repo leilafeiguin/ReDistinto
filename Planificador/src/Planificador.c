@@ -187,22 +187,20 @@ void salir(int motivo){
 }
 
 void * planificar(void* unused){
-	log_info(logger, "Aguardando para planificar... \n");
-
 	while(1) {
+		log_info(logger, "Aguardando para planificar... \n");
 		sem_wait(&sem_planificar); // Espero a a ver si tengo que planificar
 		sem_wait(&sem_ESIs); // Espero a que haya ESIs
-
 		log_info(logger, "Planificando \n");
+
 		ordenar_cola_listos();
 		t_ESI* ESI_a_ejecutar = list_get(cola_de_listos,0);
 		pasar_ESI_a_ejecutando(ESI_a_ejecutar);
+		printf("Ejecutando ESI %d \n", ESI_a_ejecutar->id_ESI);
 		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
 
 		actualizarRafaga();
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
-		//pthread_mutex_lock(&mutex_ESI_ejecutando);
-		//pthread_mutex_unlock(&mutex_pausa_por_consola);
 	}
 }
 
@@ -324,7 +322,7 @@ void ejecutarKill(char** parametros){
 	memcpy(buffer, &esi->socket, sizeof(int));
 	enviar(esi->socket, cop_Planificador_kill_ESI, sizeof(int), buffer);
 
-	pasar_ESI_a_finalizado(idESI, "Finalizado por consola"); //todo descripcion de estado
+	pasar_ESI_a_finalizado(esi, "Finalizado por consola"); //todo descripcion de estado
 	free(buffer);
 }
 
@@ -357,7 +355,7 @@ void ejecutarDesbloquear(char** parametros){
 		}
 		t_bloqueado* ESI_para_clave = list_find(lista_de_ESIs_bloqueados_por_consola,encontrar_esi_por_clave);
 		if(ESI_para_clave != NULL){
-			pasar_ESI_a_listo(ESI_para_clave->ESI->id_ESI);
+			pasar_ESI_a_listo(ESI_para_clave->ESI);
 		}else{
 			log_info(logger, "No existe ESI bloqueado por la clave %s\n",parametros[1]);
 		}
@@ -403,37 +401,19 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 	return NULL;
 }
 
-void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
-	//Se debe considerar los posibles estandos en los que puede estar el ESI
+void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
+	ESI->estado = bloqueado;
 
-	bool encontrar_esi(void* esi){
-		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	if (ESI->estado == listo) {
+		remover_ESI_listo(ESI);
 	}
+	nuevo_bloqueo(ESI, clave_de_bloqueo, motivo);
 
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-
-	switch(esi->estado){
-		case listo:
-		{
-			esi->estado = bloqueado;
-			//Todo modificar descripcion de estado?
-
-			t_bloqueado* esi_bloqueado = malloc(sizeof(t_bloqueado));
-			esi_bloqueado->ESI = esi;
-			esi_bloqueado->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo)+1);
-			strcpy(clave_de_bloqueo,esi_bloqueado->clave_de_bloqueo);
-			esi_bloqueado->motivo = motivo;
-			list_remove_by_condition(cola_de_listos,encontrar_esi);
-			list_add(cola_de_bloqueados,esi_bloqueado);
-			free(esi_bloqueado);
-			free(clave_de_bloqueo);
-		}
-		break;
+	/* switch(esi->estado){
 		case ejecutando:
 		{
 			t_accion_a_tomar* esi_accion_a_tomar = malloc(sizeof(t_accion_a_tomar));
 			esi_accion_a_tomar->ESI = esi;
-			esi_accion_a_tomar->ESI->estado = bloqueado;
 			esi_accion_a_tomar->accion_a_tomar = bloquear;
 			esi_accion_a_tomar->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo)+1);
 			strcpy(clave_de_bloqueo,esi_accion_a_tomar->clave_de_bloqueo);
@@ -442,100 +422,32 @@ void pasar_ESI_a_bloqueado(int id_ESI, char* clave_de_bloqueo, int motivo){
 			free(clave_de_bloqueo);
 		}
 		break;
-	}
-
-	free(esi);
+	}*/
 }
 
-void pasar_ESI_a_finalizado(int id_ESI, char* descripcion_estado){
-	//Se debe considerar los posibles estandos en los que puede estar el ESI
+void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
+	printf("ESI %d finalizado, estado: %s \n", ESI->id_ESI, descripcion_estado);
+	enviar(ESI->socket, cop_ESI_finalizado, size_of_string(""), ""); // Le comunico al ESI que finalizo correctamente
+	FD_CLR(ESI->socket, &master); // Deja de escuchar el socket del ESI
+	ESI->descripcion_estado = copy_string(descripcion_estado);
+	ESI->estado = finalizado;
+	list_add(cola_de_finalizados, ESI);
 
-	bool encontrar_esi(void* esi){
-		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	// Lo saco de la cola actual en la que se encuentra
+	if (ESI->estado == listo) {
+		remover_ESI_listo(ESI);
+	} else {
+		remover_ESI_bloqueado(ESI);
 	}
-
-	bool encontrar_esi_bloqueado(void* esi){
-		return ((t_bloqueado*)esi)->ESI->id_ESI == id_ESI;
-	}
-
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-	// pthread_mutex_lock(&mutex_cola_de_finalizados);
-	switch(esi->estado){
-		case listo:
-		{
-			// pthread_mutex_lock(&mutex_cola_de_listos);
-			esi->descripcion_estado = malloc(strlen(descripcion_estado));
-			strcpy(esi->descripcion_estado,descripcion_estado);
-			esi->estado = finalizado;
-			list_remove_by_condition(cola_de_listos,encontrar_esi);
-			list_add(cola_de_finalizados,esi);
-			// pthread_mutex_unlock(&mutex_cola_de_listos);
-		}
-		break;
-		case ejecutando:
-		{
-			// pthread_mutex_lock(&mutex_ESI_ejecutando);
-			ESI_ejecutando->estado = finalizado;
-			ESI_ejecutando->descripcion_estado = malloc(strlen(descripcion_estado)+1);
-			strcpy(ESI_ejecutando->descripcion_estado,descripcion_estado);
-			list_add(cola_de_finalizados,ESI_ejecutando);
-			//Todo liberar ESI Ejecutando
-			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
-		}
-		break;
-		case bloqueado:
-		{
-			// pthread_mutex_lock(&mutex_cola_de_bloqueados);
-			esi->estado = finalizado;
-			esi->descripcion_estado = malloc(strlen(descripcion_estado)+1);
-			strcpy(esi->descripcion_estado,descripcion_estado);
-			list_remove_by_condition(cola_de_bloqueados,encontrar_esi_bloqueado);
-			list_add(cola_de_finalizados,esi);
-			// pthread_mutex_unlock(&mutex_cola_de_bloqueados);
-		}
-		break;
-	}
-	// pthread_mutex_unlock(&mutex_cola_de_finalizados);
-	free(esi);
 }
 
-void pasar_ESI_a_listo(int id_ESI){
-	//Se debe considerar los posibles estandos en los que puede estar el ESI
+void pasar_ESI_a_listo(t_ESI* ESI){
+	ESI->estado = listo;
+	list_add(cola_de_listos, ESI);
 
-	bool encontrar_esi(void* esi){
-		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	if (ESI->estado == bloqueado) {
+		remover_ESI_bloqueado(ESI);
 	}
-
-	bool encontrar_esi_bloqueado(void* esi){
-		return ((t_bloqueado*)esi)->ESI->id_ESI == id_ESI;
-	}
-
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-
-	switch(esi->estado){
-		case ejecutando:
-		{
-			// pthread_mutex_lock(&mutex_ESI_ejecutando);
-			// pthread_mutex_lock(&mutex_cola_de_listos);
-			ESI_ejecutando->estado = listo;
-			//Librar ESI Ejecutando
-			list_add(cola_de_listos,ESI_ejecutando);
-			// pthread_mutex_unlock(&mutex_cola_de_listos);
-			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
-		}
-		break;
-		case bloqueado:
-		{
-			// pthread_mutex_lock(&mutex_cola_de_bloqueados);
-			esi->estado = listo;
-			list_remove_by_condition(cola_de_bloqueados,encontrar_esi_bloqueado);
-			list_add(cola_de_listos,esi);
-			// pthread_mutex_unlock(&mutex_cola_de_bloqueados);
-		}
-		break;
-	}
-
-	free(esi);
 }
 
 void pasar_ESI_a_ejecutando(t_ESI* ESI){
@@ -624,7 +536,8 @@ float estimarRafaga(int id_ESI){
 	return estimacion;
 }
 
-void actualizarRafaga(){
+void actualizarRafaga() {
+	puts("Actualizando rafaga de ESI");
 	if(Ultimo_ESI_Ejecutado == ESI_ejecutando){
 		ESI_ejecutando->duracionRafaga += 1;
 	}else{
@@ -659,44 +572,44 @@ void * escuchar_coordinador(void * argumentos) {
 		log_info(logger, "Aguardando al coordinador... \n");
 		sem_post(&sem_planificar); // Libera al hilo de planificacion para que continue
 		t_paquete* paqueteRecibido = recibir(Coordinador); // Recibe el feedback de la instruccion ejecutada por el ESI
-		t_ESI* esi = esi_por_id(atoi(paqueteRecibido->data));
+
+		int desplazamiento = 0;
+		int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+		t_ESI * ESI = esi_por_id(id_ESI);
 
 		switch(paqueteRecibido->codigo_operacion) {
+			case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
+				printf("ESI %d: Instruccion ejecutada con exito. Clave sin valor. \n", ESI->id_ESI);
+				ESI_ejecutado_exitosamente(ESI);
+			break;
+
+			case cop_Coordinador_Sentencia_Exito:
+				printf("ESI %d: Instruccion ejecutada con exito. \n", ESI->id_ESI);
+				 ESI_ejecutado_exitosamente(ESI);
+			break;
+
+			case cop_Coordinador_Sentencia_Fallo_No_Instancias:
+				printf("ESI %d: La instruccion fallo. No hay instancias dispobibles. \n", ESI->id_ESI);
+				sem_post(&sem_ESIs);
+			break;
+
 		 case codigo_error:
 			 log_info(logger, "Error en el Coordinador. Abortando. \n");
 			 escuhar = false;
 		 break;
 
-		 case cop_Coordinador_Sentencia_Exito:
-			 // pthread_mutex_lock(&mutex_ESI_ejecutando);
-			ESI_ejecutando->cantidad_instrucciones --;
 
-			if(ESI_ejecutando->cantidad_instrucciones == 0){
-				pasar_ESI_a_finalizado(ESI_ejecutando->id_ESI, "Finalizo correctamente");
-			}else{
-				pasar_ESI_a_listo(ESI_ejecutando->id_ESI);
-			}
-			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
-			// pthread_mutex_unlock(&mutex_ESI_ejecutando);
-			break;
 		 case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			 enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
+			 enviar(ESI->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
 			 //Matar al ESI
 			break;
 
-		 case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
-			enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
-			//Matar al ESI
-			break;
-		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
-			enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
-			//Matar al ESI
-			break;
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-			enviar(esi->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
+			enviar(ESI->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
 			//Matar al ESI
 			break;
 		}
+		sem_post(&sem_planificar);
 	}
 	pthread_detach(pthread_self());
 }
@@ -768,6 +681,25 @@ void remover_ESI_bloqueado(t_ESI* ESI) {
 		return ((t_bloqueado*)esi)->ESI->id_ESI == ESI->id_ESI;
 	}
 	list_remove_by_condition(cola_de_bloqueados, encontrar_esi_bloqueado);
+}
+
+void ESI_ejecutado_exitosamente(t_ESI * ESI) {
+	ESI->cantidad_instrucciones --;
+
+	if(ESI->cantidad_instrucciones == 0){
+		pasar_ESI_a_finalizado(ESI, "Finalizo correctamente");
+	}else{
+		pasar_ESI_a_listo(ESI);
+		sem_post(&sem_ESIs);
+	}
+}
+
+void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo) { // Crea la estructura y la agrega a la lista
+	t_bloqueado* esi_bloqueado = malloc(sizeof(t_bloqueado));
+	esi_bloqueado->ESI = ESI;
+	esi_bloqueado->clave_de_bloqueo = clave;
+	esi_bloqueado->motivo = motivo;
+	list_add(cola_de_bloqueados,esi_bloqueado);
 }
 
 

@@ -74,7 +74,9 @@ enum codigos_de_operacion {
 	cop_handshake_Planificador_Consola = 39,
 	cop_Planificador_kill_ESI = 40,
 
-	cop_handshake_Planificador_ejecucion = 50
+	cop_handshake_Planificador_ejecucion = 50,
+
+	cop_ESI_finalizado = 60
 };
 
 typedef int un_socket;
