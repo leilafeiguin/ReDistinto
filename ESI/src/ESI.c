@@ -81,6 +81,7 @@ void leerScript(char* path_script){
 }
 
 void ejecutar_get(char* clave) {
+	printf("Ejecutando GET %s \n", clave);
 	enviar(Coordinador,cop_Coordinador_Ejecutar_Get, size_of_string(clave), clave);
 	t_paquete* paqueteValor = recibir(Coordinador);
 	switch(paqueteValor->codigo_operacion) {
@@ -111,6 +112,7 @@ void ejecutar_get(char* clave) {
 }
 
 void ejecutar_set(char* clave, char* valor) {
+	printf("Ejecutando SET %s:%s \n", clave, valor);
 	int tamanio_buffer = size_of_strings(2, clave, valor);
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;
@@ -144,6 +146,7 @@ void ejecutar_set(char* clave, char* valor) {
 }
 
 void ejecutar_store(char* clave) {
+	printf("Ejecutando STORE %s \n", clave);
 	enviar(Coordinador,cop_Coordinador_Ejecutar_Store, size_of_string(clave), clave);
 	t_paquete* paqueteResultadoOperacion = recibir(Coordinador);
 	switch(paqueteResultadoOperacion->codigo_operacion) {

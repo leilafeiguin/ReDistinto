@@ -28,7 +28,9 @@ typedef struct {
 
 enum motivos_de_bloqueo {
 	clave_en_uso = 0,
-	bloqueado_por_consola = 1
+	bloqueado_por_consola = 1,
+	no_instancias_disponiles = 2,
+	instancia_no_disponible = 3
 };
 
 typedef struct {

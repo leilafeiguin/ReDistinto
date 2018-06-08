@@ -334,7 +334,8 @@ void ejecutarStatus(char** parametros){
 void ejecutarBloquear(char** parametros){
 	//Se bloqueará el proceso ESI hasta ser desbloqueado, especificado por dicho <ID> en la cola del recurso <clave>.
 	if(validar_ESI_id(atoi(parametros[1]))){
-		pasar_ESI_a_bloqueado(atoi(parametros[2]),parametros[1],bloqueado_por_consola);
+		t_ESI * ESI = esi_por_id(atoi(parametros[2]));
+		pasar_ESI_a_bloqueado(ESI, parametros[1],bloqueado_por_consola);
 	}else{
 		log_info(logger, "El ID de ESI ingresado es invalido\n");
 	}
@@ -402,6 +403,7 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 }
 
 void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
+	printf("ESI %d bloqueado. \n", ESI->id_ESI);
 	ESI->estado = bloqueado;
 
 	if (ESI->estado == listo) {
@@ -537,7 +539,6 @@ float estimarRafaga(int id_ESI){
 }
 
 void actualizarRafaga() {
-	puts("Actualizando rafaga de ESI");
 	if(Ultimo_ESI_Ejecutado == ESI_ejecutando){
 		ESI_ejecutando->duracionRafaga += 1;
 	}else{
@@ -567,11 +568,12 @@ void conectar_con_coordinador() {
 }
 
 void * escuchar_coordinador(void * argumentos) {
+	log_info(logger, "Escuchando al coordinador... \n");
 	bool escuhar = true;
 	while(escuhar) {
-		log_info(logger, "Aguardando al coordinador... \n");
 		sem_post(&sem_planificar); // Libera al hilo de planificacion para que continue
 		t_paquete* paqueteRecibido = recibir(Coordinador); // Recibe el feedback de la instruccion ejecutada por el ESI
+		puts("Feedback recibido del Coordinador \n");
 
 		int desplazamiento = 0;
 		int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
@@ -581,17 +583,28 @@ void * escuchar_coordinador(void * argumentos) {
 			case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
 				printf("ESI %d: Instruccion ejecutada con exito. Clave sin valor. \n", ESI->id_ESI);
 				ESI_ejecutado_exitosamente(ESI);
+				sem_post(&sem_planificar);
 			break;
 
 			case cop_Coordinador_Sentencia_Exito:
 				printf("ESI %d: Instruccion ejecutada con exito. \n", ESI->id_ESI);
 				 ESI_ejecutado_exitosamente(ESI);
+				 sem_post(&sem_planificar);
 			break;
 
 			case cop_Coordinador_Sentencia_Fallo_No_Instancias:
 				printf("ESI %d: La instruccion fallo. No hay instancias dispobibles. \n", ESI->id_ESI);
-				sem_post(&sem_ESIs);
+				pasar_ESI_a_bloqueado(ESI, "", no_instancias_disponiles);
+				sem_post(&sem_planificar);
 			break;
+
+			case cop_Instancia_Nueva:
+				 printf("Instancia %s conectada. \n", paqueteRecibido->data);
+			 break;
+
+			 case cop_Instancia_Vieja:
+				 printf("Instancia %s reconectada. \n", paqueteRecibido->data);
+			 break;
 
 		 case codigo_error:
 			 log_info(logger, "Error en el Coordinador. Abortando. \n");
@@ -609,7 +622,6 @@ void * escuchar_coordinador(void * argumentos) {
 			//Matar al ESI
 			break;
 		}
-		sem_post(&sem_planificar);
 	}
 	pthread_detach(pthread_self());
 }

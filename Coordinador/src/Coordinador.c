@@ -270,7 +270,12 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 		enviar_listado_de_strings(instancia->socket, instancia->keys_contenidas);
 		mensaje_instancia_conectada(nombre_instancia, 1);
 		instancia->estado = conectada;
+
+
 	}
+
+	// Le informo al Planificador sobre la coneccion de la instancia
+	enviar(Planificador, codigo_respuesta, size_of_string(nombre_instancia), nombre_instancia);
 
 	// BORRAR PROXIMAMENTE: Para probar las funciones
 	/* if (instancia_nueva) {
@@ -312,7 +317,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 			setear(instancia, clave, valor);
 			actualizar_keys_contenidas(instancia);
 			actualizar_cantidad_entradas_ocupadas(instancia);
-			log_and_free(logger, string_concat(5, "SET '", clave, "':'", valor, "' \n"));
+			log_and_free(logger, string_concat(5, "SET ejecutado con exito. SET '", clave, "':'", valor, "' \n"));
 			inserted = true;
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito);
 		} else {
@@ -417,7 +422,12 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 		char* valor = get(clave);
 		printf("GET ejecutado con exito. El valor de la clave '%s' es '%s'. \n", clave, valor);
 		enviar(ESI->socket, cop_Coordinador_Sentencia_Exito, size_of_string(valor), valor);
-		// enviar(Planificador, cop_Coordinador_Sentencia_Exito, size_of_string(""), "");
+		int tamanio_buffer = sizeof(int);
+		void * buffer = malloc(tamanio_buffer);
+		int desplazamiento = 0;
+		serializar_int(buffer, &desplazamiento, ESI->id_ESI);
+		enviar(Planificador, cop_Coordinador_Sentencia_Exito, tamanio_buffer, buffer);
+		free(buffer);
 		free(valor);
 	} else {
 		nueva_clave_tomada(ESI, clave);
