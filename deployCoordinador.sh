@@ -27,9 +27,15 @@ compilar(){
 
 # Escribir el archivo de configuracion
 generar_configuracion(){
-	echo "Ingrese el algoritmo de distribucion"
-	echo -n "> "
-	read ALGORITMO_DISTRIBUCION
+	echo "Elija el algoritmo de distribucion:"
+	select ALG in "EL" "LSU" "KE"; do
+	    case $ALG in
+	        EL ) echo "ALGORITMO_BALANCEO=EL" >> "$COORDINADORPATH/$COORDINADORCONFIG"; break;;
+	        LSU ) echo "ALGORITMO_BALANCEO=LSU" >> "$COORDINADORPATH/$COORDINADORCONFIG";break;;
+			KE ) echo "ALGORITMO_BALANCEO=KE" >> "$COORDINADORPATH/$COORDINADORCONFIG";break;;
+	    esac
+	done
+
 	echo "Ingrese la cantidad de entradas"
 	echo -n "> "
 	read CANTIDAD_ENTRADAS
