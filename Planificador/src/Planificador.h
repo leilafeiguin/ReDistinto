@@ -123,6 +123,10 @@ t_ESI* esi_por_id(int );
 
 void actualizarRafaga();
 
+void desbloquear_ESI(t_ESI * ESI, int motivo);
+
+void desbloquear_ESIs(int motivo, char* parametro);
+
 
 
 void conectar_con_coordinador();

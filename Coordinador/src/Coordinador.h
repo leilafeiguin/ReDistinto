@@ -7,6 +7,8 @@
 #include <commons/string.h>
 #include <pthread.h>
 #include <signal.h>
+#include <unistd.h>
+
 
 // Variables globales
 pthread_mutex_t sem_instancias;
@@ -126,6 +128,8 @@ void notificar_resultado_instruccion(t_ESI * ESI, int cop);
 void funcion_exit(int sig);
 
 void liberar_instancia(t_instancia * instancia);
+
+void retardo();
 
 // ALGORITMOS DE DISTRIBUCION
 

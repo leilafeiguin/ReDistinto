@@ -576,34 +576,53 @@ void * escuchar_coordinador(void * argumentos) {
 		puts("Feedback recibido del Coordinador \n");
 
 		int desplazamiento = 0;
-		int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
-		t_ESI * ESI = esi_por_id(id_ESI);
+		int id_ESI;
+		t_ESI * ESI;
 
 		switch(paqueteRecibido->codigo_operacion) {
 			case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
+				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				ESI = esi_por_id(id_ESI);
 				printf("ESI %d: Instruccion ejecutada con exito. Clave sin valor. \n", ESI->id_ESI);
 				ESI_ejecutado_exitosamente(ESI);
 				sem_post(&sem_planificar);
 			break;
 
 			case cop_Coordinador_Sentencia_Exito:
+				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				ESI = esi_por_id(id_ESI);
 				printf("ESI %d: Instruccion ejecutada con exito. \n", ESI->id_ESI);
-				 ESI_ejecutado_exitosamente(ESI);
-				 sem_post(&sem_planificar);
+				ESI_ejecutado_exitosamente(ESI);
+				sem_post(&sem_planificar);
 			break;
 
 			case cop_Coordinador_Sentencia_Fallo_No_Instancias:
+				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				ESI = esi_por_id(id_ESI);
 				printf("ESI %d: La instruccion fallo. No hay instancias dispobibles. \n", ESI->id_ESI);
 				pasar_ESI_a_bloqueado(ESI, "", no_instancias_disponiles);
 				sem_post(&sem_planificar);
 			break;
 
+			case cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe:
+				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				ESI = esi_por_id(id_ESI);
+				char* nombre_instancia = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				printf("ESI %d: La instruccion fallo. La instancia con la clave no se encuentra disponible. \n", ESI->id_ESI);
+				pasar_ESI_a_bloqueado(ESI, nombre_instancia, instancia_no_disponible);
+				sem_post(&sem_planificar);
+			break;
+
 			case cop_Instancia_Nueva:
 				 printf("Instancia %s conectada. \n", paqueteRecibido->data);
+				 // Desbloqueo los ESIs que se bloquearon porque no habia instancias disponibles
+				 desbloquear_ESIs(no_instancias_disponiles, paqueteRecibido->data);
 			 break;
 
 			 case cop_Instancia_Vieja:
 				 printf("Instancia %s reconectada. \n", paqueteRecibido->data);
+				 // Desbloqueo los ESIs que se bloquearon porque determinado instancia no estaba disponible
+				 desbloquear_ESIs(instancia_no_disponible, paqueteRecibido->data);
 			 break;
 
 		 case codigo_error:
@@ -709,9 +728,26 @@ void ESI_ejecutado_exitosamente(t_ESI * ESI) {
 void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo) { // Crea la estructura y la agrega a la lista
 	t_bloqueado* esi_bloqueado = malloc(sizeof(t_bloqueado));
 	esi_bloqueado->ESI = ESI;
-	esi_bloqueado->clave_de_bloqueo = clave;
+	esi_bloqueado->clave_de_bloqueo = copy_string(clave);
 	esi_bloqueado->motivo = motivo;
 	list_add(cola_de_bloqueados,esi_bloqueado);
+}
+
+
+// Desbloquea los ESIs bloqueados por un determinado motivo
+void desbloquear_ESIs(int motivo, char* parametro) {
+	bool ESI_bloqueado_con_motivo(void * blocked){
+		t_bloqueado* bloqueo = (t_bloqueado*) blocked;
+		if (bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strcmp(parametro, bloqueo->clave_de_bloqueo) == 0)) {
+
+			printf("ESI %d desbloqueado. \n", bloqueo->ESI->id_ESI);
+			list_add(cola_de_listos, bloqueo->ESI);
+			sem_post(&sem_ESIs);
+			return true;
+		}
+		return false;
+	}
+	list_remove_by_condition(cola_de_bloqueados, ESI_bloqueado_con_motivo);
 }
 
 
