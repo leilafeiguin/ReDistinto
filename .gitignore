@@ -71,3 +71,8 @@ dkms.conf
 # Dumps de las instancias
 Instancia/data
 
+# Carpetas Debug
+Coordinador/Debug
+Planificador/Debug
+ESI/Debug
+Instancia/Debug
