@@ -8,7 +8,7 @@ echo "               Desplegando Coordinador"
 echo " "
 
 
-COORDINADORPATH="Coordinador/Release"
+COORDINADORPATH="Coordinador/Debug"
 COORDINADORCONFIG="configCoordinador.cfg"
 
 
