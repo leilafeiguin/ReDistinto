@@ -193,6 +193,7 @@ void escuchar_ESI(t_ESI * ESI) {
 	while(escuchar) {
 		t_paquete* paqueteRecibido = recibir(ESI->socket);
 		printf("Ejecutando instrucciones del ESI %d.. \n", ESI->id_ESI);
+		retardo();
 		switch(paqueteRecibido->codigo_operacion) {
 			case codigo_error:
 				kill_ESI(ESI);
@@ -328,6 +329,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 }
 
 int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* valor) {
+	log_info(logger, "Validando necesidad de compactacion... \n");
 	int tamanio_buffer = size_of_strings(2, clave, valor);
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;
@@ -337,10 +339,10 @@ int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* v
 	enviar(instancia->socket, cop_Instancia_Necesidad_Compactacion, tamanio_buffer, buffer);
 	free(buffer);
 	t_paquete* paqueteResultado = recibir(instancia->socket);
+	pthread_mutex_unlock(&instancia->sem_instancia);
 	if (paqueteResultado->codigo_operacion == cop_Instancia_Necesidad_Compactacion_True) { // Es necesario compactar
 		ejecutar_compactacion();
 	}
-	pthread_mutex_unlock(&instancia->sem_instancia);
 	liberar_paquete(paqueteResultado);
 	return 0;
 }
@@ -416,7 +418,7 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 		t_instancia * instancia = get_instancia_con_clave(clave);
 		if (instancia == NULL || !health_check(instancia)) {
 			log_info(logger, "ERROR: GET rechazado. La instancia no se encuentra disponible. \n");
-			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias);
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe);
 			return 0;
 		}
 		char* valor = get(clave);
@@ -768,6 +770,10 @@ void liberar_instancia(t_instancia * instancia) {
 void clave_tomada_destroyer(t_clave_tomada * clave_tomada) {
 	free(clave_tomada->clave);
 	free(clave_tomada);
+}
+
+void retardo() {
+	sleep(configuracion.RETARDO);
 }
 
 // !ALGORITMOS DE DISTRIBUCION

@@ -98,8 +98,8 @@ void ejecutar_get(char* clave) {
 			printf("La clave '%s' todavia no tiene ningun valor. \n", clave);
 		break;
 
-		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
-			printf("La operacion GET '%s' fallo. La instancia no se encuentra disponible.. \n", clave);
+		case cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe:
+			printf("La operacion GET '%s' fallo. La instancia con la clave no se encuentra disponible. \n", clave);
 			index_proxima_instruccion--;
 		break;
 
@@ -107,7 +107,9 @@ void ejecutar_get(char* clave) {
 			printf("La operacion GET '%s' fallo. La clave supera los 40 caracteres. \n", clave);
 			index_proxima_instruccion--;
 		break;
-	}
+
+
+}
 	liberar_paquete(paqueteValor);
 }
 
