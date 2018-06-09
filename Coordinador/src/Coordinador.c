@@ -19,6 +19,7 @@ int main(void) {
 	lista_instancias = list_create();
 	lista_claves_tomadas = list_create();
 	new_list_instancias_organized = list_create();
+	lista_ESIs = list_create();
 
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
@@ -147,6 +148,7 @@ void handle_ESI(un_socket socket_ESI, t_paquete* paqueteESI) {
 		int desplazamiento = 0;
 		int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 		t_ESI * ESI = generar_ESI(socket_ESI, id_ESI);
+		list_add(lista_ESIs, ESI);
 		liberar_paquete(paqueteRecibido);
 		t_list* thread_params = list_create();
 		list_add(thread_params, ESI);
@@ -201,7 +203,6 @@ void escuchar_ESI(t_ESI * ESI) {
 		switch(paqueteRecibido->codigo_operacion) {
 			case codigo_error:
 				kill_ESI(ESI);
-				free(ESI);
 				escuchar = false;
 			break;
 
@@ -243,6 +244,16 @@ void escuchar_planificador() {
 				puts("Error en el Planificador. Abortando Planificador.");
 				Planificador = codigo_error;
 				escuchar = false;
+			break;
+
+			case cop_ESI_finalizado: ;
+				/* int desplazamiento = 0;
+				int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				t_ESI * ESI = get_ESI_por_id(id_ESI);
+				kill_ESI(ESI);
+				printf("ESI %d finalizado. Liberando recursos, \n", id_ESI);
+				Planificador = codigo_error;
+				escuchar = false;*/
 			break;
 		}
 		liberar_paquete(paqueteRecibido);
@@ -305,7 +316,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
 		printf("SET rechazado. La clave '%s' se encuentra tomada por otro ESI. \n", clave);
-		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
 	}
 
@@ -314,7 +325,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 		t_instancia * instancia = instancia_a_guardar();
 		if (instancia == NULL) {
 			log_info(logger, "ERROR: No pudo ejecutarse el SET. No hay instancias disponibles. \n ");
-			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias);
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias, "");
 			return 0;
 		}
 		if (health_check(instancia)) {
@@ -324,7 +335,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 			actualizar_cantidad_entradas_ocupadas(instancia);
 			log_and_free(logger, string_concat(5, "SET ejecutado con exito. SET '", clave, "':'", valor, "' \n"));
 			inserted = true;
-			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito);
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 		} else {
 			log_and_free(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
 		}
@@ -413,39 +424,24 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
 		printf("GET rechazado. La clave '%s' se encuentra tomada por otro ESI. \n", clave);
-		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
 	}
 
-
+	nueva_clave_tomada(ESI, clave);
 	if (validar_clave_ingresada(clave)) {
 		t_instancia * instancia = get_instancia_con_clave(clave);
 		if (!health_check(instancia)) {
 			log_info(logger, "ERROR: GET rechazado. La instancia no se encuentra disponible. \n");
-			enviar(ESI->socket, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe, size_of_string(""), "");
-			int tamanio_buffer = sizeof(int) * 2 + size_of_string(instancia->nombre);
-			void * buffer = malloc(tamanio_buffer);
-			int desplazamiento = 0;
-			serializar_int(buffer, &desplazamiento, ESI->id_ESI);
-			serializar_string(buffer, &desplazamiento, instancia->nombre);
-			enviar(Planificador, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe, tamanio_buffer, buffer);
-			free(buffer);
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe, instancia->nombre);
 			return 0;
 		}
 		char* valor = get(clave);
 		printf("GET ejecutado con exito. El valor de la clave '%s' es '%s'. \n", clave, valor);
-		enviar(ESI->socket, cop_Coordinador_Sentencia_Exito, size_of_string(valor), valor);
-		int tamanio_buffer = sizeof(int);
-		void * buffer = malloc(tamanio_buffer);
-		int desplazamiento = 0;
-		serializar_int(buffer, &desplazamiento, ESI->id_ESI);
-		enviar(Planificador, cop_Coordinador_Sentencia_Exito, tamanio_buffer, buffer);
-		free(buffer);
-		free(valor);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, valor);
 	} else {
-		nueva_clave_tomada(ESI, clave);
 		printf("GET ejecutado con exito. La clave '%s' todavia no tiene ningun valor. \n", clave);
-		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor, "");
 	}
 
 	return 1;
@@ -462,10 +458,12 @@ int get_id_ESI_con_clave(char* clave) {
 }
 
 bool validar_clave_ingresada(char* clave) {
-	bool clave_match(char * key){
-		return strcmp(clave, key) == 0 ? true : false;
+	bool clave_match(void * key){
+		char* string_key = (char*) key;
+		return strcmp(clave, string_key) == 0 ? true : false;
 	}
-	bool instancia_tiene_clave(t_instancia * instancia){
+	bool instancia_tiene_clave(void * item){
+		t_instancia * instancia = (t_instancia *) item;
 		return list_any_satisfy(instancia->keys_contenidas, clave_match);
 	}
 	pthread_mutex_lock(&sem_instancias);
@@ -474,14 +472,28 @@ bool validar_clave_ingresada(char* clave) {
 	return result;
 }
 
-t_clave_tomada * nueva_clave_tomada(t_ESI * ESI, char* clave) {
-	t_clave_tomada * t_clave = malloc(sizeof(t_clave_tomada));
-	t_clave->id_ESI = ESI->id_ESI;
-	t_clave->clave = copy_string(clave);
+bool validar_clave_tomada(char* clave) {
+	bool existe_bloqueo(void * bloqueo){
+		t_clave_tomada * clave_tomada = (t_clave_tomada *) bloqueo;
+		return strcmp(clave, clave_tomada->clave) == 0 ? true : false;
+	}
 	pthread_mutex_lock(&sem_claves_tomadas);
-	list_add(lista_claves_tomadas, t_clave);
+	bool result = list_any_satisfy(lista_claves_tomadas, existe_bloqueo);
 	pthread_mutex_unlock(&sem_claves_tomadas);
-	return t_clave;
+	return result;
+}
+
+t_clave_tomada * nueva_clave_tomada(t_ESI * ESI, char* clave) {
+	if (!validar_clave_tomada(clave)) {
+		t_clave_tomada * t_clave = malloc(sizeof(t_clave_tomada));
+		t_clave->id_ESI = ESI->id_ESI;
+		t_clave->clave = copy_string(clave);
+		pthread_mutex_lock(&sem_claves_tomadas);
+		list_add(lista_claves_tomadas, t_clave);
+		pthread_mutex_unlock(&sem_claves_tomadas);
+		return t_clave;
+	}
+	return NULL;
 }
 
 char* get(char* clave) {
@@ -508,7 +520,7 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
 		log_and_free(logger, string_concat(3, "ERROR: STORE rechazado. La clave '", clave , "' se encuentra tomada por otro ESI \n"));
-		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
 	}
 
@@ -523,11 +535,14 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 		liberar_paquete(paqueteEstadoOperacion);
 		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
 			log_and_free(logger, string_concat(3, "STORE ejecutado con exito. La clave '", clave, "' fue guardada y liberada. \n"));
-			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito);
+			pthread_mutex_lock(&sem_planificador);
+			enviar(Planificador, cop_Coordinador_Clave_Liberada, size_of_string(clave), clave);
+			pthread_mutex_unlock(&sem_planificador);
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 		}
 	} else {
 		log_info(logger, "ERROR: STORE rechazado. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n");
-		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias, "");
 	}
 	return 1;
 }
@@ -717,20 +732,27 @@ void liberar_clave_tomada(char* clave) {
 }
 
 void liberar_claves_ESI(t_ESI * ESI) {
-	bool ESI_match(t_clave_tomada * clave_tomada){
-		return clave_tomada->id_ESI == ESI->id_ESI ? true : false;
+	bool ESI_match(void * clave_tomada){
+		int id_ESI_clave_tomada = ((t_clave_tomada *) clave_tomada)->id_ESI;
+		return ((t_clave_tomada *) clave_tomada)->id_ESI == ESI->id_ESI ? true : false;
 	}
-	void eliminar_clave_tomada(t_clave_tomada * clave_tomada){
+	/* void eliminar_clave_tomada(t_clave_tomada * clave_tomada){
 		liberar_clave_tomada(clave_tomada->clave);
-	}
-	t_list * claves_del_ESI = list_filter(lista_claves_tomadas, ESI_match);
-	list_iterate(claves_del_ESI, eliminar_clave_tomada);
-	list_destroy(claves_del_ESI);
+	}*/
+	// t_list * claves_del_ESI = list_filter(lista_claves_tomadas, ESI_match);
+	// list_iterate(claves_del_ESI, eliminar_clave_tomada);
+	// list_destroy(claves_del_ESI);
+	list_remove_by_condition(lista_claves_tomadas, ESI_match);
 }
 
 void kill_ESI(t_ESI * ESI) {
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == ESI->id_ESI;
+	}
+	list_remove_by_condition(lista_ESIs, encontrar_esi);
 	liberar_claves_ESI(ESI);
 	printf("ESI: %d desconectado. \n", ESI->id_ESI);
+	free(ESI);
 }
 
 t_ESI * generar_ESI(un_socket socket, int ID) {
@@ -746,19 +768,23 @@ bool validar_tamanio_clave(char* clave) {
 
 void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
 	printf("%s rechazado. La clave '%s' supera los %d caracteres. \n", operacion, clave, MAX_TAMANIO_CLAVE);
-	notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Larga);
+	notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Larga, "");
 }
 
-void notificar_resultado_instruccion(t_ESI * ESI, int cop) {
-	pthread_mutex_lock(&sem_planificador);
-	int tamanio_buffer = sizeof(int);
+void notificar_resultado_instruccion(t_ESI * ESI, int cop, char* parametro) {
+	// Envio la informacion al Planificador
+	int tamanio_buffer = sizeof(int) * 2 + size_of_string(parametro);
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;
 	serializar_int(buffer, &desplazamiento, ESI->id_ESI);
+	serializar_string(buffer, &desplazamiento, parametro);
+	pthread_mutex_lock(&sem_planificador);
 	enviar(Planificador, cop, tamanio_buffer, buffer);
-	free(buffer);
 	pthread_mutex_unlock(&sem_planificador);
-	enviar(ESI->socket, cop, size_of_string(""), "");
+	free(buffer);
+
+	// Envio la informacion al ESI
+	enviar(ESI->socket, cop, size_of_string(parametro), parametro);
 }
 
 void funcion_exit(int sig) {
@@ -787,6 +813,14 @@ void clave_tomada_destroyer(t_clave_tomada * clave_tomada) {
 void retardo() {
 	sleep(configuracion.RETARDO);
 }
+
+t_ESI * get_ESI_por_id(int id_ESI) {
+	bool encontrar_esi(void* esi){
+		return ((t_ESI*)esi)->id_ESI == id_ESI;
+	}
+	return list_find(lista_ESIs, encontrar_esi);
+}
+
 
 // !ALGORITMOS DE DISTRIBUCION
 

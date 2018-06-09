@@ -27,6 +27,8 @@ t_list* lista_claves_tomadas;
 
 t_list* new_list_instancias_organized;
 
+t_list* lista_ESIs;
+
 t_config* archivo_configuracion;
 
 // !Variables globales
@@ -105,6 +107,8 @@ int get_id_ESI_con_clave(char* clave);
 
 bool validar_clave_ingresada(char* clave);
 
+bool validar_clave_tomada(char* clave);
+
 void liberar_clave_tomada(char* clave);
 
 void liberar_claves_ESI(t_ESI * ESI);
@@ -123,13 +127,15 @@ void iniciar_logger();
 
 void kill_ESI(t_ESI * ESI);
 
-void notificar_resultado_instruccion(t_ESI * ESI, int cop);
+void notificar_resultado_instruccion(t_ESI * ESI, int cop, char* parametro);
 
 void funcion_exit(int sig);
 
 void liberar_instancia(t_instancia * instancia);
 
 void retardo();
+
+t_ESI * get_ESI_por_id(int id_ESI);
 
 // ALGORITMOS DE DISTRIBUCION
 

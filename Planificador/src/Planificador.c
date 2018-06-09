@@ -429,7 +429,16 @@ void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
 
 void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 	printf("ESI %d finalizado, estado: %s \n", ESI->id_ESI, descripcion_estado);
-	enviar(ESI->socket, cop_ESI_finalizado, size_of_string(""), ""); // Le comunico al ESI que finalizo correctamente
+
+	// Les comunico al ESI y al Coordinador sobre la finalizacion
+	int tamanio_buffer = sizeof(int);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_int(buffer, &desplazamiento, ESI->id_ESI);
+	enviar(Coordinador, cop_ESI_finalizado, tamanio_buffer, buffer);
+	free(buffer);
+	enviar(ESI->socket, cop_ESI_finalizado, size_of_string(""), "");
+
 	FD_CLR(ESI->socket, &master); // Deja de escuchar el socket del ESI
 	ESI->descripcion_estado = copy_string(descripcion_estado);
 	ESI->estado = finalizado;
@@ -613,17 +622,32 @@ void * escuchar_coordinador(void * argumentos) {
 				sem_post(&sem_planificar);
 			break;
 
+			case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
+				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				ESI = esi_por_id(id_ESI);
+				char* nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				printf("ESI %d: La instruccion fallo. La clave se encuentra tomada. \n", ESI->id_ESI);
+				pasar_ESI_a_bloqueado(ESI, nombre_clave, clave_en_uso);
+				sem_post(&sem_planificar);
+			break;
+
 			case cop_Instancia_Nueva:
 				 printf("Instancia %s conectada. \n", paqueteRecibido->data);
 				 // Desbloqueo los ESIs que se bloquearon porque no habia instancias disponibles
 				 desbloquear_ESIs(no_instancias_disponiles, paqueteRecibido->data);
-			 break;
+			break;
 
-			 case cop_Instancia_Vieja:
-				 printf("Instancia %s reconectada. \n", paqueteRecibido->data);
-				 // Desbloqueo los ESIs que se bloquearon porque determinado instancia no estaba disponible
-				 desbloquear_ESIs(instancia_no_disponible, paqueteRecibido->data);
-			 break;
+			case cop_Instancia_Vieja:
+				printf("Instancia %s reconectada. \n", paqueteRecibido->data);
+				// Desbloqueo los ESIs que se bloquearon porque determinada instancia no estaba disponible o no habia instancias
+				desbloquear_ESIs(no_instancias_disponiles, paqueteRecibido->data);
+				desbloquear_ESIs(instancia_no_disponible, paqueteRecibido->data);
+			break;
+
+			case cop_Coordinador_Clave_Liberada:
+				// Desbloqueo los ESIs que se bloquearon por esta clave
+				desbloquear_ESIs(clave_en_uso, paqueteRecibido->data);
+			break;
 
 		 case codigo_error:
 			 log_info(logger, "Error en el Coordinador. Abortando. \n");
@@ -631,10 +655,7 @@ void * escuchar_coordinador(void * argumentos) {
 		 break;
 
 
-		 case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			 enviar(ESI->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
-			 //Matar al ESI
-			break;
+
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
 			enviar(ESI->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
@@ -739,7 +760,6 @@ void desbloquear_ESIs(int motivo, char* parametro) {
 	bool ESI_bloqueado_con_motivo(void * blocked){
 		t_bloqueado* bloqueo = (t_bloqueado*) blocked;
 		if (bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strcmp(parametro, bloqueo->clave_de_bloqueo) == 0)) {
-
 			printf("ESI %d desbloqueado. \n", bloqueo->ESI->id_ESI);
 			list_add(cola_de_listos, bloqueo->ESI);
 			sem_post(&sem_ESIs);
