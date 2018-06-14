@@ -4,7 +4,8 @@
 
 
 int main(int argc, char **argv) {
-	char* script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt";
+	//char* path_script = argv[1];
+	char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt";
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/esi_image.txt");
 	char* fileLog;
 	fileLog = "ESI_logs.txt";
@@ -15,11 +16,8 @@ int main(int argc, char **argv) {
 	configuracion = get_configuracion();
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
-	char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt"; // script se ingresa por consola
 	leerScript(path_script);
-
-	//leer_archivo(argv[1]);
-	leer_archivo(script);
+	leer_archivo(path_script);
 	conectar_con_planificador();
 	conectar_con_coordinador();
 

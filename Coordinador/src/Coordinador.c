@@ -718,7 +718,7 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 }
 
 void liberar_clave_tomada(char* clave) {
-	t_list * nueva_lista = list_create();
+	/*t_list * nueva_lista = list_create();
 	void add_clave_si_es_distinta(t_clave_tomada * clave_tomada){
 		if (strcmp(clave, clave_tomada->clave) != 0) {
 			list_add(nueva_lista, clave_tomada);
@@ -728,13 +728,21 @@ void liberar_clave_tomada(char* clave) {
 	list_iterate(lista_claves_tomadas, add_clave_si_es_distinta);
 	list_destroy_and_destroy_elements(lista_claves_tomadas, clave_tomada_destroyer);
 	lista_claves_tomadas = nueva_lista;
+	pthread_mutex_unlock(&sem_claves_tomadas);*/
+
+	pthread_mutex_lock(&sem_claves_tomadas);
+	bool clave_match(void * clave_tomada){
+		char* nombre_clave_tomada = ((t_clave_tomada *) clave_tomada)->clave;
+		return strcmp(nombre_clave_tomada, clave) == 0;
+	}
+	list_remove_by_condition(lista_claves_tomadas, clave_match);
 	pthread_mutex_unlock(&sem_claves_tomadas);
 }
 
 void liberar_claves_ESI(t_ESI * ESI) {
 	bool ESI_match(void * clave_tomada){
 		int id_ESI_clave_tomada = ((t_clave_tomada *) clave_tomada)->id_ESI;
-		return ((t_clave_tomada *) clave_tomada)->id_ESI == ESI->id_ESI ? true : false;
+		return id_ESI_clave_tomada == ESI->id_ESI ? true : false;
 	}
 	/* void eliminar_clave_tomada(t_clave_tomada * clave_tomada){
 		liberar_clave_tomada(clave_tomada->clave);

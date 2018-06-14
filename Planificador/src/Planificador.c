@@ -144,8 +144,8 @@ int main(void) {
 								log_info(logger, "Se desconectó el ESI que estaba ejecutando. \n");
 								free(ESI_ejecutando);
 							}else{
-								log_info(logger, "Se desconectó el coordinador. \n");
-								exit(-1);
+								// log_info(logger, "Se desconectó el coordinador. \n");
+								// exit(-1);
 							}
 							break;
 						}
@@ -403,13 +403,11 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 }
 
 void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
-	printf("ESI %d bloqueado. \n", ESI->id_ESI);
-	ESI->estado = bloqueado;
-
 	if (ESI->estado == listo) {
 		remover_ESI_listo(ESI);
 	}
 	nuevo_bloqueo(ESI, clave_de_bloqueo, motivo);
+	ESI->estado = bloqueado;
 
 	/* switch(esi->estado){
 		case ejecutando:
@@ -439,38 +437,42 @@ void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 	free(buffer);
 	enviar(ESI->socket, cop_ESI_finalizado, size_of_string(""), "");
 
+	// Lo saco de la cola actual en la que se encuentra
+	printf("Estado actual: %d \n", ESI->estado);
+	printf("CANT LISTOS: %d \n", list_size(cola_de_listos));
+	if (ESI->estado == listo) {
+		remover_ESI_listo(ESI);
+	} else {
+		remover_ESI_bloqueado(ESI);
+	}
+
 	FD_CLR(ESI->socket, &master); // Deja de escuchar el socket del ESI
 	ESI->descripcion_estado = copy_string(descripcion_estado);
 	ESI->estado = finalizado;
 	list_add(cola_de_finalizados, ESI);
 
-	// Lo saco de la cola actual en la que se encuentra
-	if (ESI->estado == listo) {
-		remover_ESI_listo(ESI);
-	} else {
-		remover_ESI_bloqueado(ESI);
-	}
+
 }
 
 void pasar_ESI_a_listo(t_ESI* ESI){
-	ESI->estado = listo;
-	list_add(cola_de_listos, ESI);
-
 	if (ESI->estado == bloqueado) {
 		remover_ESI_bloqueado(ESI);
 	}
+
+	ESI->estado = listo;
+	list_add(cola_de_listos, ESI);
 }
 
 void pasar_ESI_a_ejecutando(t_ESI* ESI){
-	ESI->w = 0;
-	ESI->estado = ejecutando;
-
 	// Lo saco de la cola actual en la que se encuentra
 	if (ESI->estado == listo) {
 		remover_ESI_listo(ESI);
 	} else {
 		remover_ESI_bloqueado(ESI);
 	}
+
+	ESI->w = 0;
+	ESI->estado = ejecutando;
 
 	ESI_ejecutando = ESI;
 	aumentar_espera_ESIs_listos();
@@ -646,6 +648,7 @@ void * escuchar_coordinador(void * argumentos) {
 
 			case cop_Coordinador_Clave_Liberada:
 				// Desbloqueo los ESIs que se bloquearon por esta clave
+				printf("clave liberada; %s \n", paqueteRecibido->data);
 				desbloquear_ESIs(clave_en_uso, paqueteRecibido->data);
 			break;
 
@@ -699,6 +702,8 @@ int nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 	newESI->duracionRafaga = 0;
 	list_add(lista_de_ESIs, newESI);
 	list_add(cola_de_listos,newESI);
+	puts("ESI agregado 2");
+
 	idESI++;
 	return newESI->id_ESI;
 }
@@ -737,7 +742,7 @@ void remover_ESI_bloqueado(t_ESI* ESI) {
 
 void ESI_ejecutado_exitosamente(t_ESI * ESI) {
 	ESI->cantidad_instrucciones --;
-
+	printf("ins restantes: %d \n", ESI->cantidad_instrucciones);
 	if(ESI->cantidad_instrucciones == 0){
 		pasar_ESI_a_finalizado(ESI, "Finalizo correctamente");
 	}else{
@@ -762,6 +767,7 @@ void desbloquear_ESIs(int motivo, char* parametro) {
 		if (bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strcmp(parametro, bloqueo->clave_de_bloqueo) == 0)) {
 			printf("ESI %d desbloqueado. \n", bloqueo->ESI->id_ESI);
 			list_add(cola_de_listos, bloqueo->ESI);
+			puts("ESI agregado 3");
 			sem_post(&sem_ESIs);
 			return true;
 		}
