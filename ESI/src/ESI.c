@@ -4,8 +4,8 @@
 
 
 int main(int argc, char **argv) {
-	//char* path_script = argv[1];
-	char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt";
+	char* path_script = argv[1];
+	//char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt";
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/esi_image.txt");
 	char* fileLog;
 	fileLog = "ESI_logs.txt";
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 			break;
 
 			case cop_Planificador_kill_ESI:
-				puts("Finalizando por el Planificador. Abortando.");
+				printf("Finalizando por el Planificador. Motivo: %s. Abortando. \n", paquete->data);
 				ejecutar_ESI = false;
 			break;
 
@@ -141,6 +141,11 @@ void ejecutar_set(char* clave, char* valor) {
 			printf("La operacion SET '%s' : '%s' fallo. La clave supera los 40 caracteres. \n", clave, valor);
 			index_proxima_instruccion--;
 		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida:
+			printf("La operacion SET '%s' : '%s' fallo. GET no soliciado para la clave '%s'. \n", clave, valor, clave);
+			index_proxima_instruccion--;
+		break;
 	}
 	liberar_paquete(paqueteResultadoOperacion);
 }
@@ -166,6 +171,11 @@ void ejecutar_store(char* clave) {
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
 			printf("La operacion STORE '%s' fallo. La clave supera los 40 caracteres. \n", clave);
+			index_proxima_instruccion--;
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida:
+			printf("La operacion STORE '%s' fallo. GET no soliciado para la clave '%s'. \n", clave, clave);
 			index_proxima_instruccion--;
 		break;
 	}

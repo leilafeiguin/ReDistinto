@@ -49,7 +49,7 @@ enum acciones_a_tomar {
 int idESI = 1;
 
 sem_t sem_planificar; // Semaforo binario para saber si hay que planificar
-sem_t sem_ESIs; // Semaforo contador que contiene el numero de ESIs actuales (incluyendo los listos y los bloqueados)
+sem_t sem_ESIs_listos; // Semaforo contador que contiene el numero de ESIs listos
 
 planificador_configuracion configuracion;
 
@@ -119,7 +119,9 @@ void list_swap_elems(t_list,void*,void*);
 
 float estimarRafaga();
 
-t_ESI* esi_por_id(int );
+t_ESI* esi_por_id(int id_ESI);
+
+t_ESI* esi_por_socket(un_socket socket);
 
 void actualizarRafaga();
 
@@ -135,12 +137,12 @@ void * escuchar_coordinador(void * argumentos);
 
 void ESI_conectado(un_socket socket, t_paquete* paqueteRecibido);
 
-int nuevo_ESI(un_socket socket, int cantidad_instrucciones);
+t_ESI * nuevo_ESI(un_socket socket, int cantidad_instrucciones);
 
 void ordenar_cola_listos();
 
-void aumentar_espera_ESIs_listos()
-;
+void aumentar_espera_ESIs_listos();
+
 void remover_ESI_listo(t_ESI* ESI);
 
 void remover_ESI_bloqueado(t_ESI* ESI);
@@ -148,6 +150,10 @@ void remover_ESI_bloqueado(t_ESI* ESI);
 void ESI_ejecutado_exitosamente(t_ESI * ESI);
 
 void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo);
+
+void kill_ESI(t_ESI * ESI, char* motivo);
+
+void eliminar_ESI_cola_actual(t_ESI * ESI);
 
 
 /*

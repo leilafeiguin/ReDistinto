@@ -137,6 +137,8 @@ void retardo();
 
 t_ESI * get_ESI_por_id(int id_ESI);
 
+void enviar_mensaje_planificador(int cop, int tamanio_buffer, void * buffer);
+
 // ALGORITMOS DE DISTRIBUCION
 
 void * crear_instancias_prueba_alan();

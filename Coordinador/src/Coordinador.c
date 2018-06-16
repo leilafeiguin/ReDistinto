@@ -314,7 +314,11 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 	}
 
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
-	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
+	if (id_ESI_con_clave == NULL) {
+		printf("SET rechazado. No solicito el GET para la clave '%s'. \n", clave);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida, clave);
+		return 0;
+	} else if (id_ESI_con_clave != ESI->id_ESI)  {
 		printf("SET rechazado. La clave '%s' se encuentra tomada por otro ESI. \n", clave);
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
@@ -518,7 +522,11 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 	}
 
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
-	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
+	if (id_ESI_con_clave == NULL) {
+		printf("STORE rechazado. No solicito el GET para la clave '%s'. \n", clave);
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida, clave);
+		return 0;
+	} else if (id_ESI_con_clave != ESI->id_ESI ) {
 		log_and_free(logger, string_concat(3, "ERROR: STORE rechazado. La clave '", clave , "' se encuentra tomada por otro ESI \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
@@ -535,9 +543,6 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 		liberar_paquete(paqueteEstadoOperacion);
 		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
 			log_and_free(logger, string_concat(3, "STORE ejecutado con exito. La clave '", clave, "' fue guardada y liberada. \n"));
-			pthread_mutex_lock(&sem_planificador);
-			enviar(Planificador, cop_Coordinador_Clave_Liberada, size_of_string(clave), clave);
-			pthread_mutex_unlock(&sem_planificador);
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 		}
 	} else {
@@ -718,18 +723,6 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 }
 
 void liberar_clave_tomada(char* clave) {
-	/*t_list * nueva_lista = list_create();
-	void add_clave_si_es_distinta(t_clave_tomada * clave_tomada){
-		if (strcmp(clave, clave_tomada->clave) != 0) {
-			list_add(nueva_lista, clave_tomada);
-		}
-	}
-	pthread_mutex_lock(&sem_claves_tomadas);
-	list_iterate(lista_claves_tomadas, add_clave_si_es_distinta);
-	list_destroy_and_destroy_elements(lista_claves_tomadas, clave_tomada_destroyer);
-	lista_claves_tomadas = nueva_lista;
-	pthread_mutex_unlock(&sem_claves_tomadas);*/
-
 	pthread_mutex_lock(&sem_claves_tomadas);
 	bool clave_match(void * clave_tomada){
 		char* nombre_clave_tomada = ((t_clave_tomada *) clave_tomada)->clave;
@@ -737,19 +730,18 @@ void liberar_clave_tomada(char* clave) {
 	}
 	list_remove_by_condition(lista_claves_tomadas, clave_match);
 	pthread_mutex_unlock(&sem_claves_tomadas);
+	enviar_mensaje_planificador(cop_Coordinador_Clave_Liberada, size_of_string(clave), clave);
 }
 
 void liberar_claves_ESI(t_ESI * ESI) {
-	bool ESI_match(void * clave_tomada){
-		int id_ESI_clave_tomada = ((t_clave_tomada *) clave_tomada)->id_ESI;
-		return id_ESI_clave_tomada == ESI->id_ESI ? true : false;
+	bool ESI_match(void * item){
+		t_clave_tomada * clave_tomada  = (t_clave_tomada *) item;
+		if (clave_tomada->id_ESI == ESI->id_ESI) {
+			enviar_mensaje_planificador(cop_Coordinador_Clave_Liberada, size_of_string(clave_tomada->clave), clave_tomada->clave);
+			return true;
+		}
+		return false;
 	}
-	/* void eliminar_clave_tomada(t_clave_tomada * clave_tomada){
-		liberar_clave_tomada(clave_tomada->clave);
-	}*/
-	// t_list * claves_del_ESI = list_filter(lista_claves_tomadas, ESI_match);
-	// list_iterate(claves_del_ESI, eliminar_clave_tomada);
-	// list_destroy(claves_del_ESI);
 	list_remove_by_condition(lista_claves_tomadas, ESI_match);
 }
 
@@ -786,9 +778,7 @@ void notificar_resultado_instruccion(t_ESI * ESI, int cop, char* parametro) {
 	int desplazamiento = 0;
 	serializar_int(buffer, &desplazamiento, ESI->id_ESI);
 	serializar_string(buffer, &desplazamiento, parametro);
-	pthread_mutex_lock(&sem_planificador);
-	enviar(Planificador, cop, tamanio_buffer, buffer);
-	pthread_mutex_unlock(&sem_planificador);
+	enviar_mensaje_planificador(cop, tamanio_buffer, buffer);
 	free(buffer);
 
 	// Envio la informacion al ESI
@@ -827,6 +817,12 @@ t_ESI * get_ESI_por_id(int id_ESI) {
 		return ((t_ESI*)esi)->id_ESI == id_ESI;
 	}
 	return list_find(lista_ESIs, encontrar_esi);
+}
+
+void enviar_mensaje_planificador(int cop, int tamanio_buffer, void * buffer) {
+	pthread_mutex_lock(&sem_planificador);
+	enviar(Planificador, cop, tamanio_buffer, buffer);
+	pthread_mutex_unlock(&sem_planificador);
 }
 
 
