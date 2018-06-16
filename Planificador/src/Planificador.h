@@ -33,28 +33,12 @@ enum motivos_de_bloqueo {
 	instancia_no_disponible = 3
 };
 
-typedef struct {
-	t_ESI* ESI;
-	int accion_a_tomar;
-	char* clave_de_bloqueo;
-	int motivo; //como fue bloqueado
-} t_accion_a_tomar;
-
-enum acciones_a_tomar {
-	matar = 0,
-	bloquear = 1,
-	desbloquear = 2,
-};
-
 int idESI = 1;
 
 sem_t sem_planificar; // Semaforo binario para saber si hay que planificar
 sem_t sem_ESIs_listos; // Semaforo contador que contiene el numero de ESIs listos
 
 planificador_configuracion configuracion;
-
-pthread_mutex_t mutex_pausa_por_consola;
-
 
 pthread_mutex_t mutex_lista_de_ESIs;
 t_list* lista_de_ESIs;
@@ -69,17 +53,16 @@ pthread_mutex_t mutex_cola_de_finalizados;
 t_list* cola_de_finalizados;
 
 pthread_mutex_t mutex_ESI_ejecutando;
-t_ESI* ESI_ejecutando; //Es un unico esi a la vez
+t_ESI* ESI_ejecutando; // Es un unico esi a la vez
 
+pthread_mutex_t mutex_Ultimo_ESI_Ejecutado;
 t_ESI* Ultimo_ESI_Ejecutado;
 
-pthread_mutex_t mutex_accion_a_tomar;
-t_list* accion_a_tomar;
+pthread_mutex_t mutex_Coordinador;
+un_socket Coordinador; //Socket del coordinador
 
 void* archivo;
 t_log* logger;
-
-un_socket Coordinador; //Socket del coordinador
 
 char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
 
