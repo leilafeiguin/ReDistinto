@@ -36,6 +36,7 @@ enum motivos_de_bloqueo {
 int idESI = 1;
 
 sem_t sem_planificar; // Semaforo binario para saber si hay que planificar
+sem_t sem_sistema_ejecucion; // Semaforo para establecer la pausa por consola
 sem_t sem_ESIs_listos; // Semaforo contador que contiene el numero de ESIs listos
 
 planificador_configuracion configuracion;
@@ -84,11 +85,21 @@ void pasar_ESI_a_ejecutando(t_ESI* ESI);
 
 bool validar_ESI_id(int id);
 
+bool sistema_pausado();
+
+void ejecutar_pausar();
+
+void ejecutar_continuar();
+
+void ejecutar_kill(int id_ESI);
+
+void ejecutar_status(char* clave);
+
+void ejecutar_listar(char* clave);
+
 void ejecutarBloquear(char** parametros);
 
 void ejecutarDesbloquear(char** parametros);
-
-void ejecutarListar(char** parametros);
 
 void * planificar(void* unused);
 
@@ -111,8 +122,6 @@ void actualizarRafaga();
 void desbloquear_ESI(t_ESI * ESI, int motivo);
 
 void desbloquear_ESIs(int motivo, char* parametro);
-
-
 
 void conectar_con_coordinador();
 
@@ -137,6 +146,12 @@ void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo);
 void kill_ESI(t_ESI * ESI, char* motivo);
 
 void eliminar_ESI_cola_actual(t_ESI * ESI);
+
+void mostrar_resultado_consulta(void * buffer_resultado);
+
+t_list * get_ESIs_bloqueados_por_clave(char* clave, int motivo); // Si el motivo es -1 trae todos
+
+void mostrar_ESIs_bloqueados(char* clave, int motivo);
 
 
 /*

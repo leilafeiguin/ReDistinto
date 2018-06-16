@@ -133,8 +133,8 @@ void handle_instancia(un_socket instancia, t_paquete* paqueteInstancia) {
 	t_paquete* paqueteRecibido = recibir(instancia); // Info sobre la Instancia
 	char* nombre_instancia = copy_string(paqueteRecibido->data);
 	t_list* thread_params = list_create();
-	list_add(thread_params, instancia);
-	list_add(thread_params, nombre_instancia);
+	list_add(thread_params, (void*) instancia);
+	list_add(thread_params, (void*) nombre_instancia);
 	pthread_t thread = nuevo_hilo(instancia_conectada_funcion_thread, thread_params);
 	pthread_join(thread, NULL);
 	liberar_paquete(paqueteRecibido);
@@ -246,14 +246,8 @@ void escuchar_planificador() {
 				escuchar = false;
 			break;
 
-			case cop_ESI_finalizado: ;
-				/* int desplazamiento = 0;
-				int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
-				t_ESI * ESI = get_ESI_por_id(id_ESI);
-				kill_ESI(ESI);
-				printf("ESI %d finalizado. Liberando recursos, \n", id_ESI);
-				Planificador = codigo_error;
-				escuchar = false;*/
+			case cop_Planificador_Consultar_Clave:
+				handle_consulta_clave(paqueteRecibido->data);
 			break;
 		}
 		liberar_paquete(paqueteRecibido);
@@ -292,18 +286,6 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 
 	// Le informo al Planificador sobre la coneccion de la instancia
 	enviar(Planificador, codigo_respuesta, size_of_string(nombre_instancia), nombre_instancia);
-
-	// BORRAR PROXIMAMENTE: Para probar las funciones
-	/* if (instancia_nueva) {
-		ejecutar_set("nombre", "tomas uriel chejanovich");
-		ejecutar_get("nombre");
-		ejecutar_store("nombre");
-		ejecutar_set("Futbolista 1", "Cristiano ronaldo");
-		ejecutar_set("Futbolista 2", "Carlos tevez");
-		ejecutar_set("Futbolista 3", "Ronaldo asis moreira junior");
-		ejecutar_set("nombre2", "tomas uriel chejanovich");
-		dump();
-	}*/
 }
 
 int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
@@ -824,6 +806,50 @@ void enviar_mensaje_planificador(int cop, int tamanio_buffer, void * buffer) {
 	enviar(Planificador, cop, tamanio_buffer, buffer);
 	pthread_mutex_unlock(&sem_planificador);
 }
+
+void handle_consulta_clave(char* clave) {
+	printf("Consulta realizada, clave: '%s'. \n", clave);
+	char* valor;
+	char* nombre_instancia_actual;
+	t_instancia * instancia = instancia_a_guardar();
+	char* nombre_instancia_a_guardar = instancia == NULL ? "No disponible" : instancia->nombre;
+
+	if (validar_clave_ingresada(clave)) {
+		t_instancia * instancia = get_instancia_con_clave(clave);
+		nombre_instancia_actual = instancia->nombre;
+		valor = health_check(instancia) ? get(clave) : "No disponible";
+	} else {
+		valor = "Clave sin valor";
+		nombre_instancia_actual = "-";
+	}
+
+	int tamanio_buffer = size_of_strings(4, clave, valor, nombre_instancia_actual, nombre_instancia_a_guardar);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_string(buffer, &desplazamiento, clave);
+	serializar_string(buffer, &desplazamiento, valor);
+	serializar_string(buffer, &desplazamiento, nombre_instancia_actual);
+	serializar_string(buffer, &desplazamiento, nombre_instancia_a_guardar);
+	pthread_mutex_lock(&sem_planificador);
+	enviar(Planificador, cop_Planificador_Consultar_Clave, tamanio_buffer, buffer);
+	pthread_mutex_unlock(&sem_planificador);
+	free(buffer);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // !ALGORITMOS DE DISTRIBUCION

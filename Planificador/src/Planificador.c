@@ -28,6 +28,7 @@ int main(void) {
 	pthread_mutex_init(&mutex_Coordinador, NULL);
 
 	sem_init(&sem_planificar, 0, 1);
+	sem_init(&sem_sistema_ejecucion, 0, 1);
 	sem_init(&sem_ESIs_listos, 0, 0);
 
 	// Ejecutar consola
@@ -165,8 +166,13 @@ void salir(int motivo){
 void * planificar(void* unused){
 	while(1) {
 		log_info(logger, "Aguardando para planificar... \n");
-		sem_wait(&sem_planificar); // Espero a a ver si tengo que planificar
 		sem_wait(&sem_ESIs_listos); // Espero a que haya ESIs
+		sem_wait(&sem_planificar); // Espero a a ver si tengo que planificar
+		sem_wait(&sem_sistema_ejecucion);
+		sem_post(&sem_sistema_ejecucion);
+		int val;
+				sem_getvalue(&sem_planificar, &val);
+				printf("valor: %d \n", val);
 		log_info(logger, "Planificando \n");
 
 		ordenar_cola_listos();
@@ -206,65 +212,49 @@ void* ejecutar_consola(void * unused){
 			strncpy(lineaCopia, linea, lineaLength);
 			primeraPalabra = strtok_r(lineaCopia, " ", &context);
 
-			printf("Ejecutando comando %s \n", linea);
-			if (strcmp(linea, "Pausar") == 0) {
+			if (strcmp(linea, "pausar") == 0) {
 				log_info(logger, "Eligio la opcion Pausar\n");
-				if(parametros != NULL){
-					ejecutarPausar(parametros);
-				}
-				free(linea);
-			}else if (strcmp(linea, "Continuar") == 0) {
+				ejecutar_pausar();
+			}else if (strcmp(linea, "continuar") == 0) {
 				log_info(logger, "Eligio la opcion Continuar\n");
-				if(parametros != NULL){
-					ejecutarContinuar(parametros);
-				}
-				free(linea);
+				ejecutar_continuar();
 			} else if (strcmp(primeraPalabra, "bloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,2);
 				if(parametros != NULL){
 					ejecutarBloquear(parametros);
 				}
-				free(linea);
 			} else if (strcmp(primeraPalabra, "desbloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,1);
 				if(parametros != NULL){
 					ejecutarDesbloquear(parametros);
 				}
-				free(linea);
 			} else if (strcmp(primeraPalabra, "listar") == 0) {
 				log_info(logger, "Eligio la opcion Listar\n");
 				parametros = validaCantParametrosComando(linea,1);
 				if(parametros != NULL){
-					ejecutarListar(parametros);
+					ejecutar_listar(parametros[1]);
 				}
-				free(linea);
 			} else if (strcmp(primeraPalabra, "kill") == 0) {
 				log_info(logger, "Eligio la opcion Kill\n");
 				parametros = validaCantParametrosComando(linea,1);
 				if(parametros != NULL){
-					ejecutarKill(parametros);
+					ejecutar_kill(atoi(parametros[1]));
 				}
-				//Todo
-				free(linea);
 			} else if (strcmp(primeraPalabra, "status") == 0) {
 				log_info(logger, "Eligio la opcion Status\n");
 				parametros = validaCantParametrosComando(linea,1);
 				if(parametros != NULL){
-					ejecutarStatus(parametros);
+					ejecutar_status(parametros[1]);
 				}
-				//Todo
-				free(linea);
 			} else if (strcmp(linea, "deadlock") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
-				//Todo
-				free(linea);
 			} else {
 				log_error(logger, "Opcion no valida.\n");
 				printf("Opcion no valida.\n");
-				free(linea);
 			}
+			free(linea);
 			free(lineaCopia);
 			if (parametros != NULL)
 				free(parametros);
@@ -272,44 +262,42 @@ void* ejecutar_consola(void * unused){
 	}
 }
 
-void ejecutarPausar(char** parametros){
-	 /* if(&mutex_pausa_por_consola.__data == 0){
-		log_info(logger, "Planificador ya estaba pausado\n");
-	}else{
-		log_info(logger, "Pausamos planificador\n");
-	}*/
+bool sistema_pausado() {
+	int valor_semaforo;
+	sem_getvalue(&sem_sistema_ejecucion, &valor_semaforo);
+	return valor_semaforo > 0 ? false : true;
 }
 
-void ejecutarContinuar(char** parametros){
-	/* if(&mutex_pausa_por_consola.__data==0){
-		log_info(logger, "Habilitamos para dar ordenes de ejecucion\n");
-	}else{
-		log_info(logger, "Planificacion habilitado para dar ordenes de ejecucion\n");
-	}*/
-}
-
-void ejecutarKill(char** parametros){
-	int idESI = atoi(parametros[1]);
-
-	bool encontrar_esi(void* esi){
-		return ((t_ESI*)esi)->id_ESI == idESI;
+void ejecutar_pausar(){
+	if (sistema_pausado()) {
+		log_info(logger, "El sistema ya estaba pausado. \n");
+	} else {
+		log_info(logger, "Sistema pausado. \n");
+		sem_wait(&sem_sistema_ejecucion);
 	}
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-	if(esi == NULL){
-		log_info(logger, "El ESI no existe. \n");
-	}
-
-	void* buffer = malloc(sizeof(int));
-	memcpy(buffer, &esi->socket, sizeof(int));
-	enviar(esi->socket, cop_Planificador_kill_ESI, sizeof(int), buffer);
-
-	pasar_ESI_a_finalizado(esi, "Finalizado por consola"); //todo descripcion de estado
-	free(buffer);
 }
 
-void ejecutarStatus(char** parametros){
-	int clave = atoi(parametros[1]);
+void ejecutar_continuar(){
+	if (sistema_pausado()) {
+		log_info(logger, "Sistema reanudado. \n");
+		sem_post(&sem_sistema_ejecucion);
+	} else {
+		log_info(logger, "El sistema ya estaba ejecutando. \n");
+	}
+}
 
+void ejecutar_kill(int id_ESI) {
+	t_ESI * ESI = esi_por_id(id_ESI);
+	if (ESI == NULL) {
+		log_error(logger, "ESI %d no encontrado \n", id_ESI);
+	} else {
+		kill_ESI(ESI, "Abortado por consola");
+	}
+}
+
+void ejecutar_status(char* clave) {
+	printf("Consultando status de la clave '%s'... \n", clave);
+	enviar(Coordinador, cop_Planificador_Consultar_Clave, size_of_string(clave), clave);
 }
 
 void ejecutarBloquear(char** parametros){
@@ -347,25 +335,8 @@ void ejecutarDesbloquear(char** parametros){
 	list_destroy(lista_de_ESIs_bloqueados_por_consola);
 }
 
-void ejecutarListar(char** parametros){
-	//Lista los procesos encolados esperando al recurso.
-	bool encontrar_ESIs_por_clave_de_bloqueo(void* esi){
-		return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[1]);
-	}
-
-	t_list* lista_de_ESIs_por_clave_de_bloqueo = list_create();
-	lista_de_ESIs_por_clave_de_bloqueo = list_filter(cola_de_bloqueados,encontrar_ESIs_por_clave_de_bloqueo);
-	if(lista_de_ESIs_por_clave_de_bloqueo != NULL){
-		int acum = 0;
-		void mostrar_id_de_esi_bloqueado(void* esi){
-			log_info(logger, "%i - ID: %s\n",acum,((t_bloqueado*)esi)->ESI->id_ESI);
-		}
-		log_info(logger, "ESIs bloqueados por: %s\n",parametros[1]);
-		list_iterate(lista_de_ESIs_por_clave_de_bloqueo,mostrar_id_de_esi_bloqueado);
-	}else{
-		log_info(logger, "No hay ESIs esperando por la clave %s\n",parametros[1]);
-	}
-	list_destroy(lista_de_ESIs_por_clave_de_bloqueo);
+void ejecutar_listar(char* clave){
+	mostrar_ESIs_bloqueados(clave, clave_en_uso);
 }
 
 char** validaCantParametrosComando(char* comando, int cantParametros) {
@@ -548,7 +519,6 @@ void * escuchar_coordinador(void * argumentos) {
 	log_info(logger, "Escuchando al coordinador... \n");
 	bool escuhar = true;
 	while(escuhar) {
-		sem_post(&sem_planificar); // Libera al hilo de planificacion para que continue
 		t_paquete* paqueteRecibido = recibir(Coordinador); // Recibe el feedback de la instruccion ejecutada por el ESI
 		printf("Mensaje recibido del Coordinador, codigo de operacion: %d \n", paqueteRecibido->codigo_operacion);
 
@@ -608,13 +578,13 @@ void * escuchar_coordinador(void * argumentos) {
 			break;
 
 			case cop_Instancia_Nueva:
-				 printf("Instancia %s conectada. \n", paqueteRecibido->data);
+				 printf("Instancia %s conectada. \n", (char*) paqueteRecibido->data);
 				 // Desbloqueo los ESIs que se bloquearon porque no habia instancias disponibles
 				 desbloquear_ESIs(no_instancias_disponiles, paqueteRecibido->data);
 			break;
 
 			case cop_Instancia_Vieja:
-				printf("Instancia %s reconectada. \n", paqueteRecibido->data);
+				printf("Instancia %s reconectada. \n", (char*) paqueteRecibido->data);
 				// Desbloqueo los ESIs que se bloquearon porque determinada instancia no estaba disponible o no habia instancias
 				desbloquear_ESIs(no_instancias_disponiles, paqueteRecibido->data);
 				desbloquear_ESIs(instancia_no_disponible, paqueteRecibido->data);
@@ -624,6 +594,13 @@ void * escuchar_coordinador(void * argumentos) {
 				// Desbloqueo los ESIs que se bloquearon por esta clave
 				desbloquear_ESIs(clave_en_uso, paqueteRecibido->data);
 			break;
+
+			case cop_Planificador_Consultar_Clave:
+				// Recibo el resultado de la consulta realizada por la consola
+				mostrar_resultado_consulta(paqueteRecibido->data);
+			break;
+
+
 
 		 case codigo_error:
 			 log_info(logger, "Error en el Coordinador. Abortando. \n");
@@ -640,6 +617,7 @@ void * escuchar_coordinador(void * argumentos) {
 		}
 	}
 	pthread_detach(pthread_self());
+	return NULL;
 }
 
 void ESI_conectado(un_socket socketESI, t_paquete* paqueteRecibido) {
@@ -771,5 +749,41 @@ void eliminar_ESI_cola_actual(t_ESI * ESI) {
 	}
 }
 
+t_list * get_ESIs_bloqueados_por_clave(char* clave, int motivo) {
+	bool ESI_bloqueados_por_clave(void* item_bloqueo){
+		t_bloqueado* bloqueo = (t_bloqueado*) item_bloqueo;
+		return strcmp(bloqueo->clave_de_bloqueo, clave) == 0 && (motivo == -1 || bloqueo->motivo == motivo);
+	}
+	return list_filter(cola_de_bloqueados, ESI_bloqueados_por_clave);
+}
 
+void mostrar_resultado_consulta(void * buffer_resultado) {
+	int desplazamiento = 0;
+	char* clave = deserializar_string(buffer_resultado, &desplazamiento);
+	char* valor = deserializar_string(buffer_resultado, &desplazamiento);
+	char* nombre_instancia_actual = deserializar_string(buffer_resultado, &desplazamiento);
+	char* nombre_instancia_a_guardar = deserializar_string(buffer_resultado, &desplazamiento);
+
+	printf("\nStatus de la clave '%s': \n", valor);
+	printf("Valor: %s \n", valor);
+	printf("Instancia actual: %s \n", nombre_instancia_actual);
+	printf("Proxima instancia a guardar: %s \n", nombre_instancia_a_guardar);
+	mostrar_ESIs_bloqueados(clave, -1);
+}
+
+void mostrar_ESIs_bloqueados(char* clave, int motivo) {
+	t_list * ESIs_bloqueados = get_ESIs_bloqueados_por_clave(clave, motivo);
+	if (list_size(ESIs_bloqueados)) {
+		puts("ESIs bloqueados:");
+		void mostrar_ESI_bloqueado(void* item_bloqueo){
+			t_bloqueado* bloqueo = (t_bloqueado*) item_bloqueo;
+			char* descripcion_motivo = bloqueo->motivo == bloqueado_por_consola ? "(por consola)" : "";
+			printf("- ESI %d %s \n", bloqueo->ESI->id_ESI, descripcion_motivo);
+		}
+		list_iterate(ESIs_bloqueados, mostrar_ESI_bloqueado);
+	} else {
+		puts("No hay ESIs bloqueados.");
+	}
+	list_destroy(ESIs_bloqueados);
+}
 
