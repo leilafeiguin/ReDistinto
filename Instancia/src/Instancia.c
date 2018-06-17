@@ -20,11 +20,12 @@ int main(int argc, char* arguments[]) {
 	logger = log_create(fileLog, "Instancia Logs", 1, 1);
 	log_info(logger, "Inicializando proceso Instancia. \n");
 
-	instancia_configuracion configuracion = get_configuracion();
+	configuracion = get_configuracion();
+
 	log_info(logger, "Archivo de configuracion levantado. \n");
 
 	// Realizar handshake con coordinador
-	un_socket Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
+	Coordinador = conectar_a(configuracion.IP_COORDINADOR,configuracion.PUERTO_COORDINADOR);
 	realizar_handshake(Coordinador, cop_handshake_Instancia_Coordinador);
 
 	instancia.nombre = configuracion.NOMBRE_INSTANCIA;
@@ -35,8 +36,8 @@ int main(int argc, char* arguments[]) {
 	enviar(Coordinador,cop_generico, size_of_string(instancia.nombre), instancia.nombre);
 	log_info(logger, "Me conecte con el Coordinador. \n");
 
-	inicializar_instancia(Coordinador);
-	esperar_instrucciones(Coordinador);
+	inicializar_instancia();
+	esperar_instrucciones();
 	return EXIT_SUCCESS;
 }
 
@@ -51,14 +52,15 @@ instancia_configuracion get_configuracion() {
 	//configuracion.NOMBRE_INSTANCIA = get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA");
 	configuracion.NOMBRE_INSTANCIA = nombre_instancia; // BORRAR PROXIMAMENTE
 	configuracion.INTERVALO_DUMP = get_campo_config_int(archivo_configuracion, "INTERVALO_DUMP");
+	pathInstanciaData = string_concat(2, configuracion.PUNTO_MONTAJE, configuracion.NOMBRE_INSTANCIA);
 	return configuracion;
 }
 
-void inicializar_instancia(un_socket coordinador) {
-	t_paquete* paqueteEstadoInstancia = recibir(coordinador); // Recibo si es una instancia nueva o se esta reconectado
+void inicializar_instancia() {
+	t_paquete* paqueteEstadoInstancia = recibir(Coordinador); // Recibo si es una instancia nueva o se esta reconectado
 	bool instancia_nueva = paqueteEstadoInstancia->codigo_operacion == cop_Instancia_Vieja ? false : true;
 	liberar_paquete(paqueteEstadoInstancia);
-	t_paquete* paqueteTablaEntradas = recibir(coordinador) ; // Recibo la informacion de la tabla de entradas
+	t_paquete* paqueteTablaEntradas = recibir(Coordinador) ; // Recibo la informacion de la tabla de entradas
 	int desplazamiento = 0;
 	cantidad_entradas = deserializar_int(paqueteTablaEntradas->data, &desplazamiento);
 	tamanio_entradas = deserializar_int(paqueteTablaEntradas->data, &desplazamiento);
@@ -68,7 +70,7 @@ void inicializar_instancia(un_socket coordinador) {
 	if (instancia_nueva) {
 		log_info(logger, "Tabla de entradas creada \n");
 	} else {
-		t_list * claves = recibir_listado_de_strings(coordinador);
+		t_list * claves = recibir_listado_de_strings(Coordinador);
 		list_iterate(claves, restaurar_clave);
 		list_destroy(claves);
 		log_info(logger, "Tabla de entradas restaurada del disco \n");
@@ -77,38 +79,38 @@ void inicializar_instancia(un_socket coordinador) {
 	liberar_paquete(paqueteTablaEntradas);
 }
 
-int esperar_instrucciones(un_socket coordinador) {
+int esperar_instrucciones() {
 	while(1) {
-		t_paquete* paqueteRecibido = recibir(coordinador);
+		t_paquete* paqueteRecibido = recibir(Coordinador);
 		switch(paqueteRecibido->codigo_operacion) {
-			case cop_Instancia_Ejecutar_Set:
-				ejecutar_set(coordinador, paqueteRecibido->data);
+			case cop_Instancia_Ejecutar_Get:
+				ejecutar_get(paqueteRecibido->data);
 			break;
 
-			case cop_Instancia_Ejecutar_Get:
-				ejecutar_get(coordinador, paqueteRecibido->data);
+			case cop_Instancia_Ejecutar_Set:
+				ejecutar_set(paqueteRecibido->data);
 			break;
 
 			case cop_Instancia_Ejecutar_Store:
-				ejecutar_store(coordinador, paqueteRecibido->data);
+				ejecutar_store(paqueteRecibido->data);
 			break;
 
 			case cop_Instancia_Ejecutar_Dump:
-				ejecutar_dump(coordinador);
+				ejecutar_dump();
 			break;
 
 			case cop_Instancia_Necesidad_Compactacion: ;
 				int desplazamiento = 0;
 				char* clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				char* valor = deserializar_string(paqueteRecibido->data, &desplazamiento);
-				validar_necesidad_compactacion(coordinador, clave, valor);
+				validar_necesidad_compactacion(clave, valor);
 				free(clave);
 				free(valor);
 			break;
 
 			case cop_Instancia_Ejecutar_Compactacion:
 				compactar_tabla_entradas();
-				enviar(coordinador, cop_Instancia_Ejecutar_Compactacion, size_of_string(""), "");
+				enviar(Coordinador, cop_Instancia_Ejecutar_Compactacion, size_of_string(""), "");
 			break;
 
 			case codigo_error:
@@ -117,7 +119,7 @@ int esperar_instrucciones(un_socket coordinador) {
 			break;
 
 			case codigo_healthcheck:
-				enviar(coordinador, codigo_healthcheck, size_of_string(""), "");
+				enviar(Coordinador, codigo_healthcheck, size_of_string(""), "");
 			break;
 		}
 		liberar_paquete(paqueteRecibido);
@@ -149,13 +151,13 @@ t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
 	int i_entrada = 0;
 	while(entrada_guardar == NULL && i_entrada < cantidad_entradas) {
 		t_entrada * entrada_i = get_entrada_x_index(i_entrada);
-		if (entrada_i->espacio_ocupado == 0 || strcmp(entrada_i->clave, clave) == 0) {	// Si la entrada esta libre o se uso para esa misma clave
+		if (entrada_i->espacio_ocupado == 0) {
 			int max_offset = i_entrada + cant_entradas_necesarias - 1;
 			bool espacio_disponible = max_offset >= cantidad_entradas ? false : true;
 			int j_entrada = i_entrada + 1;
 			while (espacio_disponible && j_entrada <= max_offset) {
 				t_entrada * entrada_j = get_entrada_x_index(j_entrada);
-				if (entrada_j->espacio_ocupado == 0 || strcmp(entrada_j->clave, clave) == 0) {
+				if (entrada_j->espacio_ocupado == 0) {
 					j_entrada++;
 				} else {
 					espacio_disponible = false;
@@ -178,24 +180,29 @@ t_entrada * get_next(t_entrada * entrada) {
 }
 
 // Recibo la clave como parametro y espero a que me envien en el valor
-int ejecutar_set(un_socket coordinador, void * clave_valor) {
+int ejecutar_set(void * clave_valor) {
 	int desplazamiento = 0;
 	char* clave = deserializar_string(clave_valor, &desplazamiento);
 	char* valor = deserializar_string(clave_valor, &desplazamiento);
 	set(clave, valor, true); // Seteo el valor
-	enviar_listado_de_strings(coordinador, instancia.keys_contenidas); // Le envio al coordinador el listado de claves actualizado
-	enviar_cantidad_entradas_ocupadas(coordinador);
+	enviar_listado_de_strings(Coordinador, instancia.keys_contenidas); // Le envio al coordinador el listado de claves actualizado
+	enviar_cantidad_entradas_ocupadas();
 	return 1;
 }
 
-int enviar_cantidad_entradas_ocupadas(un_socket coordinador) {
+void enviar_cantidad_entradas_ocupadas() {
 	// Le envio al coordinador la cantidad de entradas ocupadas actualizadas
 	char* cant_entradas_ocupadas = string_itoa(cantidad_entradas_ocupadas());
-	enviar(coordinador, cop_generico, size_of_string(cant_entradas_ocupadas), cant_entradas_ocupadas);
+	enviar(Coordinador, cop_generico, size_of_string(cant_entradas_ocupadas), cant_entradas_ocupadas);
 	free(cant_entradas_ocupadas);
 }
 
 int set(char* clave, char* valor, bool log_mensaje) {
+	// Borro el valor actual si clave ya fue ingresada
+	if (clave_ingresada(clave)) {
+		remover_clave(clave);
+	}
+
 	if (log_mensaje) {
 		log_and_free(logger, string_concat(5, "SET ", clave, ":'", valor, "' \n"));
 	}
@@ -208,9 +215,6 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
 	while(espacio_restante_a_guardar > 0) {
-		if (entrada->espacio_ocupado > 0) {	// Si la entrada estaba ocupada borro la clave entera
-			remover_clave(entrada->clave);
-		}
 		entrada->clave = clave;
 		char* contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
 		entrada->contenido = copy_string(contenido);
@@ -235,9 +239,9 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	return 0;
 }
 
-int ejecutar_get(un_socket coordinador, char* clave) {
+int ejecutar_get(char* clave) {
 	char* valor = get(clave);
-	enviar(coordinador, cop_Instancia_Ejecutar_Get, size_of_string(valor), valor); // Envia al coordinador el valor de la clave solicitada
+	enviar(Coordinador, cop_Instancia_Ejecutar_Get, size_of_string(valor), valor); // Envia al coordinador el valor de la clave solicitada
 	log_and_free(logger, string_concat(3, "GET ", clave," \n"));
 	free(valor);
 }
@@ -253,16 +257,16 @@ char* get(char* clave) {
 	return valor;
 }
 
-int ejecutar_store(un_socket coordinador, char* clave) {
+int ejecutar_store(char* clave) {
 	dump_clave(clave);
-	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el STORE se ejecuto de forma exitosa
+	enviar(Coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el STORE se ejecuto de forma exitosa
 	log_and_free(logger, string_concat(3, "STORE ", clave, " \n"));
 }
 
-int ejecutar_dump(un_socket coordinador) {
+int ejecutar_dump() {
 	log_info(logger, "Ejecutando DUMP \n");
 	list_iterate(instancia.keys_contenidas, dump_clave);
-	enviar(coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el DUMP se ejecuto de forma exitosa
+	enviar(Coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el DUMP se ejecuto de forma exitosa
 }
 
 int dump_clave(char* clave) {
@@ -294,6 +298,13 @@ int remover_clave(char* clave) {
 	list_remove_by_condition(instancia.keys_contenidas, clave_match);
 }
 
+bool clave_ingresada(char* clave) {
+	bool clave_match(char* key_lista) {
+		return strings_equal(clave, key_lista);
+	}
+	return list_find(instancia.keys_contenidas, clave_match) == NULL ? false : true;
+}
+
 t_list * get_entradas_con_clave(char* clave) {
 	bool entrada_tiene_la_clave(t_entrada * entrada){
 		return strcmp(clave, entrada->clave) == 0 ? true : false;
@@ -302,23 +313,27 @@ t_list * get_entradas_con_clave(char* clave) {
 }
 
 void validar_directorio_data() {
-	struct stat st = {0};
-	if (stat(pathInstanciaData, &st) == -1) {
+	struct stat punto_montaje = {0};
+	if (stat(configuracion.PUNTO_MONTAJE, &punto_montaje) == -1) {
+		mkdir(configuracion.PUNTO_MONTAJE, 0700);
+	}
+
+	struct stat carpeta_instancia = {0};
+	if (stat(pathInstanciaData, &carpeta_instancia) == -1) {
 		mkdir(pathInstanciaData, 0700);
 	}
 }
 
 char* get_file_path(char* clave) {
 	validar_directorio_data();
-	return string_concat(3, pathInstanciaData, clave, ".txt");
+	return string_concat(4, pathInstanciaData, "/", clave, ".txt");
 }
 
 void restaurar_clave(char* clave) {
-	char* valor = "";
-
 	char* file_path = get_file_path(clave);
 	/* Implementacion mmap */
 	int fd = open(file_path, O_RDONLY);
+	printf("valor open %d \n", fd);
 	if (fd > 0) {
 		size_t pagesize = getpagesize();
 		char * file_content = mmap(
@@ -326,13 +341,12 @@ void restaurar_clave(char* clave) {
 			PROT_READ, MAP_FILE|MAP_PRIVATE,
 			fd, 0
 		);
-		valor = copy_string(file_content);
+		char* valor = copy_string(file_content);
 		int unmap_result = munmap(file_content, pagesize);
 		close(fd);
+		set(clave, valor, false);
 	}
 	/* !Implementacion mmap */
-
-	set(clave, valor, false);
 }
 
 void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
@@ -395,16 +409,20 @@ int cantidad_entradas_ocupadas() {
 	return cant;
 }
 
-int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* valor) {
+int validar_necesidad_compactacion(char* clave, char* valor) {
 	log_info(logger, "Validando necesidad de compactar... \n");
 	int cant_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
-	int cantidad_entradas_libres = cantidad_entradas- cantidad_entradas_ocupadas();
+	int cantidad_entradas_libres = cantidad_entradas - cantidad_entradas_ocupadas();
+	if (clave_ingresada(clave)) { // Si la clave ya fue ingresada le resto la cantidad de entradas que ocupa
+		char* valor_actual = get(clave);;
+		cantidad_entradas_libres += cantidad_entradas_necesarias(valor_actual, tamanio_entradas);
+	}
 	bool necesidad_compactacion = cant_entradas_necesarias <= cantidad_entradas_libres && get_entrada_a_guardar(clave, valor) == NULL; // Hay fragmentacion externa
 	if (necesidad_compactacion) {
 		log_info(logger, "Es necesario compactar \n");
 	}
 	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;
-	enviar(coordinador, cod_op, size_of_string(""), "");
+	enviar(Coordinador, cod_op, size_of_string(""), "");
 }
 
 // ALGORITMOS DE REEMPLAZO

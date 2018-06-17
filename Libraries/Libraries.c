@@ -584,5 +584,9 @@ void destruir_lista_strings(t_list * lista) {
 	list_destroy_and_destroy_elements(lista, string_destroyer);
 }
 
+bool strings_equal(char* string1, char* string2) {
+	return strcmp(string1, string2) == 0 ? true : false;
+}
+
 
 

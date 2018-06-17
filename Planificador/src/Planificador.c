@@ -170,9 +170,6 @@ void * planificar(void* unused){
 		sem_wait(&sem_planificar); // Espero a a ver si tengo que planificar
 		sem_wait(&sem_sistema_ejecucion);
 		sem_post(&sem_sistema_ejecucion);
-		int val;
-				sem_getvalue(&sem_planificar, &val);
-				printf("valor: %d \n", val);
 		log_info(logger, "Planificando \n");
 
 		ordenar_cola_listos();
@@ -654,7 +651,6 @@ t_ESI * nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 	pthread_mutex_lock(&mutex_lista_de_ESIs);
 	list_add(lista_de_ESIs, newESI);
 	pthread_mutex_unlock(&mutex_lista_de_ESIs);
-	puts("ESI agregado 2");
 
 	idESI++;
 	return newESI;
@@ -769,6 +765,11 @@ void mostrar_resultado_consulta(void * buffer_resultado) {
 	printf("Instancia actual: %s \n", nombre_instancia_actual);
 	printf("Proxima instancia a guardar: %s \n", nombre_instancia_a_guardar);
 	mostrar_ESIs_bloqueados(clave, -1);
+
+	free(clave);
+	free(valor);
+	free(nombre_instancia_actual);
+	free(nombre_instancia_a_guardar);
 }
 
 void mostrar_ESIs_bloqueados(char* clave, int motivo) {

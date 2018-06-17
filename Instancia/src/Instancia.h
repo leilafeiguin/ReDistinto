@@ -12,32 +12,34 @@ typedef struct instancia_configuracion {
 	int INTERVALO_DUMP;
 } instancia_configuracion;
 
+instancia_configuracion configuracion;
 char* pathInstanciaConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/configInstancia.cfg";
-char* pathInstanciaData = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/data/";
+char* pathInstanciaData;
 char* nombre_instancia;
 int cantidad_entradas;
 int tamanio_entradas;
 
 instancia_configuracion get_configuracion();
 t_instancia instancia;
+un_socket Coordinador;
 
-void inicializar_instancia(un_socket coordinador);
+void inicializar_instancia();
 
-int esperar_instrucciones(un_socket coordinador);
+int esperar_instrucciones();
 
-int ejecutar_set(un_socket coordinador, void * clave);
+int ejecutar_set(void * clave);
 
 int set(char* clave, char* valor, bool log_mensaje);
 
-int ejecutar_get(un_socket coordinador, char* clave);
+int ejecutar_get(char* clave);
 
 char* get(char* clave);
 
-int ejecutar_store(un_socket coordinador, char* clave);
+int ejecutar_store(char* clave);
 
-int ejecutar_dump(un_socket coordinador);
+int ejecutar_dump();
 
-int validar_necesidad_compactacion(un_socket coordinador, char* clave, char* valor); // Valida si es necesario compactar la tabla de entradas para guardar un determinado valor
+int validar_necesidad_compactacion(char* clave, char* valor); // Valida si es necesario compactar la tabla de entradas para guardar un determinado valor
 
 t_entrada * get_entrada_a_guardar_algoritmo_reemplazo(char* clave, char* valor);	// Detecta si no hay espacio disponible a causa de fragmentacion (y especifica el tipo) y aplica el algoritmo de reemplazo
 
@@ -65,9 +67,11 @@ void compactar_tabla_entradas();
 
 int cantidad_entradas_ocupadas();
 
-int enviar_cantidad_entradas_ocupadas(un_socket coordinador);
+void enviar_cantidad_entradas_ocupadas();
 
 void validar_directorio_data();
+
+bool clave_ingresada(char* clave);
 
 // ALGORITMOS DE REEMPLAZO
 

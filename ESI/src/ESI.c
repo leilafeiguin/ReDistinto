@@ -128,22 +128,27 @@ void ejecutar_set(char* clave, char* valor) {
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+			log_error(logger, "La clave '%s' se encuentra tomada por otro ESI. \n", clave);
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
-			printf("La operacion SET '%s' : '%s' fallo. No hay instancias en el sistema. \n", clave, valor);
+			log_error(logger, "La operacion SET '%s' : '%s' fallo. No hay instancias en el sistema. \n", clave, valor);
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-			printf("La operacion SET '%s' : '%s' fallo. La clave supera los 40 caracteres. \n", clave, valor);
+			log_error(logger, "La operacion SET '%s' : '%s' fallo. La clave supera los 40 caracteres. \n", clave, valor);
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida:
-			printf("La operacion SET '%s' : '%s' fallo. GET no soliciado para la clave '%s'. \n", clave, valor, clave);
+			log_error(logger, "La operacion SET '%s' : '%s' fallo. GET no soliciado para la clave '%s'. \n", clave, valor, clave);
+			index_proxima_instruccion--;
+		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe:
+			log_error(logger, "La operacion SET '%s' '%s' fallo. La instancia con la clave no se encuentra disponible. \n", clave, valor);
 			index_proxima_instruccion--;
 		break;
 	}

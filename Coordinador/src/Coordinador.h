@@ -31,6 +31,8 @@ t_list* lista_ESIs;
 
 t_config* archivo_configuracion;
 
+int siguiente_equitative_load = 0; //Equitative Load
+
 // !Variables globales
 
 typedef struct coordinador_configuracion {
@@ -63,6 +65,8 @@ t_list * instancias_activas();
 
 int ejecutar_set(t_ESI * ESI, char* clave, char* valor);
 
+void ejecucion_set_caso_exito(t_instancia * instancia, t_ESI * ESI, char* clave, char* valor);
+
 int setear(t_instancia * instancia, char* clave, char* valor);
 
 int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* valor);
@@ -83,7 +87,7 @@ int dump(); // Ejecuta un dump en todas las instancias
 
 int dump_instancia(t_instancia * instancia); // Ejecuta un dump en una instancia especificada
 
-t_instancia * instancia_a_guardar(); // Devuelve la instancia en la que se ejecutara un SET de acuerdo al algoritmo correspondiente
+t_instancia * instancia_a_guardar(char* clave); // Devuelve la instancia en la que se ejecutara un SET de acuerdo al algoritmo correspondiente
 
 t_instancia * get_instancia_con_clave(char * clave); // Devuelve la instancia que contiene una clave especificada
 
@@ -145,11 +149,11 @@ void handle_consulta_clave(char* clave);
 
 void * crear_instancias_prueba_alan();
 
-void * equitative_load();
+t_instancia * equitative_load();
 
-void * least_space_used();
+t_instancia * least_space_used();
 
-void * key_explicit();
+t_instancia * key_explicit(char* clave);
 
 // !ALGORITMOS DE DISTRIBUCION
 

@@ -4,7 +4,6 @@
 
 void* archivo;
 t_log* logger;
-int siguiente_equitative_load = 0; //Equitative Load
 
 int main(void) {
 	pthread_mutex_init(&sem_instancias, NULL);
@@ -306,27 +305,45 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 		return 0;
 	}
 
+	// Si la clave ya se encuentra en alguna instancia la vuelvo a setear en la misma
+	t_instancia * instancia = get_instancia_con_clave(clave);
+	if (instancia != NULL) {
+		printf("La clave '%s' ya fue ingresada \n", clave);
+		if(health_check(instancia)) {
+			ejecucion_set_caso_exito(instancia, ESI, clave, valor);
+		} else {
+			log_error(logger, "GET rechazado. La instancia %s no se encuentra disponible. \n", instancia->nombre);
+			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe, instancia->nombre);
+		}
+		return 0;
+	}
+	printf("La clave '%s' NO fue ingresada \n", clave);
+
 	bool inserted = false;
 	while(!inserted) {
-		t_instancia * instancia = instancia_a_guardar();
+		instancia = instancia_a_guardar(clave);
 		if (instancia == NULL) {
 			log_info(logger, "ERROR: No pudo ejecutarse el SET. No hay instancias disponibles. \n ");
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias, "");
 			return 0;
 		}
 		if (health_check(instancia)) {
-			validar_necesidad_compactacion(instancia, clave, valor);
-			setear(instancia, clave, valor);
-			actualizar_keys_contenidas(instancia);
-			actualizar_cantidad_entradas_ocupadas(instancia);
-			log_and_free(logger, string_concat(5, "SET ejecutado con exito. SET '", clave, "':'", valor, "' \n"));
+			ejecucion_set_caso_exito(instancia, ESI, clave, valor);
 			inserted = true;
-			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 		} else {
 			log_and_free(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
 		}
 	}
 	return 1;
+}
+
+void ejecucion_set_caso_exito(t_instancia * instancia, t_ESI * ESI, char* clave, char* valor) {
+	validar_necesidad_compactacion(instancia, clave, valor);
+	setear(instancia, clave, valor);
+	actualizar_keys_contenidas(instancia);
+	actualizar_cantidad_entradas_ocupadas(instancia);
+	log_and_free(logger, string_concat(5, "SET ejecutado con exito. SET '", clave, "':'", valor, "' \n"));
+	notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 }
 
 int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* valor) {
@@ -589,11 +606,13 @@ t_instancia * get_instancia_con_clave(char * clave) {
 	return result;
 }
 
-t_instancia * instancia_a_guardar() {
-	t_list* list_instancias_activas = instancias_activas();
-	t_instancia* result = list_get(list_instancias_activas, 0); // TODO: Utilizar algoritmo correspondiente
-	list_destroy(list_instancias_activas);
-	return result;
+t_instancia * instancia_a_guardar(char* clave) {
+	if (strings_equal(configuracion.ALGORITMO_DISTRIBUCION, "EL")) {
+		return equitative_load();
+	} else if (strings_equal(configuracion.ALGORITMO_DISTRIBUCION, "LSU")) {
+		return least_space_used();
+	}
+	return key_explicit(clave);
 }
 
 t_instancia * crear_instancia(un_socket socket, char* nombre) {
@@ -629,52 +648,51 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 
 // ALGORITMOS DE DISTRIBUCION
 
-void * equitative_load(t_instancia * lista, int cant_entradas) {
-	t_instancia * siguiente = list_get(lista, siguiente_equitative_load);
+t_instancia * equitative_load() {
+	t_list* list_instancias_activas = instancias_activas();
+	t_instancia * siguiente = list_get(list_instancias_activas, siguiente_equitative_load);
 
-	if(siguiente_equitative_load+1 == list_size(lista))
+	if(siguiente_equitative_load+1 == list_size(list_instancias_activas))
 	{
 		siguiente_equitative_load = 0;
 	} else {
 		siguiente_equitative_load += 1;
 	}
-
+	list_destroy(list_instancias_activas);
 	return siguiente;
 }
 
-void * least_space_used(t_instancia * lista, int espacio_entradas) {
+t_instancia * least_space_used() {
+	t_list* list_instancias_activas = instancias_activas();
 	int i = 0;
 	int menorEspacioInstancia = -1;
-	t_instancia * instanciaConMayorEspacioDisponible = list_get(lista, 0);
+	t_instancia * instanciaConMayorEspacioDisponible = list_get(list_instancias_activas, 0);
 
 	int getEspacio(t_instancia * element) {
 		return (element)->cant_entradas_ocupadas;
 	}
 
 	void instancia_mas_vacia() {
-		if (menorEspacioInstancia == -1 || menorEspacioInstancia > getEspacio(list_get(lista, i)))
+		if (menorEspacioInstancia == -1 || menorEspacioInstancia > getEspacio(list_get(list_instancias_activas, i)))
 		{
-			menorEspacioInstancia = getEspacio(list_get(lista, i));
-			instanciaConMayorEspacioDisponible = list_get(lista, i);
+			menorEspacioInstancia = getEspacio(list_get(list_instancias_activas, i));
+			instanciaConMayorEspacioDisponible = list_get(list_instancias_activas, i);
 		}
 
 		i++;
 	}
 
-	list_iterate(lista, instancia_mas_vacia);
+	list_iterate(list_instancias_activas, instancia_mas_vacia);
 
+	list_destroy(list_instancias_activas);
 	return instanciaConMayorEspacioDisponible;
 }
 
-void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
-
-	void incrementar_entrada(t_instancia * element) {
-		(element)->cant_entradas_ocupadas += espacio_entradas;
-	}
-
+t_instancia * key_explicit(char* clave) {
+	t_list* list_instancias_activas = instancias_activas();
 	char primeraLetra = tolower(clave[0]);
 	int letras = 26;
-	int cantInstancias = list_size(lista);
+	int cantInstancias = list_size(list_instancias_activas);
 	int resto_ultimo = 0;
 	int resto_inicial = letras%cantInstancias;
 	int cantidad_letras_x_instancia = letras/cantInstancias;
@@ -692,12 +710,13 @@ void * key_explicit(t_instancia * lista, char clave[], int espacio_entradas) {
 	{
 		if(valorLetra >= i && valorLetra < i+cantidad_letras_x_instancia)
 		{
-			instanciaSeleccionada = list_get(lista, cont);
+			instanciaSeleccionada = list_get(list_instancias_activas, cont);
 		}
 		i += cantidad_letras_x_instancia;
 		cont ++;
 	}
 
+	list_destroy(list_instancias_activas);
 	return instanciaSeleccionada;
 
 	//printf("%i", 'a'); //ESTO ES IGUAL A 97
@@ -811,7 +830,7 @@ void handle_consulta_clave(char* clave) {
 	printf("Consulta realizada, clave: '%s'. \n", clave);
 	char* valor;
 	char* nombre_instancia_actual;
-	t_instancia * instancia = instancia_a_guardar();
+	t_instancia * instancia = instancia_a_guardar(clave);
 	char* nombre_instancia_a_guardar = instancia == NULL ? "No disponible" : instancia->nombre;
 
 	if (validar_clave_ingresada(clave)) {

@@ -265,5 +265,7 @@ int size_of_list_of_strings_to_serialize(t_list * list);
 
 void destruir_lista_strings(t_list * lista);
 
+bool strings_equal(char* string1, char* string2);
+
 
 #endif /* LIBRARIES_H_ */
