@@ -648,14 +648,13 @@ void mensaje_instancia_conectada(char* nombre_instancia, int estado) { // 0: Ins
 
 t_instancia * equitative_load() {
 	t_list* list_instancias_activas = instancias_activas();
-	t_instancia * siguiente = list_get(list_instancias_activas, siguiente_equitative_load);
 
-	if(siguiente_equitative_load+1 == list_size(list_instancias_activas))
+	if(siguiente_equitative_load+1 > list_size(list_instancias_activas))
 	{
 		siguiente_equitative_load = 0;
-	} else {
-		siguiente_equitative_load += 1;
 	}
+	t_instancia * siguiente = list_get(list_instancias_activas, siguiente_equitative_load);
+	siguiente_equitative_load++;
 	list_destroy(list_instancias_activas);
 	return siguiente;
 }
