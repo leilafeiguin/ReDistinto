@@ -22,6 +22,9 @@ int tamanio_entradas;
 instancia_configuracion get_configuracion();
 t_instancia instancia;
 un_socket Coordinador;
+void* archivo;
+t_log* logger;
+int punteroInstancia = 0; //Algoritmo circular
 
 void inicializar_instancia();
 
@@ -73,13 +76,15 @@ void validar_directorio_data();
 
 bool clave_ingresada(char* clave);
 
+void sumar_a_entradas_no_modificadas(char* clave);
+
 // ALGORITMOS DE REEMPLAZO
 
-void * algoritmo_circular();
+t_entrada * algoritmo_circular(char* valor);
 
-void * least_recently_used();
+t_entrada * least_recently_used();
 
-void * biggest_space_used();
+t_entrada * biggest_space_used();
 
 // !ALGORITMOS DE REEMPLAZO
 

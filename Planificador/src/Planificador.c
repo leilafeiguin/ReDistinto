@@ -783,7 +783,7 @@ void mostrar_ESIs_bloqueados(char* clave, int motivo) {
 		}
 		list_iterate(ESIs_bloqueados, mostrar_ESI_bloqueado);
 	} else {
-		puts("No hay ESIs bloqueados.");
+		puts("No hay ESIs bloqueados.\n");
 	}
 	list_destroy(ESIs_bloqueados);
 }

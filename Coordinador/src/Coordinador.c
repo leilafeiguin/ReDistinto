@@ -308,7 +308,6 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 	// Si la clave ya se encuentra en alguna instancia la vuelvo a setear en la misma
 	t_instancia * instancia = get_instancia_con_clave(clave);
 	if (instancia != NULL) {
-		printf("La clave '%s' ya fue ingresada \n", clave);
 		if(health_check(instancia)) {
 			ejecucion_set_caso_exito(instancia, ESI, clave, valor);
 		} else {
@@ -317,13 +316,12 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 		}
 		return 0;
 	}
-	printf("La clave '%s' NO fue ingresada \n", clave);
 
 	bool inserted = false;
 	while(!inserted) {
 		instancia = instancia_a_guardar(clave);
 		if (instancia == NULL) {
-			log_info(logger, "ERROR: No pudo ejecutarse el SET. No hay instancias disponibles. \n ");
+			log_error(logger, "No pudo ejecutarse el SET. No hay instancias disponibles. \n ");
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias, "");
 			return 0;
 		}
@@ -331,7 +329,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 			ejecucion_set_caso_exito(instancia, ESI, clave, valor);
 			inserted = true;
 		} else {
-			log_and_free(logger, string_concat(2, instancia->nombre, " no disponible. \n"));
+			log_error(logger, "%s no disponible. \n", instancia->nombre);
 		}
 	}
 	return 1;

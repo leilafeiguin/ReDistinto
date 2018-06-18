@@ -6,10 +6,6 @@
 #include <fcntl.h>
 #include "Instancia.h"
 
-void* archivo;
-t_log* logger;
-int punteroInstancia = 0; //Algoritmo circular
-
 int main(int argc, char* arguments[]) {
 	nombre_instancia = arguments[1]; // BORRAR PROXIMAMENTE
 
@@ -132,9 +128,15 @@ t_entrada * get_entrada_x_index(int index) {
 
 // Detecta si no hay espacio disponible a causa de fragmentacion (y especifica el tipo) y aplica el algoritmo de reemplazo
 t_entrada * get_entrada_a_guardar_algoritmo_reemplazo(char* clave, char* valor) {
+	t_entrada * entrada_reemplazante;
 	log_info(logger, "No hay entradas disponibles. Aplicando algoritmo de reemplazo");
-	int id_entrada_reemplazante = 10; // Hardcodeado, aplicar algoritmo aca
-	t_entrada * entrada_reemplazante = get_entrada_x_index(id_entrada_reemplazante);
+	if (strings_equal(configuracion.ALGORITMO_REEMPLAZO, "LRU")) {
+		entrada_reemplazante = least_recently_used();
+	} else if (strings_equal(configuracion.ALGORITMO_REEMPLAZO, "BSU")) {
+		entrada_reemplazante = biggest_space_used();
+	} else {
+		entrada_reemplazante = algoritmo_circular(valor);
+	}
 	remover_clave(entrada_reemplazante->clave);
 	return entrada_reemplazante;
 }
@@ -211,6 +213,7 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	if (entrada ==  NULL) { // Es necesario aplicar el algoritmo de reemplazo
 		entrada = get_entrada_a_guardar_algoritmo_reemplazo(clave, valor);
 	}
+
 	// Guardo el valor en las entradas
 	char* valor_restante_a_guardar = valor;
 	int espacio_restante_a_guardar = size_of_string(valor) - 1;
@@ -236,7 +239,19 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	// Agrego la clave a la lista de claves
 	list_add(instancia.keys_contenidas, copy_string(clave));
 
+	// Le sumo uno a las entradas no accedidas
+	sumar_a_entradas_no_modificadas(clave);
 	return 0;
+}
+
+void sumar_a_entradas_no_modificadas(char* clave) {
+	void sumar_no_accedida(void * item_entrada) {
+		t_entrada * entrada = (t_entrada *) item_entrada;
+		if (!strings_equal(entrada->clave, clave)) {
+			entrada->cant_veces_no_accedida++;
+		}
+	}
+	list_iterate(instancia.entradas, sumar_no_accedida);
 }
 
 int ejecutar_get(char* clave) {
@@ -307,7 +322,7 @@ bool clave_ingresada(char* clave) {
 
 t_list * get_entradas_con_clave(char* clave) {
 	bool entrada_tiene_la_clave(t_entrada * entrada){
-		return strcmp(clave, entrada->clave) == 0 ? true : false;
+		return strings_equal(clave, entrada->clave);
 	}
 	return list_filter(instancia.entradas, entrada_tiene_la_clave);
 }
@@ -333,7 +348,6 @@ void restaurar_clave(char* clave) {
 	char* file_path = get_file_path(clave);
 	/* Implementacion mmap */
 	int fd = open(file_path, O_RDONLY);
-	printf("valor open %d \n", fd);
 	if (fd > 0) {
 		size_t pagesize = getpagesize();
 		char * file_content = mmap(
@@ -427,19 +441,19 @@ int validar_necesidad_compactacion(char* clave, char* valor) {
 
 // ALGORITMOS DE REEMPLAZO
 
-void * algoritmo_circular(char* valor) {
+t_entrada * algoritmo_circular(char* valor) {
 	int puntero = punteroInstancia;
 
 	punteroInstancia += cantidad_entradas_necesarias(valor, tamanio_entradas);
 
-	return puntero;
+	return get_entrada_x_index(puntero);
 }
 
-void * least_recently_used() {
+t_entrada * least_recently_used() {
 	t_entrada * entradaMenosAccedida = list_get(instancia.entradas, 0);
 
-	void show_entrada_menos_accedida(t_entrada * entrada) {
-
+	void show_entrada_menos_accedida(void * item_entrada) {
+		t_entrada * entrada = (t_entrada *) item_entrada;
 		if(entrada->cant_veces_no_accedida > entradaMenosAccedida->cant_veces_no_accedida)
 		{
 			entradaMenosAccedida = entrada;
@@ -449,24 +463,27 @@ void * least_recently_used() {
 
 	list_iterate(instancia.entradas, show_entrada_menos_accedida);
 
-	return entradaMenosAccedida->id;
+	return entradaMenosAccedida;
 }
 
-void * biggest_space_used() {
-	t_entrada * entradaMasGrande = list_get(instancia.entradas, 0);
+t_entrada * biggest_space_used() {
+	char * clave_mas_grande;
+	int cantidad_mayor_entradas = 0;
 
-	void show_entrada_mas_grande(t_entrada * entrada) {
-
-		if(entrada->espacio_ocupado > entradaMasGrande->espacio_ocupado)
-		{
-			entradaMasGrande = entrada;
+	void tamanio_clave(void * item_clave) {
+		char* clave = (char*) item_clave;
+		char* valor = get(clave);
+		int cantidad_entradas = cantidad_entradas_necesarias(valor, tamanio_entradas);
+		if(cantidad_entradas > cantidad_mayor_entradas) {
+			cantidad_mayor_entradas = cantidad_entradas;
+			clave_mas_grande = clave;
 		}
-
 	}
-
-	list_iterate(instancia.entradas, show_entrada_mas_grande);
-
-	return entradaMasGrande->id;
+	list_iterate(instancia.keys_contenidas, tamanio_clave);
+	t_list * entradas_con_clave = get_entradas_con_clave(clave_mas_grande);
+	t_entrada * primera_entrada_clave_mas_grande = list_get(entradas_con_clave, 0);
+	list_destroy(entradas_con_clave);
+	return primera_entrada_clave_mas_grande;
 }
 
 
