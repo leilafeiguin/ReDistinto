@@ -26,6 +26,12 @@ typedef struct {
 	int motivo; //como fue bloqueado
 } t_bloqueado;
 
+typedef struct {
+	int id_ESI;
+	char* clave_tomada;
+	char* clave_de_bloqueo;
+}t_claves_por_esi;
+
 enum motivos_de_bloqueo {
 	clave_en_uso = 0,
 	bloqueado_por_consola = 1,
@@ -68,6 +74,8 @@ t_log* logger;
 char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planificador/configPlanificador.cfg";
 
 planificador_configuracion get_configuracion();
+
+void detectar_deadlock(void* datos_coordinador);
 
 void salir(int motivo);
 

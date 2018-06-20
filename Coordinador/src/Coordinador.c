@@ -244,7 +244,23 @@ void escuchar_planificador() {
 				Planificador = codigo_error;
 				escuchar = false;
 			break;
-
+			case cop_Planificador_Deadlock:
+			{
+				//Serializo lista_claves_tomadas Todo revisar si esta bien posicionado
+				int tamanio_lista = 0;
+				tamanio_lista += sizeof(int);
+				void calcular_valor(void* clave_tomada){
+					tamanio_lista += sizeof(int); //ID del ESI
+					tamanio_lista += sizeof(int); //Necesario para enviar el tamanio de la clave
+					tamanio_lista += strlen(((t_clave_tomada*) clave_tomada)->clave) + 1; //Clave
+				}
+				list_iterate(lista_claves_tomadas,calcular_valor);
+				void* buffer = malloc(tamanio_lista);
+				serializar_claves_tomadas(buffer);
+				enviar(Planificador,cop_Planificador_Deadlock,tamanio_lista,buffer);
+				free(buffer);
+			}
+			break;
 			case cop_Planificador_Consultar_Clave:
 				handle_consulta_clave(paqueteRecibido->data);
 			break;
@@ -852,6 +868,27 @@ void handle_consulta_clave(char* clave) {
 	free(buffer);
 }
 
+void serializar_claves_tomadas(void* buffer){
+	int desplazamiento = 0;
+
+	int tam_lista = list_size(lista_claves_tomadas);
+	memcpy(desplazamiento + buffer,&tam_lista,sizeof(int));
+	desplazamiento += sizeof(int);
+
+	void serializar_clave(elem){
+		t_clave_tomada* clave_tomada = (t_clave_tomada*) elem;
+		memcpy(desplazamiento + buffer,&clave_tomada->id_ESI,sizeof(int));
+		desplazamiento += sizeof(int);
+		int tam_clave = strlen(clave_tomada->clave) + 1;
+		memcpy(desplazamiento + buffer,&tam_clave,sizeof(int));
+		desplazamiento += sizeof(int);
+		memcpy(desplazamiento + buffer,clave_tomada->clave,strlen(clave_tomada->clave));
+		desplazamiento += strlen(clave_tomada->clave);
+	}
+
+	list_iterate(lista_claves_tomadas,serializar_clave);
+	return;
+}
 
 
 

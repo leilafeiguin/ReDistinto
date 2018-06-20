@@ -246,7 +246,12 @@ void* ejecutar_consola(void * unused){
 					ejecutar_status(parametros[1]);
 				}
 			} else if (strcmp(linea, "deadlock") == 0) {
-				log_info(logger, "Eligio la opcion Bloquear\n");
+				log_info(logger, "Analizando Deadlocks\n");
+				void* buffer;
+				enviar(Coordinador,cop_Planificador_Deadlock,sizeof(int),buffer);
+				t_paquete* paquete_recibido = recibir(Coordinador);
+				detectar_deadlock(paquete_recibido->data);
+				free(paquete_recibido);
 			} else {
 				log_error(logger, "Opcion no valida.\n");
 				printf("Opcion no valida.\n");
@@ -786,5 +791,90 @@ void mostrar_ESIs_bloqueados(char* clave, int motivo) {
 		puts("No hay ESIs bloqueados.\n");
 	}
 	list_destroy(ESIs_bloqueados);
+}
+
+void detectar_deadlock(void* datos_coordinador){
+	t_list* claves_ESI = list_create();
+
+	//Deserealizo el paquete
+	int desplazamiento = 0;
+	int tam_lista;
+	memcpy(&tam_lista,datos_coordinador,sizeof(int));
+	desplazamiento += sizeof(int);
+
+	for(int i = 0; i < tam_lista; i++){
+		t_claves_por_esi* clave_por_esi = malloc(sizeof(t_claves_por_esi));
+		memcpy(&clave_por_esi->id_ESI,desplazamiento + datos_coordinador,sizeof(int));
+		desplazamiento += sizeof(int);
+
+		int tam_clave;
+		memcpy(&tam_clave,desplazamiento + datos_coordinador,sizeof(int));
+		desplazamiento += sizeof(int);
+
+		clave_por_esi->clave_tomada = malloc(tam_clave);
+		memcpy(clave_por_esi->clave_tomada,desplazamiento + datos_coordinador,tam_clave);
+		desplazamiento += tam_clave;
+
+		bool encontrar_esi_bloqueado_por_id(void* esi_bloquado){
+			return ((t_bloqueado*) esi_bloquado)->ESI->id_ESI == clave_por_esi->id_ESI ;
+		}
+
+		t_bloqueado* esi_bloqueado = list_find(cola_de_bloqueados,encontrar_esi_bloqueado_por_id);
+		char* clave_de_bloqueo; //Todo revisar
+		if(esi_bloqueado != NULL){
+			strcpy(clave_de_bloqueo,esi_bloqueado->clave_de_bloqueo);
+			clave_por_esi->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
+			strcpy(clave_por_esi->clave_de_bloqueo,clave_de_bloqueo);
+		}else{
+			clave_por_esi->clave_de_bloqueo = malloc(strlen(""));
+			strcpy(clave_por_esi->clave_de_bloqueo,"");
+		}
+
+		list_add(claves_ESI,clave_por_esi);
+	}
+
+	//Lista preparada para analizar
+
+	t_list* ESIs_en_deadlock = list_create();
+	void encontrar_deadlock(void* elem){
+		t_claves_por_esi* clave_por_esi = (t_claves_por_esi*) elem;
+		if(strcmp(clave_por_esi->clave_de_bloqueo, "") != 0){
+
+			bool encontrar_esi_que_tomo_clave(void* elem1){
+				t_claves_por_esi* clave_por_esi1 = (t_claves_por_esi*) elem1;
+				if(clave_por_esi1->id_ESI != clave_por_esi->id_ESI){
+					if(strcmp(clave_por_esi->clave_de_bloqueo,clave_por_esi1->clave_tomada) == 0){
+						return true;
+					}
+				}
+				return false;
+			}
+			t_claves_por_esi* cadena1 = list_find(claves_ESI, encontrar_esi_que_tomo_clave);
+			if(cadena1 != NULL){
+				if(strcmp(cadena1->clave_de_bloqueo,clave_por_esi->clave_tomada) == 0){
+					list_add(ESIs_en_deadlock,cadena1);
+					list_add(ESIs_en_deadlock,clave_por_esi);
+				}else{
+					encontrar_deadlock(cadena1);
+				}
+			}
+		}
+	}
+	list_iterate(claves_ESI,encontrar_deadlock);
+
+	if(list_size(ESIs_en_deadlock) > 0){
+		log_info(logger, "Se encuentran en deadlock los ESIs:\n");
+		void imprimir_IDs(void* elem){
+			log_info(logger, "%i\n", ((t_claves_por_esi*) elem)->id_ESI);
+		}
+		list_iterate(ESIs_en_deadlock,imprimir_IDs);
+	}else{
+		log_info(logger, "No hay ESIs en Deadlock:\n");
+	}
+
+	//limpieza
+	list_destroy(claves_ESI);
+	list_destroy(ESIs_en_deadlock);
+	return;
 }
 

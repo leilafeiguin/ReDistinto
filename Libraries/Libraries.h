@@ -78,6 +78,7 @@ enum codigos_de_operacion {
 
 	cop_Planificador_kill_ESI = 40,
 	cop_Planificador_Consultar_Clave = 41,
+	cop_Planificador_Deadlock = 42,
 
 	cop_handshake_Planificador_ejecucion = 50,
 
@@ -267,5 +268,6 @@ void destruir_lista_strings(t_list * lista);
 
 bool strings_equal(char* string1, char* string2);
 
+void detectar_deadlock();
 
 #endif /* LIBRARIES_H_ */

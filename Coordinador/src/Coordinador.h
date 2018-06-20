@@ -55,6 +55,8 @@ typedef struct {
 
 coordinador_configuracion get_configuracion();
 
+void serializar_claves_tomadas(void* buffer);
+
 void salir(int motivo);
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia);
