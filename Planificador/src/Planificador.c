@@ -247,11 +247,8 @@ void* ejecutar_consola(void * unused){
 				}
 			} else if (strcmp(linea, "deadlock") == 0) {
 				log_info(logger, "Analizando Deadlocks\n");
-				void* buffer;
+				void* buffer = "";
 				enviar(Coordinador,cop_Planificador_Deadlock,sizeof(int),buffer);
-				t_paquete* paquete_recibido = recibir(Coordinador);
-				detectar_deadlock(paquete_recibido->data);
-				free(paquete_recibido);
 			} else {
 				log_error(logger, "Opcion no valida.\n");
 				printf("Opcion no valida.\n");
@@ -543,6 +540,10 @@ void * escuchar_coordinador(void * argumentos) {
 				printf("ESI %d: Instruccion ejecutada con exito. \n", ESI->id_ESI);
 				ESI_ejecutado_exitosamente(ESI);
 				sem_post(&sem_planificar);
+			break;
+
+			case cop_Planificador_Deadlock:
+				detectar_deadlock(paqueteRecibido->data);
 			break;
 
 			case cop_Coordinador_Sentencia_Fallo_No_Instancias:
