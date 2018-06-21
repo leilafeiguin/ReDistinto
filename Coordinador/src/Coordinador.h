@@ -6,7 +6,6 @@
 #include <commons/collections/list.h>
 #include <commons/string.h>
 #include <pthread.h>
-#include <signal.h>
 #include <unistd.h>
 
 

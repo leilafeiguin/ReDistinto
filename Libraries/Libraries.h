@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <math.h>
 #include <pthread.h>
+#include <signal.h>
 #define MAX_LEN 128
 
 

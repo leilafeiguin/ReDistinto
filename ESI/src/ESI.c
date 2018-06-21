@@ -267,7 +267,7 @@ void conectar_con_planificador() {
 	desplazamiento = 0;
 	ID = deserializar_int(paquetePlanif->data, &desplazamiento);
 	liberar_paquete(paquetePlanif);
-	printf("Mi ID: %d \n", ID);
+	printf("ESI ID: %d \n", ID);
 }
 
 void conectar_con_coordinador() {

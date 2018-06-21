@@ -59,10 +59,8 @@ t_list* cola_de_bloqueados;
 pthread_mutex_t mutex_cola_de_finalizados;
 t_list* cola_de_finalizados;
 
-pthread_mutex_t mutex_ESI_ejecutando;
 t_ESI* ESI_ejecutando; // Es un unico esi a la vez
 
-pthread_mutex_t mutex_Ultimo_ESI_Ejecutado;
 t_ESI* Ultimo_ESI_Ejecutado;
 
 pthread_mutex_t mutex_Coordinador;
@@ -105,21 +103,25 @@ void ejecutar_status(char* clave);
 
 void ejecutar_listar(char* clave);
 
-void ejecutarBloquear(char** parametros);
+void ejecutar_bloquear(int id_ESI, char* clave);
 
-void ejecutarDesbloquear(char** parametros);
+void ejecutar_desbloquear(int id_ESI);
 
 void * planificar(void* unused);
+
+bool funcion_SJF(void* item_ESI1, void* item_ESI2);
 
 void ordenar_por_sjf_sd();
 
 void ordenar_por_sjf_cd();
 
+float response_ratio(t_ESI * ESI);
+
 void ordenar_por_hrrn();
 
 void list_swap_elems(t_list,void*,void*);
 
-float estimarRafaga();
+float estimarRafaga(t_ESI * ESI);
 
 t_ESI* esi_por_id(int id_ESI);
 

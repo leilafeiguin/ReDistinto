@@ -23,8 +23,6 @@ int main(void) {
 	pthread_mutex_init(&mutex_cola_de_listos, NULL);
 	pthread_mutex_init(&mutex_cola_de_bloqueados, NULL);
 	pthread_mutex_init(&mutex_cola_de_finalizados, NULL);
-	pthread_mutex_init(&mutex_ESI_ejecutando, NULL);
-	pthread_mutex_init(&mutex_Ultimo_ESI_Ejecutado, NULL);
 	pthread_mutex_init(&mutex_Coordinador, NULL);
 
 	sem_init(&sem_planificar, 0, 1);
@@ -155,6 +153,7 @@ planificador_configuracion get_configuracion() {
 }
 
 void salir(int motivo){
+	log_info(logger, "Aborando Planificador..");
 	list_destroy(lista_de_ESIs);
 	list_destroy(cola_de_finalizados);
 	list_destroy(cola_de_bloqueados);
@@ -178,16 +177,11 @@ void * planificar(void* unused){
 		pthread_mutex_unlock(&mutex_cola_de_listos);
 		pasar_ESI_a_ejecutando(ESI_a_ejecutar);
 		printf("Ejecutando ESI %d \n", ESI_a_ejecutar->id_ESI);
-		pthread_mutex_lock(&mutex_ESI_ejecutando);
 		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
-		pthread_mutex_unlock(&mutex_ESI_ejecutando);
 
-		actualizarRafaga();
-		pthread_mutex_lock(&mutex_ESI_ejecutando);
-		pthread_mutex_lock(&mutex_Ultimo_ESI_Ejecutado);
+		ESI_ejecutando->duracionRafaga++;
+		// actualizarRafaga();
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
-		pthread_mutex_unlock(&mutex_Ultimo_ESI_Ejecutado);
-		pthread_mutex_unlock(&mutex_ESI_ejecutando);
 	}
 }
 
@@ -215,17 +209,19 @@ void* ejecutar_consola(void * unused){
 			}else if (strcmp(linea, "continuar") == 0) {
 				log_info(logger, "Eligio la opcion Continuar\n");
 				ejecutar_continuar();
+			}else if (strcmp(linea, "exit") == 0) {
+				salir(3);
 			} else if (strcmp(primeraPalabra, "bloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,2);
 				if(parametros != NULL){
-					ejecutarBloquear(parametros);
+					ejecutar_bloquear(atoi(parametros[1]), parametros[2]);
 				}
 			} else if (strcmp(primeraPalabra, "desbloquear") == 0) {
 				log_info(logger, "Eligio la opcion Bloquear\n");
 				parametros = validaCantParametrosComando(linea,1);
 				if(parametros != NULL){
-					ejecutarDesbloquear(parametros);
+					ejecutar_desbloquear(atoi(parametros[1]));
 				}
 			} else if (strcmp(primeraPalabra, "listar") == 0) {
 				log_info(logger, "Eligio la opcion Listar\n");
@@ -299,39 +295,27 @@ void ejecutar_status(char* clave) {
 	enviar(Coordinador, cop_Planificador_Consultar_Clave, size_of_string(clave), clave);
 }
 
-void ejecutarBloquear(char** parametros){
-	//Se bloqueará el proceso ESI hasta ser desbloqueado, especificado por dicho <ID> en la cola del recurso <clave>.
-	if(validar_ESI_id(atoi(parametros[1]))){
-		t_ESI * ESI = esi_por_id(atoi(parametros[2]));
-		pasar_ESI_a_bloqueado(ESI, parametros[1],bloqueado_por_consola);
-	}else{
-		log_info(logger, "El ID de ESI ingresado es invalido\n");
+void ejecutar_bloquear(int id_ESI, char* clave) {
+	t_ESI * ESI = esi_por_id(id_ESI);
+	if (ESI == NULL) {
+		log_error(logger, "ESI %d no encontrado \n", id_ESI);
+	} else {
+		pasar_ESI_a_bloqueado(ESI, clave, bloqueado_por_consola);
 	}
 }
 
-void ejecutarDesbloquear(char** parametros){
-	//Se desbloqueara el proceso ESI con el ID especificado.
-	bool encontrar_ESIs_bloqueados_por_consola(void* esi){
-		return ((t_bloqueado*)esi)->motivo == bloqueado_por_consola;
-	}
-
-	t_list* lista_de_ESIs_bloqueados_por_consola = list_create();
-	lista_de_ESIs_bloqueados_por_consola = list_filter(cola_de_bloqueados,encontrar_ESIs_bloqueados_por_consola);
-
-	if(lista_de_ESIs_bloqueados_por_consola != NULL){
-		bool encontrar_esi_por_clave(void* esi){
-			return strcmp(((t_bloqueado*)esi)->clave_de_bloqueo,parametros[1]);
+void ejecutar_desbloquear(int id_ESI) {
+	t_ESI * ESI = esi_por_id(id_ESI);
+	if (ESI == NULL) {
+		log_error(logger, "ESI %d no encontrado \n", id_ESI);
+	} else {
+		if (ESI->estado == bloqueado) {
+			remover_ESI_bloqueado(ESI);
+			pasar_ESI_a_listo(ESI);
+		} else {
+			log_error(logger, "El ESI %d no esta bloqueado \n", id_ESI);
 		}
-		t_bloqueado* ESI_para_clave = list_find(lista_de_ESIs_bloqueados_por_consola,encontrar_esi_por_clave);
-		if(ESI_para_clave != NULL){
-			pasar_ESI_a_listo(ESI_para_clave->ESI);
-		}else{
-			log_info(logger, "No existe ESI bloqueado por la clave %s\n",parametros[1]);
-		}
-	}else{
-		log_info(logger, "No existen ESIs bloqueados\n");
 	}
-	list_destroy(lista_de_ESIs_bloqueados_por_consola);
 }
 
 void ejecutar_listar(char* clave){
@@ -354,6 +338,7 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 }
 
 void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
+	printf("ESI %d BLOQUEADO .\n", ESI->id_ESI);
 	eliminar_ESI_cola_actual(ESI);
 	nuevo_bloqueo(ESI, clave_de_bloqueo, motivo);
 	if (ESI->estado == listo) {
@@ -388,7 +373,7 @@ void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 }
 
 void pasar_ESI_a_listo(t_ESI* ESI){
-	printf("Pasando ESI %d a listo .\n", ESI->id_ESI);
+	printf("ESI %d LISTO .\n", ESI->id_ESI);
 	ESI->estado = listo;
 	pthread_mutex_lock(&mutex_cola_de_listos);
 	list_add(cola_de_listos, ESI);
@@ -398,14 +383,9 @@ void pasar_ESI_a_listo(t_ESI* ESI){
 
 void pasar_ESI_a_ejecutando(t_ESI* ESI){
 	eliminar_ESI_cola_actual(ESI);
-
 	ESI->w = 0;
 	ESI->estado = ejecutando;
-
-	pthread_mutex_lock(&mutex_ESI_ejecutando);
 	ESI_ejecutando = ESI;
-	pthread_mutex_unlock(&mutex_ESI_ejecutando);
-
 	aumentar_espera_ESIs_listos();
 }
 
@@ -423,62 +403,52 @@ bool validar_ESI_id(int id_ESI){
 	return false;
 }
 
+bool funcion_SJF(void* item_ESI1, void* item_ESI2) {
+	t_ESI * ESI1 = (t_ESI *) item_ESI1;
+	t_ESI * ESI2 = (t_ESI *) item_ESI2;
+	return estimarRafaga(ESI1) < estimarRafaga(ESI2);
+}
+
 void ordenar_por_sjf_sd(){
-	bool sjf(void* esi1, void* esi2){
-		return estimarRafaga(((t_ESI*)esi1)->id_ESI) < estimarRafaga(((t_ESI*)esi2)->id_ESI);
+	bool SJF_SD(void* item_ESI1, void* item_ESI2) {
+		return funcion_SJF(item_ESI1, item_ESI2) && Ultimo_ESI_Ejecutado->id_ESI != ((t_ESI *) item_ESI2)->id_ESI;
 	}
-	list_sort(cola_de_listos,sjf);
-
-	bool es_ultimo_ejecutado(void* esi){
-		return ((t_ESI*)esi)->id_ESI == Ultimo_ESI_Ejecutado->id_ESI;
-	}
-	if( list_find(cola_de_listos,es_ultimo_ejecutado) != NULL && Ultimo_ESI_Ejecutado->id_ESI != ((t_ESI*)list_get(cola_de_listos,0))->id_ESI ){
-		list_remove_by_condition(cola_de_listos,es_ultimo_ejecutado);
-		list_add_in_index(cola_de_listos,0,es_ultimo_ejecutado);
-	}
-
+	list_sort(cola_de_listos, SJF_SD);
 }
 
 void ordenar_por_sjf_cd(){
-	bool sjf(void* esi1, void* esi2){
-		return estimarRafaga(((t_ESI*)esi1)->id_ESI) < estimarRafaga(((t_ESI*)esi2)->id_ESI);
-	}
-	list_sort(cola_de_listos,sjf);
+	list_sort(cola_de_listos, funcion_SJF);
+}
+
+float response_ratio(t_ESI * ESI) {
+	return (estimarRafaga(ESI) + ESI->w) / estimarRafaga(ESI);
 }
 
 void ordenar_por_hrrn(){
-	bool hrrn(void* esi1, void* esi2){
-		float responseRatio1 = (estimarRafaga(((t_ESI*)esi1)->id_ESI) + ((t_ESI*)esi1)->w) / estimarRafaga(((t_ESI*)esi1)->id_ESI);
-		float responseRatio2 = (estimarRafaga(((t_ESI*)esi2)->id_ESI) + ((t_ESI*)esi2)->w) / estimarRafaga(((t_ESI*)esi2)->id_ESI);
-		return responseRatio1 > responseRatio2;
+	bool hrrn(void* item_ESI1, void* item_ESI2) {
+		t_ESI * ESI1 = (t_ESI *) item_ESI1;
+		t_ESI * ESI2 = (t_ESI *) item_ESI2;
+		return response_ratio(ESI1) > response_ratio(ESI2);
 	}
-	list_sort(cola_de_listos,hrrn);
+	list_sort(cola_de_listos, hrrn);
 }
 
 
-float estimarRafaga(int id_ESI){
-	bool encontrar_esi(void* esi){
-		return ((t_ESI*)esi)->id_ESI == id_ESI;
-	}
-
-	t_ESI* esi = list_find(lista_de_ESIs, encontrar_esi);
-	int tn = esi->duracionRafaga; //Duracion de la rafaga anterior
-	float Tn = esi->estimacionUltimaRafaga; // Estimacion anterior
+float estimarRafaga(t_ESI * ESI){
+	int tn = ESI->duracionRafaga; //Duracion de la rafaga anterior
+	float Tn = ESI->estimacionUltimaRafaga; // Estimacion anterior
 	float estimacion = (configuracion.ALFA_PLANIFICACION / 100)* tn + (1 - (configuracion.ALFA_PLANIFICACION / 100))* Tn;
-	esi->estimacionUltimaRafaga = estimacion;
+	ESI->estimacionUltimaRafaga = estimacion;
 	return estimacion;
 }
 
 void actualizarRafaga() {
-	pthread_mutex_lock(&mutex_ESI_ejecutando);
-	pthread_mutex_lock(&mutex_Ultimo_ESI_Ejecutado);
 	if(Ultimo_ESI_Ejecutado == ESI_ejecutando){
-		ESI_ejecutando->duracionRafaga += 1;
+		ESI_ejecutando->duracionRafaga++;
 	}else{
 		Ultimo_ESI_Ejecutado->duracionRafaga = 0;
+		ESI_ejecutando->duracionRafaga = 1;
 	}
-	pthread_mutex_unlock(&mutex_Ultimo_ESI_Ejecutado);
-	pthread_mutex_unlock(&mutex_ESI_ejecutando);
 }
 
 t_ESI* esi_por_id(int id_ESI){
@@ -596,6 +566,7 @@ void * escuchar_coordinador(void * argumentos) {
 			case cop_Coordinador_Clave_Liberada:
 				// Desbloqueo los ESIs que se bloquearon por esta clave
 				desbloquear_ESIs(clave_en_uso, paqueteRecibido->data);
+				desbloquear_ESIs(bloqueado_por_consola, paqueteRecibido->data);
 			break;
 
 			case cop_Planificador_Consultar_Clave:
@@ -877,5 +848,11 @@ void detectar_deadlock(void* datos_coordinador){
 	list_destroy(claves_ESI);
 	list_destroy(ESIs_en_deadlock);
 	return;
+}
+
+void funcion_exit(int sig) {
+	puts("Abortando Planificador..");
+
+	(void) signal(SIGINT, SIG_DFL);
 }
 
