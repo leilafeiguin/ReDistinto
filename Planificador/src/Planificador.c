@@ -486,8 +486,8 @@ void conectar_con_coordinador() {
 
 void * escuchar_coordinador(void * argumentos) {
 	log_info(logger, "Escuchando al coordinador... \n");
-	bool escuhar = true;
-	while(escuhar) {
+	bool escuchar = true;
+	while(escuchar) {
 		t_paquete* paqueteRecibido = recibir(Coordinador); // Recibe el feedback de la instruccion ejecutada por el ESI
 		printf("Mensaje recibido del Coordinador, codigo de operacion: %d \n", paqueteRecibido->codigo_operacion);
 
@@ -574,20 +574,15 @@ void * escuchar_coordinador(void * argumentos) {
 				mostrar_resultado_consulta(paqueteRecibido->data);
 			break;
 
-
-
-		 case codigo_error:
-			 log_info(logger, "Error en el Coordinador. Abortando. \n");
-			 escuhar = false;
-		 break;
-
-
-
-
-		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-			enviar(ESI->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
-			//Matar al ESI
+			case codigo_error:
+				log_info(logger, "Error en el Coordinador. Abortando. \n");
+				escuchar = false;
 			break;
+
+			case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
+				enviar(ESI->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
+				//Matar al ESI
+				break;
 		}
 	}
 	pthread_detach(pthread_self());
