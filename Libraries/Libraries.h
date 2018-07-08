@@ -81,7 +81,7 @@ enum codigos_de_operacion {
 
 	cop_Planificador_kill_ESI = 40,
 	cop_Planificador_Consultar_Clave = 41,
-	cop_Planificador_Deadlock = 42,
+	cop_Planificador_Analizar_Deadlocks= 42,
 
 	cop_handshake_Planificador_ejecucion = 50,
 
@@ -132,6 +132,11 @@ typedef struct {
 	int puntero_entradas;
 	pthread_mutex_t sem_instancia;
 } t_instancia;
+
+typedef struct {
+	int id_ESI; // ID del ESI que tiene la clave
+	char* clave; // Nombre de la clave tomada
+} t_clave_tomada;
 
 enum estados_instancia {
 	desconectada = 0,

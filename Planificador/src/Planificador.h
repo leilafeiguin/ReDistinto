@@ -73,7 +73,7 @@ char* pathPlanificadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Planif
 
 planificador_configuracion get_configuracion();
 
-void detectar_deadlock(void* datos_coordinador);
+void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas);
 
 void salir(int motivo);
 
@@ -161,9 +161,15 @@ void mostrar_resultado_consulta(void * buffer_resultado);
 
 t_list * get_ESIs_bloqueados_por_clave(char* clave, int motivo); // Si el motivo es -1 trae todos
 
+t_list * get_ESIs_bloqueados_por_motivo(int motivo); // Si el motivo es -1 trae todos
+
 void mostrar_ESIs_bloqueados(char* clave, int motivo);
 
 void bloquear_claves_iniciales();
+
+void enviar_mensaje_coordinador(int cop, int tamanio_buffer, void * buffer);
+
+t_list * recibir_claves_tomadas(void * buffer);
 
 
 /*

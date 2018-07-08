@@ -249,8 +249,7 @@ void* ejecutar_consola(void * unused){
 				}
 			} else if (strcmp(linea, "deadlock") == 0) {
 				log_info(logger, "Analizando Deadlocks\n");
-				void* buffer = "";
-				enviar(Coordinador,cop_Planificador_Deadlock,sizeof(int),buffer);
+				enviar_mensaje_coordinador(cop_Planificador_Analizar_Deadlocks, size_of_string(""), "");
 			} else {
 				log_error(logger, "Opcion no valida.\n");
 				printf("Opcion no valida.\n");
@@ -298,7 +297,7 @@ void ejecutar_kill(int id_ESI) {
 
 void ejecutar_status(char* clave) {
 	printf("Consultando status de la clave '%s'... \n", clave);
-	enviar(Coordinador, cop_Planificador_Consultar_Clave, size_of_string(clave), clave);
+	enviar_mensaje_coordinador(cop_Planificador_Consultar_Clave, size_of_string(clave), clave);
 }
 
 void ejecutar_bloquear(int id_ESI, char* clave) {
@@ -362,9 +361,7 @@ void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 	int desplazamiento = 0;
 	serializar_int(buffer, &desplazamiento, ESI->id_ESI);
 	sem_trywait(&sem_planificar);
-	pthread_mutex_lock(&mutex_Coordinador);
-	enviar(Coordinador, cop_ESI_finalizado, tamanio_buffer, buffer);
-	pthread_mutex_unlock(&mutex_Coordinador);
+	enviar_mensaje_coordinador(cop_ESI_finalizado, tamanio_buffer, buffer);
 	free(buffer);
 	enviar(ESI->socket, cop_ESI_finalizado, size_of_string(""), "");
 	eliminar_ESI_cola_actual(ESI);
@@ -377,6 +374,12 @@ void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 	pthread_mutex_lock(&mutex_cola_de_finalizados);
 	list_add(cola_de_finalizados, ESI);
 	pthread_mutex_unlock(&mutex_cola_de_finalizados);
+}
+
+void enviar_mensaje_coordinador(int cop, int tamanio_buffer, void * buffer) {
+	pthread_mutex_lock(&mutex_Coordinador);
+	enviar(Coordinador, cop, tamanio_buffer, buffer);
+	pthread_mutex_unlock(&mutex_Coordinador);
 }
 
 void pasar_ESI_a_listo(t_ESI* ESI){
@@ -442,6 +445,7 @@ void ordenar_por_hrrn(){
 
 
 float estimarRafaga(t_ESI * ESI){
+	return ESI->cantidad_instrucciones; // TODO borrar
 	int tn = ESI->duracionRafaga; //Duracion de la rafaga anterior
 	float Tn = ESI->estimacionUltimaRafaga; // Estimacion anterior
 	float estimacion = (configuracion.ALFA_PLANIFICACION / 100)* tn + (1 - (configuracion.ALFA_PLANIFICACION / 100))* Tn;
@@ -504,9 +508,7 @@ void bloquear_claves_iniciales() {
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;
 	serializar_lista_strings(buffer, &desplazamiento, lista_claves);
-	pthread_mutex_lock(&mutex_Coordinador);
-	enviar(Coordinador, cop_Coordinador_Bloquear_Claves_Iniciales, tamanio_buffer, buffer);
-	pthread_mutex_unlock(&mutex_Coordinador);
+	enviar_mensaje_coordinador(cop_Coordinador_Bloquear_Claves_Iniciales, tamanio_buffer, buffer);
 	free(buffer);
 	list_destroy(lista_claves);
 }
@@ -539,8 +541,10 @@ void * escuchar_coordinador(void * argumentos) {
 				sem_post(&sem_planificar);
 			break;
 
-			case cop_Planificador_Deadlock:
-				detectar_deadlock(paqueteRecibido->data);
+			case cop_Planificador_Analizar_Deadlocks: ;
+				t_list * claves_tomadas = recibir_claves_tomadas(paqueteRecibido->data);
+				t_list * claves_pedidas = get_ESIs_bloqueados_por_motivo(clave_en_uso);
+				detectar_deadlock(claves_tomadas, claves_pedidas);
 			break;
 
 			case cop_Coordinador_Sentencia_Fallo_No_Instancias:
@@ -762,6 +766,14 @@ t_list * get_ESIs_bloqueados_por_clave(char* clave, int motivo) {
 	return list_filter(cola_de_bloqueados, ESI_bloqueados_por_clave);
 }
 
+t_list * get_ESIs_bloqueados_por_motivo(int motivo) {
+	bool ESI_bloqueados_por_motivo(void* item_bloqueo){
+		t_bloqueado* bloqueo = (t_bloqueado*) item_bloqueo;
+		return (motivo == -1 || bloqueo->motivo == motivo);
+	}
+	return list_filter(cola_de_bloqueados, ESI_bloqueados_por_motivo);
+}
+
 void mostrar_resultado_consulta(void * buffer_resultado) {
 	int desplazamiento = 0;
 	char* clave = deserializar_string(buffer_resultado, &desplazamiento);
@@ -797,47 +809,37 @@ void mostrar_ESIs_bloqueados(char* clave, int motivo) {
 	list_destroy(ESIs_bloqueados);
 }
 
-void detectar_deadlock(void* datos_coordinador){
-	t_list* claves_ESI = list_create();
-
-	//Deserealizo el paquete
+t_list * recibir_claves_tomadas(void * buffer) {
 	int desplazamiento = 0;
-	int tam_lista;
-	memcpy(&tam_lista,datos_coordinador,sizeof(int));
-	desplazamiento += sizeof(int);
+	int cant_claves_tomadas = deserializar_int(buffer, &desplazamiento);
+	t_list * list_claves_tomadas = list_create();
 
-	for(int i = 0; i < tam_lista; i++){
-		t_claves_por_esi* clave_por_esi = malloc(sizeof(t_claves_por_esi));
-		memcpy(&clave_por_esi->id_ESI,desplazamiento + datos_coordinador,sizeof(int));
-		desplazamiento += sizeof(int);
+	for(int i = 0;i < cant_claves_tomadas; i++) {
+		t_clave_tomada * clave_tomada = malloc(sizeof(t_clave_tomada));
+		clave_tomada->id_ESI = deserializar_int(buffer, &desplazamiento);
+		clave_tomada->clave = deserializar_string(buffer, &desplazamiento);
+		list_add(list_claves_tomadas, clave_tomada);
+	}
+	free(buffer);
+	return list_claves_tomadas;
+}
 
-		int tam_clave;
-		memcpy(&tam_clave,desplazamiento + datos_coordinador,sizeof(int));
-		desplazamiento += sizeof(int);
-
-		clave_por_esi->clave_tomada = malloc(tam_clave);
-		memcpy(clave_por_esi->clave_tomada,desplazamiento + datos_coordinador,tam_clave);
-		desplazamiento += tam_clave;
-
-		bool encontrar_esi_bloqueado_por_id(void* esi_bloquado){
-			return ((t_bloqueado*) esi_bloquado)->ESI->id_ESI == clave_por_esi->id_ESI ;
-		}
-
-		t_bloqueado* esi_bloqueado = list_find(cola_de_bloqueados,encontrar_esi_bloqueado_por_id);
-		char* clave_de_bloqueo; //Todo revisar
-		if(esi_bloqueado != NULL){
-			strcpy(clave_de_bloqueo,esi_bloqueado->clave_de_bloqueo);
-			clave_por_esi->clave_de_bloqueo = malloc(strlen(clave_de_bloqueo));
-			strcpy(clave_por_esi->clave_de_bloqueo,clave_de_bloqueo);
-		}else{
-			clave_por_esi->clave_de_bloqueo = malloc(strlen(""));
-			strcpy(clave_por_esi->clave_de_bloqueo,"");
-		}
-
-		list_add(claves_ESI,clave_por_esi);
+void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
+	/* puts("Claves tomadas:");
+	for(int i = 0; i < list_size(claves_tomadas); i++) {
+		t_clave_tomada * clave_tomada = list_get(claves_tomadas, i);
+		printf("ESI: %d, Clave: %s \n", clave_tomada->id_ESI, clave_tomada->clave);
 	}
 
-	//Lista preparada para analizar
+	puts("Claves pedidas:");
+	for(int i = 0; i < list_size(claves_pedidas); i++) {
+		t_bloqueado * clave_pedida = list_get(claves_pedidas, i);
+		printf("ESI: %d, Clave: %s \n", clave_pedida->ESI->id_ESI, clave_pedida->clave_de_bloqueo);
+	} */
+
+
+	t_list* claves_ESI = list_create();
+
 
 	t_list* ESIs_en_deadlock = list_create();
 	void encontrar_deadlock(void* elem){

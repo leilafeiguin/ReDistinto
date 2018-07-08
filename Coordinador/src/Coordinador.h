@@ -45,11 +45,6 @@ coordinador_configuracion configuracion;
 
 char* pathCoordinadorConfig = "/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/configCoordinador.cfg";
 
-typedef struct {
-	int id_ESI; // ID del ESI que tiene la clave
-	char* clave; // Nombre de la clave tomada
-} t_clave_tomada;
-
 coordinador_configuracion get_configuracion();
 
 void serializar_claves_tomadas(void* buffer);
@@ -147,6 +142,8 @@ void handle_consulta_clave(char* clave);
 void handle_ESI_finalizado(t_ESI *  ESI);
 
 void bloquear_claves_iniciales(t_list * lista_claves);
+
+void enviar_claves_informacion_tomadas();
 
 // ALGORITMOS DE DISTRIBUCION
 
