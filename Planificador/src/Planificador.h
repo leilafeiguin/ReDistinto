@@ -163,6 +163,8 @@ t_list * get_ESIs_bloqueados_por_clave(char* clave, int motivo); // Si el motivo
 
 void mostrar_ESIs_bloqueados(char* clave, int motivo);
 
+void bloquear_claves_iniciales();
+
 
 /*
 --------------------------------------------------------

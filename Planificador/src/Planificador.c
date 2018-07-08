@@ -361,8 +361,8 @@ void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;
 	serializar_int(buffer, &desplazamiento, ESI->id_ESI);
-	pthread_mutex_lock(&mutex_Coordinador);
 	sem_trywait(&sem_planificar);
+	pthread_mutex_lock(&mutex_Coordinador);
 	enviar(Coordinador, cop_ESI_finalizado, tamanio_buffer, buffer);
 	pthread_mutex_unlock(&mutex_Coordinador);
 	free(buffer);
@@ -489,6 +489,26 @@ void conectar_con_coordinador() {
 	log_info(logger, "Me conecte con el Coordinador. \n");
 	pthread_t hilo_coordinador;
 	pthread_create(&hilo_coordinador, NULL, escuchar_coordinador, NULL);
+	bloquear_claves_iniciales();
+}
+
+void bloquear_claves_iniciales() {
+	t_list * lista_claves = list_create();
+	char** claves = str_split(configuracion.CLAVES_BLOQUEADAS, ',');
+	int i = 0;
+	while(claves[i] != NULL) {
+		list_add(lista_claves, claves[i]);
+		i++;
+	}
+	int tamanio_buffer = size_of_list_of_strings_to_serialize(lista_claves);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_lista_strings(buffer, &desplazamiento, lista_claves);
+	pthread_mutex_lock(&mutex_Coordinador);
+	enviar(Coordinador, cop_Coordinador_Bloquear_Claves_Iniciales, tamanio_buffer, buffer);
+	pthread_mutex_unlock(&mutex_Coordinador);
+	free(buffer);
+	list_destroy(lista_claves);
 }
 
 void * escuchar_coordinador(void * argumentos) {

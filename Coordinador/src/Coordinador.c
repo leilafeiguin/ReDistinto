@@ -238,6 +238,7 @@ void escuchar_planificador() {
 	bool escuchar = true;
 	while(escuchar) {
 		puts("Aguardando al Planificador..");
+		int desplazamiento = 0;
 		t_paquete* paqueteRecibido = recibir(Planificador);
 		switch(paqueteRecibido->codigo_operacion) {
 			case codigo_error:
@@ -266,14 +267,27 @@ void escuchar_planificador() {
 				handle_consulta_clave(paqueteRecibido->data);
 			break;
 			case cop_ESI_finalizado: ;
-				int desplazamiento = 0;
 				int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				t_ESI * ESI = get_ESI_por_id(id_ESI);
 				handle_ESI_finalizado(ESI);
 			break;
+			case cop_Coordinador_Bloquear_Claves_Iniciales: ;
+				t_list * lista_claves_bloquear = deserializar_lista_strings(paqueteRecibido->data, &desplazamiento);
+				bloquear_claves_iniciales(lista_claves_bloquear);
+				destruir_lista_strings(lista_claves_bloquear);
+			break;
 		}
 		liberar_paquete(paqueteRecibido);
 	}
+}
+
+void bloquear_claves_iniciales(t_list * lista_claves) {
+	t_ESI * ESI_sistema;
+	void bloquear_clave(void* item_clave){
+		char* clave = (char*) item_clave;
+		nueva_clave_tomada(ESI_sistema, clave);
+	}
+	list_iterate(lista_claves,bloquear_clave);
 }
 
 void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
@@ -510,7 +524,7 @@ bool validar_clave_tomada(char* clave) {
 t_clave_tomada * nueva_clave_tomada(t_ESI * ESI, char* clave) {
 	if (!validar_clave_tomada(clave)) {
 		t_clave_tomada * t_clave = malloc(sizeof(t_clave_tomada));
-		t_clave->id_ESI = ESI->id_ESI;
+		t_clave->id_ESI =  ESI->id_ESI;
 		t_clave->clave = copy_string(clave);
 		pthread_mutex_lock(&sem_claves_tomadas);
 		list_add(lista_claves_tomadas, t_clave);
@@ -919,56 +933,6 @@ void handle_ESI_finalizado(t_ESI *  ESI) {
 	serializar_lista_strings(buffer, &desplazamiento, lista_claves_liberadas);
 	enviar_mensaje_planificador(cop_Coordinador_Claves_ESI_finalizado_Liberadas, tamanio_buffer, buffer);
 	free(buffer);
-	list_destroy(lista_claves_liberadas);
+	destruir_lista_strings(lista_claves_liberadas);
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// !ALGORITMOS DE DISTRIBUCION
-
-void * crear_instancias_prueba_alan() {
-
-	void show_cant_entradas(t_instancia * element) {
-		printf("%i", (element)->cant_entradas_ocupadas);
-		printf((element)->nombre);
-	}
-
-	crear_instancia(3, " Alan\n");
-	crear_instancia(4, " Cheja\n");
-	crear_instancia(3, " Marco\n");
-	t_instancia * instancia = equitative_load(lista_instancias, 1);
-	printf((instancia)->nombre);
-	t_instancia * instancia2 = equitative_load(lista_instancias, 1);
-	printf((instancia2)->nombre);
-	t_instancia * instancia3 = equitative_load(lista_instancias, 1);
-	printf((instancia3)->nombre);
-	t_instancia * instancia4 = equitative_load(lista_instancias, 1);
-	printf((instancia4)->nombre);
-//	t_instancia * instancia4 = key_explicit(lista_instancias, "Susana\n", 5);
-//	printf((instancia4)->nombre);
-//	int punteroEntradas = algoritmo_circular(instancia, 3);
-//	printf("%i", punteroEntradas);
-//	int punteroEntradas2 = algoritmo_circular(instancia, 4);
-//	printf("%i", punteroEntradas2);
-//	int punteroEntradas3 = algoritmo_circular(instancia, 9);
-//	printf("%i", punteroEntradas3);
-//	int punteroEntradas4 = algoritmo_circular(instancia, 5);
-//	printf("%i", punteroEntradas4);
-
-//	list_iterate(instancia, show_cant_entradas);
-}
-

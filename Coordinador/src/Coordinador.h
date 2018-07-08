@@ -146,6 +146,8 @@ void handle_consulta_clave(char* clave);
 
 void handle_ESI_finalizado(t_ESI *  ESI);
 
+void bloquear_claves_iniciales(t_list * lista_claves);
+
 // ALGORITMOS DE DISTRIBUCION
 
 void * crear_instancias_prueba_alan();
