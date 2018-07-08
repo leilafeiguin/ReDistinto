@@ -75,6 +75,7 @@ enum codigos_de_operacion {
 	cop_Coordinador_Ejecutar_Set = 36,
 	cop_Coordinador_Ejecutar_Store = 38,
 	cop_Coordinador_Clave_Liberada = 311,
+	cop_Coordinador_Claves_ESI_finalizado_Liberadas = 313,
 	cop_handshake_Planificador_Consola = 39,
 
 	cop_Planificador_kill_ESI = 40,

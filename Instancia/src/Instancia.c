@@ -9,6 +9,8 @@
 int main(int argc, char* arguments[]) {
 	nombre_instancia = arguments[1]; // BORRAR PROXIMAMENTE
 
+	(void) signal(SIGINT, funcion_exit);
+
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/instancia_image.txt");
 	char* fileLog;
 	fileLog = "instancia_logs.txt";
@@ -41,14 +43,15 @@ instancia_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso Instancia\n");
 	instancia_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathInstanciaConfig);
-	configuracion.IP_COORDINADOR = get_campo_config_string(archivo_configuracion, "IP_COORDINADOR");
-	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
-	configuracion.ALGORITMO_REEMPLAZO = get_campo_config_string(archivo_configuracion, "ALGORITMO_REEMPLAZO");
-	configuracion.PUNTO_MONTAJE = get_campo_config_string(archivo_configuracion, "PUNTO_MONTAJE");
-	//configuracion.NOMBRE_INSTANCIA = get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA");
-	configuracion.NOMBRE_INSTANCIA = nombre_instancia; // BORRAR PROXIMAMENTE
+	configuracion.IP_COORDINADOR = copy_string(get_campo_config_string(archivo_configuracion, "IP_COORDINADOR"));
+	configuracion.PUERTO_COORDINADOR = copy_string(get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR"));
+	configuracion.ALGORITMO_REEMPLAZO = copy_string(get_campo_config_string(archivo_configuracion, "ALGORITMO_REEMPLAZO"));
+	configuracion.PUNTO_MONTAJE = copy_string(get_campo_config_string(archivo_configuracion, "PUNTO_MONTAJE"));
+	//configuracion.NOMBRE_INSTANCIA = copy_string(get_campo_config_string(archivo_configuracion, "NOMBRE_INSTANCIA"));
+	configuracion.NOMBRE_INSTANCIA = copy_string(nombre_instancia); // BORRAR PROXIMAMENTE
 	configuracion.INTERVALO_DUMP = get_campo_config_int(archivo_configuracion, "INTERVALO_DUMP");
 	pathInstanciaData = string_concat(2, configuracion.PUNTO_MONTAJE, configuracion.NOMBRE_INSTANCIA);
+	config_destroy(archivo_configuracion);
 	return configuracion;
 }
 
@@ -438,6 +441,17 @@ int validar_necesidad_compactacion(char* clave, char* valor) {
 	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;
 	enviar(Coordinador, cod_op, size_of_string(""), "");
 }
+
+void funcion_exit(int sig) {
+	printf("Abortando %s.. \n", instancia.nombre);
+	free(configuracion.ALGORITMO_REEMPLAZO);
+	free(configuracion.IP_COORDINADOR);
+	free(configuracion.NOMBRE_INSTANCIA);
+	free(configuracion.PUERTO_COORDINADOR);
+	free(configuracion.PUNTO_MONTAJE);
+	exit(0);
+}
+
 
 // ALGORITMOS DE REEMPLAZO
 

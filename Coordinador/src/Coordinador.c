@@ -30,12 +30,13 @@ int main(void) {
 coordinador_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso Coordinador\n");
 	coordinador_configuracion configuracion;
-	archivo_configuracion = config_create(pathCoordinadorConfig);
-	configuracion.PUERTO_ESCUCHA = get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA");
-	configuracion.ALGORITMO_DISTRIBUCION = get_campo_config_string(archivo_configuracion, "ALGORITMO_DISTRIBUCION");
+	t_config*  archivo_configuracion = config_create(pathCoordinadorConfig);
+	configuracion.PUERTO_ESCUCHA = copy_string(get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA"));
+	configuracion.ALGORITMO_DISTRIBUCION = copy_string(get_campo_config_string(archivo_configuracion, "ALGORITMO_DISTRIBUCION"));
 	configuracion.CANTIDAD_ENTRADAS = get_campo_config_int(archivo_configuracion, "CANTIDAD_ENTRADAS");
 	configuracion.TAMANIO_ENTRADA = get_campo_config_int(archivo_configuracion, "TAMANIO_ENTRADA");
 	configuracion.RETARDO = get_campo_config_int(archivo_configuracion, "RETARDO");
+	config_destroy(archivo_configuracion);
 	return configuracion;
 }
 
@@ -263,6 +264,12 @@ void escuchar_planificador() {
 			break;
 			case cop_Planificador_Consultar_Clave:
 				handle_consulta_clave(paqueteRecibido->data);
+			break;
+			case cop_ESI_finalizado: ;
+				int desplazamiento = 0;
+				int id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				t_ESI * ESI = get_ESI_por_id(id_ESI);
+				handle_ESI_finalizado(ESI);
 			break;
 		}
 		liberar_paquete(paqueteRecibido);
@@ -545,7 +552,6 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 		return 0;
 	}
 
-	liberar_clave_tomada(clave);
 	t_instancia * instancia = get_instancia_con_clave(clave);
 	if (instancia != NULL && health_check(instancia)) {
 		pthread_mutex_lock(&instancia->sem_instancia);
@@ -558,10 +564,14 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 			log_and_free(logger, string_concat(3, "STORE ejecutado con exito. La clave '", clave, "' fue guardada y liberada. \n"));
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 		}
+	} else if(validar_clave_tomada(clave)) {
+		log_and_free(logger, string_concat(3, "STORE ejecutado con exito. La clave '", clave, "' fue liberada. \n"));
+		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 	} else {
 		log_info(logger, "ERROR: STORE rechazado. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n");
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias, "");
 	}
+	liberar_clave_tomada(clave);
 	return 1;
 }
 
@@ -801,14 +811,15 @@ void notificar_resultado_instruccion(t_ESI * ESI, int cop, char* parametro) {
 
 void funcion_exit(int sig) {
 	puts("Abortando Coordinador..");
-	config_destroy(archivo_configuracion);
+	free(configuracion.PUERTO_ESCUCHA);
+	free(configuracion.ALGORITMO_DISTRIBUCION);
 	list_iterate(lista_instancias, liberar_instancia);
 	list_destroy_and_destroy_elements(lista_claves_tomadas, clave_tomada_destroyer);
 
 	for(int i = 0; i < 10;i++) {
 		pthread_join(threads[i], NULL);
 	}
-	(void) signal(SIGINT, SIG_DFL);
+	exit(0);
 }
 
 void liberar_instancia(t_instancia * instancia) {
@@ -888,6 +899,28 @@ void serializar_claves_tomadas(void* buffer){
 
 	list_iterate(lista_claves_tomadas,serializar_clave);
 	return;
+}
+
+void handle_ESI_finalizado(t_ESI *  ESI) {
+	printf("ESI %d finalizado\n", ESI->id_ESI);
+	t_list * lista_claves_liberadas = list_create();
+	bool ESI_match(void * item){
+		t_clave_tomada * clave_tomada  = (t_clave_tomada *) item;
+		if (clave_tomada->id_ESI == ESI->id_ESI) {
+			list_add(lista_claves_liberadas, clave_tomada->clave);
+			return true;
+		}
+		return false;
+	}
+	list_remove_by_condition(lista_claves_tomadas, ESI_match);
+	int tamanio_buffer = size_of_list_of_strings_to_serialize(lista_claves_liberadas);
+	void * buffer = malloc(tamanio_buffer);
+	int desplazamiento = 0;
+	serializar_lista_strings(buffer, &desplazamiento, lista_claves_liberadas);
+	enviar_mensaje_planificador(cop_Coordinador_Claves_ESI_finalizado_Liberadas, tamanio_buffer, buffer);
+	free(buffer);
+	list_destroy(lista_claves_liberadas);
+
 }
 
 

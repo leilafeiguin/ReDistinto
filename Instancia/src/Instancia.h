@@ -78,6 +78,8 @@ bool clave_ingresada(char* clave);
 
 void sumar_a_entradas_no_modificadas(char* clave);
 
+void funcion_exit(int sig);
+
 // ALGORITMOS DE REEMPLAZO
 
 t_entrada * algoritmo_circular(char* valor);

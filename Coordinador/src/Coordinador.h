@@ -28,8 +28,6 @@ t_list* new_list_instancias_organized;
 
 t_list* lista_ESIs;
 
-t_config* archivo_configuracion;
-
 int siguiente_equitative_load = 0; //Equitative Load
 
 // !Variables globales
@@ -145,6 +143,8 @@ t_ESI * get_ESI_por_id(int id_ESI);
 void enviar_mensaje_planificador(int cop, int tamanio_buffer, void * buffer);
 
 void handle_consulta_clave(char* clave);
+
+void handle_ESI_finalizado(t_ESI *  ESI);
 
 // ALGORITMOS DE DISTRIBUCION
 

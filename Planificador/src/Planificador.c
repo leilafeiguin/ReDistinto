@@ -142,13 +142,14 @@ planificador_configuracion get_configuracion() {
 	printf("Levantando archivo de configuracion del proceso Planificador\n");
 	planificador_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathPlanificadorConfig);
-	configuracion.PUERTO_ESCUCHA = get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA");
-	configuracion.ALGORITMO_PLANIFICACION = get_campo_config_string(archivo_configuracion, "ALGORITMO_PLANIFICACION");
+	configuracion.PUERTO_ESCUCHA = copy_string(get_campo_config_string(archivo_configuracion, "PUERTO_ESCUCHA"));
+	configuracion.ALGORITMO_PLANIFICACION = copy_string(get_campo_config_string(archivo_configuracion, "ALGORITMO_PLANIFICACION"));
 	configuracion.ALFA_PLANIFICACION = get_campo_config_int(archivo_configuracion, "ALFA_PLANIFICACION");
 	configuracion.ESTIMACION_INICIAL = get_campo_config_int(archivo_configuracion, "ESTIMACION_INICIAL");
-	configuracion.IP_COORDINADOR = get_campo_config_string(archivo_configuracion, "IP_COORDINADOR");
-	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
-	configuracion.CLAVES_BLOQUEADAS = get_campo_config_string(archivo_configuracion, "CLAVES_BLOQUEADAS");
+	configuracion.IP_COORDINADOR = copy_string(get_campo_config_string(archivo_configuracion, "IP_COORDINADOR"));
+	configuracion.PUERTO_COORDINADOR = copy_string(get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR"));
+	configuracion.CLAVES_BLOQUEADAS = copy_string(get_campo_config_string(archivo_configuracion, "CLAVES_BLOQUEADAS"));
+	config_destroy(archivo_configuracion);
 	return configuracion;
 }
 
@@ -159,6 +160,11 @@ void salir(int motivo){
 	list_destroy(cola_de_bloqueados);
 	list_destroy(cola_de_listos);
 	free(ESI_ejecutando);
+	free(configuracion.PUERTO_ESCUCHA);
+	free(configuracion.ALGORITMO_PLANIFICACION);
+	free(configuracion.IP_COORDINADOR);
+	free(configuracion.PUERTO_COORDINADOR);
+	free(configuracion.CLAVES_BLOQUEADAS);
 	exit(motivo);
 }
 
@@ -356,6 +362,7 @@ void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 	int desplazamiento = 0;
 	serializar_int(buffer, &desplazamiento, ESI->id_ESI);
 	pthread_mutex_lock(&mutex_Coordinador);
+	sem_trywait(&sem_planificar);
 	enviar(Coordinador, cop_ESI_finalizado, tamanio_buffer, buffer);
 	pthread_mutex_unlock(&mutex_Coordinador);
 	free(buffer);
@@ -582,7 +589,17 @@ void * escuchar_coordinador(void * argumentos) {
 			case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
 				enviar(ESI->socket,cop_Planificador_kill_ESI,sizeof(int),paqueteRecibido->data);
 				//Matar al ESI
-				break;
+			break;
+
+			case cop_Coordinador_Claves_ESI_finalizado_Liberadas: ;
+				t_list * lista_claves_liberadas = deserializar_lista_strings(paqueteRecibido->data, &desplazamiento);
+				void desbloquear_ESIs_clave(void* item_clave){
+					char* clave = (char*) item_clave;
+					desbloquear_ESIs(clave_en_uso, clave);
+					desbloquear_ESIs(bloqueado_por_consola, clave);
+				}
+				list_iterate(lista_claves_liberadas,desbloquear_ESIs_clave);
+			break;
 		}
 	}
 	pthread_detach(pthread_self());
