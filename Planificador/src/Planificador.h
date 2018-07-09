@@ -56,9 +56,6 @@ t_list* cola_de_listos;
 pthread_mutex_t mutex_cola_de_bloqueados;
 t_list* cola_de_bloqueados;
 
-pthread_mutex_t mutex_cola_de_finalizados;
-t_list* cola_de_finalizados;
-
 t_ESI* ESI_ejecutando; // Es un unico esi a la vez
 
 t_ESI* Ultimo_ESI_Ejecutado;
@@ -168,6 +165,10 @@ void bloquear_claves_iniciales();
 void enviar_mensaje_coordinador(int cop, int tamanio_buffer, void * buffer);
 
 t_list * recibir_claves_tomadas(void * buffer);
+
+void free_claves_tomadas(void * item_clave_tomada);
+
+void free_t_bloqueado(void * item_bloqueo);
 
 /*
  * -----------------------------------------------

@@ -223,8 +223,7 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	while(espacio_restante_a_guardar > 0) {
 		entrada->clave = clave;
 		char* contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
-		entrada->contenido = copy_string(contenido);
-		free(contenido);
+		entrada->contenido = contenido;
 		entrada->espacio_ocupado = size_of_string(entrada->contenido) -1;
 		entrada->cant_veces_no_accedida = 0;
 		espacio_restante_a_guardar += (-1) * (entrada->espacio_ocupado);
@@ -412,7 +411,7 @@ void compactar_tabla_entradas() {
 		free(clave_valor);
 	}
 	list_iterate(lista_claves, restaurar_clave_valor);
-	list_destroy(lista_claves);
+	list_destroy_and_destroy_elements(lista_claves, free);
 }
 
 int cantidad_entradas_ocupadas() {
@@ -449,7 +448,15 @@ void funcion_exit(int sig) {
 	free(configuracion.NOMBRE_INSTANCIA);
 	free(configuracion.PUERTO_COORDINADOR);
 	free(configuracion.PUNTO_MONTAJE);
+	list_destroy_and_destroy_elements(instancia.entradas, free_t_entrada);
 	exit(0);
+}
+
+void free_t_entrada(void * item_entrada) {
+	t_entrada * entrada = (t_entrada*) item_entrada;
+	/*free(entrada->clave);
+	free(entrada->contenido);*/
+	free(entrada);
 }
 
 

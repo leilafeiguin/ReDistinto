@@ -80,6 +80,8 @@ void sumar_a_entradas_no_modificadas(char* clave);
 
 void funcion_exit(int sig);
 
+void free_t_entrada(void * item_entrada);
+
 // ALGORITMOS DE REEMPLAZO
 
 t_entrada * algoritmo_circular(char* valor);

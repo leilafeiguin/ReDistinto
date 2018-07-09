@@ -16,13 +16,11 @@ int main(void) {
 	lista_de_ESIs = list_create();
 	cola_de_listos = list_create();
 	cola_de_bloqueados = list_create();
-	cola_de_finalizados = list_create();
 
 	// Inicializo los semaforos
 	pthread_mutex_init(&mutex_lista_de_ESIs, NULL);
 	pthread_mutex_init(&mutex_cola_de_listos, NULL);
 	pthread_mutex_init(&mutex_cola_de_bloqueados, NULL);
-	pthread_mutex_init(&mutex_cola_de_finalizados, NULL);
 	pthread_mutex_init(&mutex_Coordinador, NULL);
 
 	sem_init(&sem_planificar, 0, 1);
@@ -155,16 +153,16 @@ planificador_configuracion get_configuracion() {
 
 void salir(int motivo){
 	log_info(logger, "Aborando Planificador..");
-	list_destroy(lista_de_ESIs);
-	list_destroy(cola_de_finalizados);
-	list_destroy(cola_de_bloqueados);
+	list_destroy_and_destroy_elements(lista_de_ESIs, free);
+	list_destroy_and_destroy_elements(cola_de_bloqueados, free_t_bloqueado);
 	list_destroy(cola_de_listos);
-	free(ESI_ejecutando);
 	free(configuracion.PUERTO_ESCUCHA);
 	free(configuracion.ALGORITMO_PLANIFICACION);
 	free(configuracion.IP_COORDINADOR);
 	free(configuracion.PUERTO_COORDINADOR);
 	free(configuracion.CLAVES_BLOQUEADAS);
+	free(ESI_ejecutando);
+	free(Ultimo_ESI_Ejecutado);
 	exit(motivo);
 }
 
@@ -371,9 +369,6 @@ void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
 	}
 	ESI->descripcion_estado = copy_string(descripcion_estado);
 	ESI->estado = finalizado;
-	pthread_mutex_lock(&mutex_cola_de_finalizados);
-	list_add(cola_de_finalizados, ESI);
-	pthread_mutex_unlock(&mutex_cola_de_finalizados);
 }
 
 void enviar_mensaje_coordinador(int cop, int tamanio_buffer, void * buffer) {
@@ -510,7 +505,8 @@ void bloquear_claves_iniciales() {
 	serializar_lista_strings(buffer, &desplazamiento, lista_claves);
 	enviar_mensaje_coordinador(cop_Coordinador_Bloquear_Claves_Iniciales, tamanio_buffer, buffer);
 	free(buffer);
-	list_destroy(lista_claves);
+	free(claves);
+	list_destroy_and_destroy_elements(lista_claves, free);
 }
 
 void * escuchar_coordinador(void * argumentos) {
@@ -545,6 +541,8 @@ void * escuchar_coordinador(void * argumentos) {
 				t_list * claves_tomadas = recibir_claves_tomadas(paqueteRecibido->data);
 				t_list * claves_pedidas = get_ESIs_bloqueados_por_motivo(clave_en_uso);
 				detectar_deadlock(claves_tomadas, claves_pedidas);
+				list_destroy_and_destroy_elements(claves_tomadas, free_claves_tomadas);
+				list_destroy(claves_pedidas);
 			break;
 
 			case cop_Coordinador_Sentencia_Fallo_No_Instancias:
@@ -570,6 +568,7 @@ void * escuchar_coordinador(void * argumentos) {
 				char* nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				printf("ESI %d: La instruccion fallo. La clave se encuentra tomada. \n", ESI->id_ESI);
 				pasar_ESI_a_bloqueado(ESI, nombre_clave, clave_en_uso);
+				free(nombre_clave);
 				sem_post(&sem_planificar);
 			break;
 
@@ -889,6 +888,7 @@ void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 	t_list * ids_ESIs = deadlock_get_ids_ESIs(claves_tomadas, claves_pedidas);
 	t_list * lista_deadlocks = list_create();
 	t_list * lista_inicial = list_create();
+	t_list * listas_usadas = list_create(); // Guardo todas las listas usadas para despues liberarlas
 
 	void iterar_ESI(int id_ESI, t_list * lista_actual) {
 		int id_primer_ESI_lista = (int) list_get(lista_actual, 0);
@@ -899,12 +899,12 @@ void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 
 		// Si no encontro un deadlock, sigo
 		if (ESI_en_lista(lista_actual, id_ESI)) { // Si ya esta en la lista, no hay deadlock por este camino
-			list_destroy(lista_actual);
 			return;
 		}
 
 		 // Si no esta en la lista, lo agrego para seguir la cascada
 		t_list * list_proximo_nivel = copy_list(lista_actual);
+		list_add(listas_usadas, list_proximo_nivel);
 		list_add(list_proximo_nivel, (void*) id_ESI);
 
 		// Traigo los ESIs que contienen las claves pedidas por este ESI
@@ -914,16 +914,22 @@ void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 			iterar_ESI(id_ESI2, list_proximo_nivel);
 		}
 		list_iterate(ESIs_contienen_claves_pedidas, iterar_proximo_nivel);
+		list_destroy(ESIs_contienen_claves_pedidas);
 	}
 	void check_deadlock(void * item_id_ESI){
 		int id_ESI = (int) item_id_ESI;
 		iterar_ESI(id_ESI, lista_inicial);
 	}
 	list_iterate(ids_ESIs, check_deadlock);
+	list_destroy(ids_ESIs);
 
 	//limpiar_deadlocks_repetidos(lista_deadlocks);
 	mostrar_deadlocks(lista_deadlocks);
+
+
 	list_destroy(lista_deadlocks);
+	list_destroy_and_destroy_elements(listas_usadas, list_destroy);
+	list_destroy(lista_inicial);
 }
 
 void mostrar_deadlocks(t_list * listado_deadlocks) {
@@ -978,5 +984,17 @@ void limpiar_deadlocks_repetidos(t_list * listado_deadlocks) {
 	list_iterate(listado_deadlocks, agregar_si_no_esta);
 	// list_destroy(listado_deadlocks);
 	listado_deadlocks = nueva_lista;
+}
+
+void free_claves_tomadas(void * item_clave_tomada) {
+	t_clave_tomada * clave_tomada = (t_clave_tomada*) item_clave_tomada;
+	free(clave_tomada->clave);
+	free(clave_tomada);
+}
+
+void free_t_bloqueado(void * item_bloqueo) {
+	t_bloqueado * bloqueo = (t_bloqueado*) bloqueo;
+	free(bloqueo->clave_de_bloqueo);
+	free(bloqueo);
 }
 
