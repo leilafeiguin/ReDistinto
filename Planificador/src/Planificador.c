@@ -864,12 +864,13 @@ t_list * deadlock_get_ESIs_contienen_claves_pedidas(t_list * claves_tomadas, t_l
 		return bloqueo->ESI->id_ESI == id_ESI;
 	}
 	void * transformer(void* item_bloqueo){
-		bool clave_pedida_x_ESI(void* item_clave_tomada){
-			t_clave_tomada* bloqueo = (t_clave_tomada*) item_bloqueo;
-			return bloqueo->ESI->id_ESI == id_ESI;
-		}
 		t_bloqueado* bloqueo = (t_bloqueado*) item_bloqueo;
-		return (void *) bloqueo->ESI->id_ESI;
+		bool clave_tomada_x_ESI(void* item_clave_tomada){
+			t_clave_tomada* clave_tomada = (t_clave_tomada*) item_clave_tomada;
+			return strings_equal(clave_tomada->clave, bloqueo->clave_de_bloqueo);
+		}
+		t_clave_tomada* clave_tomada = list_find(claves_tomadas, clave_tomada_x_ESI);
+		return (void*) clave_tomada->id_ESI;
 	}
 	t_list * pedidos = list_filter(claves_pedidas, clave_pedida_x_ESI);
 	t_list * result = list_map(pedidos, transformer);
@@ -894,14 +895,46 @@ void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 	t_list * lista_deadlocks = list_create();
 	t_list * lista_actual = list_create();
 
+	bool agregar_ESI_lista_actual(int id_ESI) {
+		bool seguir_iterando = false;
+		if (((int)list_get(lista_actual, 0)) == id_ESI) { // Deadlock encontrado
+			puts("Deadlock encontrado");
+			t_list * lista_deadlock = copy_list(lista_actual);
+			list_add(lista_deadlock, (void*) id_ESI);
+			list_add(lista_deadlocks, lista_deadlock);
+		} else {
+			bool ESI_en_lista(void* item){
+				return ((int) item) == id_ESI;
+			}
+			if (list_find(lista_actual, ESI_en_lista) == NULL) { // Agrego a la lista para seguir la cascada
+				puts(" Agrego a la lista para seguir la cascada");
+				list_add(lista_actual, id_ESI);
+				seguir_iterando = true;
+			} else { // Si ya esta, no hay deadlock por este camino
+				puts("Si ya esta, no hay deadlock por este camino");
+			}
+		}
+		return seguir_iterando;
+	}
+
 	void iterar_ESI(void * item_id_ESI){
 		int id_ESI = (int) item_id_ESI;
+		bool seguir_iterando = agregar_ESI_lista_actual(id_ESI);
+		if (!seguir_iterando) {
+			return;
+		}
 		printf("id_ESI: %d \n", id_ESI);
 		t_list * ESIs_contienen_claves_pedidas = deadlock_get_ESIs_contienen_claves_pedidas(claves_tomadas, claves_pedidas, id_ESI);
 		void check_deadlock(void * item_id_ESI2){
 			int id_ESI2 = (int) item_id_ESI2;
 			printf("id_ESI2: %d \n", id_ESI2);
-			if (((int)list_get(lista_actual, 0)) == id_ESI2) { // Deadlock encontrado
+			bool seguir_iterando2 = agregar_ESI_lista_actual(id_ESI2);
+			if (seguir_iterando2) {
+				iterar_ESI(item_id_ESI2);
+			} else {
+				return;
+			}
+			/* if (((int)list_get(lista_actual, 0)) == id_ESI2) { // Deadlock encontrado
 				puts("Deadlock encontrado");
 				t_list * lista_deadlock = copy_list(lista_actual);
 				list_add(lista_deadlock, (void*) id_ESI2);
@@ -918,7 +951,7 @@ void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 					puts("Si ya esta, no hay deadlock por este camino");
 					return;
 				}
-			}
+			}*/
 			iterar_ESI(item_id_ESI2);
 		}
 		list_iterate(ESIs_contienen_claves_pedidas, check_deadlock);
