@@ -175,11 +175,17 @@ t_list * recibir_claves_tomadas(void * buffer);
  * -----------------------------------------------
  */
 
+bool ESI_en_lista( t_list * lista, int id_ESI);
+
 t_list * deadlock_get_ids_ESIs(t_list * claves_tomadas, t_list * claves_pedidas);
 
 t_list * deadlock_get_ESIs_contienen_claves_pedidas(t_list * claves_tomadas, t_list * claves_pedidas, int id_ESI);
 
 void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas);
+
+void mostrar_deadlocks(t_list * listado_deadlocks);
+
+void limpiar_deadlocks_repetidos(t_list * listado_deadlocks);
 
 /*
  * -----------------------------------------------
