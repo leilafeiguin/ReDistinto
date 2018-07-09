@@ -278,4 +278,6 @@ bool strings_equal(char* string1, char* string2);
 
 void detectar_deadlock();
 
+t_list * copy_list(t_list * lista);
+
 #endif /* LIBRARIES_H_ */

@@ -824,6 +824,59 @@ t_list * recibir_claves_tomadas(void * buffer) {
 	return list_claves_tomadas;
 }
 
+/*
+ * -----------------------------------------------
+ * FUNCIONES DEADLOCK
+ * -----------------------------------------------
+ */
+
+t_list * deadlock_get_ids_ESIs(t_list * claves_tomadas, t_list * claves_pedidas) {
+	t_list * lista_ids_ESIs = list_create();
+	void agregar_ESI_claves_tomadas(void * item_clave_tomada) {
+		t_clave_tomada * clave_tomada = (t_clave_tomada *) item_clave_tomada;
+		bool ESI_ya_existente(void * id_ESI){
+			return ((int) id_ESI) == clave_tomada->id_ESI;
+		}
+		if (list_find(lista_ids_ESIs, ESI_ya_existente) == NULL) {
+			list_add(lista_ids_ESIs, (void *) clave_tomada->id_ESI);
+		}
+
+	}
+	list_iterate(claves_tomadas, agregar_ESI_claves_tomadas);
+
+	void agregar_ESI_claves_pedidas(void * item_clave_pedida) {
+		t_bloqueado * clave_pedida = (t_bloqueado *) item_clave_pedida;
+		bool ESI_ya_existente(void * id_ESI){
+			return (int) id_ESI == clave_pedida->ESI->id_ESI;
+		}
+		if (list_find(lista_ids_ESIs, ESI_ya_existente) == NULL) {
+			list_add(lista_ids_ESIs, (void *)clave_pedida->ESI->id_ESI);
+		}
+
+	}
+	list_iterate(claves_pedidas, agregar_ESI_claves_pedidas);
+	return lista_ids_ESIs;
+}
+
+t_list * deadlock_get_ESIs_contienen_claves_pedidas(t_list * claves_tomadas, t_list * claves_pedidas, int id_ESI) {
+	bool clave_pedida_x_ESI(void* item_bloqueo){
+		t_bloqueado* bloqueo = (t_bloqueado*) item_bloqueo;
+		return bloqueo->ESI->id_ESI == id_ESI;
+	}
+	void * transformer(void* item_bloqueo){
+		bool clave_pedida_x_ESI(void* item_clave_tomada){
+			t_clave_tomada* bloqueo = (t_clave_tomada*) item_bloqueo;
+			return bloqueo->ESI->id_ESI == id_ESI;
+		}
+		t_bloqueado* bloqueo = (t_bloqueado*) item_bloqueo;
+		return (void *) bloqueo->ESI->id_ESI;
+	}
+	t_list * pedidos = list_filter(claves_pedidas, clave_pedida_x_ESI);
+	t_list * result = list_map(pedidos, transformer);
+	list_destroy(pedidos);
+	return result;
+}
+
 void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 	/* puts("Claves tomadas:");
 	for(int i = 0; i < list_size(claves_tomadas); i++) {
@@ -837,8 +890,84 @@ void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 		printf("ESI: %d, Clave: %s \n", clave_pedida->ESI->id_ESI, clave_pedida->clave_de_bloqueo);
 	} */
 
+	t_list * ids_ESIs = deadlock_get_ids_ESIs(claves_tomadas, claves_pedidas);
+	t_list * lista_deadlocks = list_create();
+	t_list * lista_actual = list_create();
 
-	t_list* claves_ESI = list_create();
+	void iterar_ESI(void * item_id_ESI){
+		int id_ESI = (int) item_id_ESI;
+		printf("id_ESI: %d \n", id_ESI);
+		t_list * ESIs_contienen_claves_pedidas = deadlock_get_ESIs_contienen_claves_pedidas(claves_tomadas, claves_pedidas, id_ESI);
+		void check_deadlock(void * item_id_ESI2){
+			int id_ESI2 = (int) item_id_ESI2;
+			printf("id_ESI2: %d \n", id_ESI2);
+			if (((int)list_get(lista_actual, 0)) == id_ESI2) { // Deadlock encontrado
+				puts("Deadlock encontrado");
+				t_list * lista_deadlock = copy_list(lista_actual);
+				list_add(lista_deadlock, (void*) id_ESI2);
+				list_add(lista_deadlocks, lista_deadlock);
+				return;
+			} else {
+				bool ESI_en_lista(void* item){
+					return ((int) item) == id_ESI2;
+				}
+				if (list_find(lista_actual, ESI_en_lista) == NULL) { // Agrego a la lista para seguir la cascada
+					puts(" Agrego a la lista para seguir la cascada");
+					list_add(lista_actual, id_ESI2);
+				} else { // Si ya esta, no hay deadlock por este camino
+					puts("Si ya esta, no hay deadlock por este camino");
+					return;
+				}
+			}
+			iterar_ESI(item_id_ESI2);
+		}
+		list_iterate(ESIs_contienen_claves_pedidas, check_deadlock);
+	}
+	list_iterate(ids_ESIs, iterar_ESI);
+
+	int num_deadlock = 1;
+	void mostrar_deadlock(void* item_deadlock){
+		t_list * deadlock = (t_list *) item_deadlock;
+		char* mensaje = string_new();
+		string_append(&mensaje, "Deadlock ");
+		char str_num_deadlock[12];
+		sprintf(str_num_deadlock, "%d", num_deadlock);
+		string_append(&mensaje, str_num_deadlock);
+		string_append(&mensaje, ": ");
+		void concatenar_valor(void* item_id_ESI){
+			int id_ESI = (int) item_id_ESI;
+			char str[12];
+			sprintf(str, "%d", id_ESI);
+			string_append(&mensaje, "ESI:");
+			string_append(&mensaje, str);
+			string_append(&mensaje, " -");
+		}
+		list_iterate(deadlock, concatenar_valor);
+		puts(mensaje);
+		free(mensaje);
+		num_deadlock++;
+	}
+	list_iterate(lista_deadlocks, mostrar_deadlock);
+
+
+
+
+
+
+
+
+
+	/*
+	 * -------------------------------------
+	 *
+	 * Algoritmo marco
+	 *
+	 *
+	 * -------------------------------------
+	 */
+
+
+	/* t_list* claves_ESI = list_create();
 
 
 	t_list* ESIs_en_deadlock = list_create();
@@ -881,12 +1010,6 @@ void detectar_deadlock(t_list * claves_tomadas, t_list * claves_pedidas) {
 	//limpieza
 	list_destroy(claves_ESI);
 	list_destroy(ESIs_en_deadlock);
-	return;
-}
-
-void funcion_exit(int sig) {
-	puts("Abortando Planificador..");
-
-	(void) signal(SIGINT, SIG_DFL);
+	return;*/
 }
 

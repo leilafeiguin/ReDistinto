@@ -588,5 +588,14 @@ bool strings_equal(char* string1, char* string2) {
 	return strcmp(string1, string2) == 0 ? true : false;
 }
 
+t_list * copy_list(t_list * lista) {
+	t_list * nueva_lista = list_create();
+	void agregar_elemento(void * e) {
+		list_add(nueva_lista, e);
+	}
+	list_iterate(lista, agregar_elemento);
+	return nueva_lista;
+}
+
 
 
