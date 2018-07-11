@@ -14,7 +14,7 @@ int main(int argc, char* arguments[]) {
 	(void) signal(SIGINT, funcion_exit);
 
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/instancia_image.txt");
-	char* fileLog = "instancia_logs.txt";
+	char* fileLog = string_concat(3, "zzz--", nombre_instancia, ".txt");
 
 	logger = log_create(fileLog, "Instancia Logs", 1, 1);
 	log_info(logger, "Inicializando proceso Instancia. \n");
@@ -41,7 +41,7 @@ int main(int argc, char* arguments[]) {
 }
 
 instancia_configuracion get_configuracion() {
-	printf("Levantando archivo de configuracion del proceso Instancia\n");
+	log_info(logger, "Levantando archivo de configuracion del proceso Instancia \n");
 	instancia_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathInstanciaConfig);
 	configuracion.IP_COORDINADOR = copy_string(get_campo_config_string(archivo_configuracion, "IP_COORDINADOR"));
@@ -400,15 +400,18 @@ void crear_tabla_entradas(int cantidad_entradas, int tamanio_entrada) {
 }
 
 void mostrar_tabla_entradas() {
-	puts("_________________________________________________________________________");
-	puts("| ID | Clave | Contenido | Espacio utilizado | Cant. veces no accedida |");
-	puts("_________________________________________________________________________");
+	log_info(logger, "_________________________________________________________________________ \n");
+	log_info(logger, "| ID | Clave | Contenido | Espacio utilizado | Cant. veces no accedida | \n");
+	log_info(logger, "_________________________________________________________________________ \n");
 	void mostrar_entrada(t_entrada * entrada){
-		printf("|   %d   |   %s   |   %s   |   %d   |   %d   | \n", entrada->id, entrada->clave,
-				entrada->contenido, entrada->espacio_ocupado, entrada->cant_veces_no_accedida);
+		char str1[12], str2[12], str3[12];
+		sprintf(str1, "%d", entrada->id);
+		sprintf(str2, "%d",  entrada->espacio_ocupado);
+		sprintf(str3, "%d", entrada->cant_veces_no_accedida);
+		log_and_free(logger, string_concat(11, "|   ", str1, "   |   ", entrada->clave, "   |   ", entrada->contenido, "   |   ", str2, "   |   ", str3, "   | \n"));
 	}
 	list_iterate(instancia.entradas, mostrar_entrada);
-	puts("_________________________________________________________________________");
+	log_info(logger, "_________________________________________________________________________ \n");
 }
 
 void compactar_tabla_entradas() {
@@ -468,7 +471,7 @@ int validar_necesidad_compactacion(char* clave, char* valor) {
 }
 
 void funcion_exit(int sig) {
-	printf("Abortando %s.. \n", instancia.nombre);
+	log_and_free(logger, string_concat(3, "Abortando ", instancia.nombre, ".. \n"));
 	free(configuracion.ALGORITMO_REEMPLAZO);
 	free(configuracion.IP_COORDINADOR);
 	free(configuracion.NOMBRE_INSTANCIA);

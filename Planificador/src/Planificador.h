@@ -100,7 +100,7 @@ void ejecutar_listar(char* clave);
 
 void ejecutar_bloquear(int id_ESI, char* clave);
 
-void ejecutar_desbloquear(int id_ESI);
+void ejecutar_desbloquear(char* clave);
 
 void * planificar(void* unused);
 

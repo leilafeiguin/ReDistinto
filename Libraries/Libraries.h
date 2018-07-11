@@ -77,6 +77,7 @@ enum codigos_de_operacion {
 	cop_Coordinador_Clave_Liberada = 311,
 	cop_Coordinador_Claves_ESI_finalizado_Liberadas = 313,
 	cop_Coordinador_Bloquear_Claves_Iniciales = 314,
+	cop_Coordinador_Liberar_Clave = 315,
 	cop_handshake_Planificador_Consola = 39,
 
 	cop_Planificador_kill_ESI = 40,
@@ -279,5 +280,7 @@ bool strings_equal(char* string1, char* string2);
 void detectar_deadlock();
 
 t_list * copy_list(t_list * lista);
+
+int array_of_strings_length(char** array);
 
 #endif /* LIBRARIES_H_ */

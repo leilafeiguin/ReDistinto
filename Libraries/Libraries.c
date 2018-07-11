@@ -597,5 +597,15 @@ t_list * copy_list(t_list * lista) {
 	return nueva_lista;
 }
 
+int array_of_strings_length(char** array) {
+	int i = 0;
+	char* item;
+	while(array[i] != NULL) {
+		printf("Item: %s \n", array[i]);
+		i++;
+	}
+	return i;
+}
+
 
 

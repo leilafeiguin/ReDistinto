@@ -5,10 +5,11 @@
 
 int main(int argc, char **argv) {
 	char* path_script = argv[1];
-	//char* path_script = "/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/pathProvisorio.txt";
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/ESI/esi_image.txt");
-	char* fileLog;
-	fileLog = "ESI_logs.txt";
+
+	char** path_items = string_split(path_script, "/");
+	char* nombre_ESI = path_items[array_of_strings_length(path_items) - 1];
+	char* fileLog = string_concat(3, "zzz--", nombre_ESI, ".txt");
 
 	logger = log_create(fileLog, "ESI Logs", 1, 1);
 	log_info(logger, "Inicializando proceso ESI. \n");
@@ -28,17 +29,17 @@ int main(int argc, char **argv) {
 
 		switch(paquete->codigo_operacion) {
 			case codigo_error:
-				puts("Error en el Planificador. Abortando.");
+				log_info(logger, "Error en el Planificador. Abortando \n");
 				ejecutar_ESI = false;
 			break;
 
 			case cop_Planificador_kill_ESI:
-				printf("Finalizando por el Planificador. Motivo: %s. Abortando. \n", paquete->data);
+				log_and_free(logger, string_concat(3, "Finalizando por el Planificador. Motivo: ", paquete->data ,". Abortando. \n"));
 				ejecutar_ESI = false;
 			break;
 
 			case cop_ESI_finalizado:
-				puts("Proceso finalizado exitosamente.");
+				log_info(logger, "Proceso finalizado exitosamente. \n");
 				ejecutar_ESI = false;
 			break;
 
@@ -55,7 +56,7 @@ int main(int argc, char **argv) {
 }
 
 ESI_configuracion get_configuracion() {
-	printf("Levantando archivo de configuracion del proceso ESI\n");
+	log_info(logger, "Levantando archivo de configuracion del proceso ESI\n");
 	ESI_configuracion configuracion;
 	t_config* archivo_configuracion = config_create(pathESIConfig);
 	configuracion.IP_COORDINADOR = get_campo_config_string(archivo_configuracion, "IP_COORDINADOR");
@@ -79,30 +80,30 @@ void leerScript(char* path_script){
 }
 
 void ejecutar_get(char* clave) {
-	printf("Ejecutando GET %s \n", clave);
+	log_and_free(logger, string_concat(3, "Ejecutando GET ", clave ," \n"));
 	enviar(Coordinador,cop_Coordinador_Ejecutar_Get, size_of_string(clave), clave);
 	t_paquete* paqueteValor = recibir(Coordinador);
 	switch(paqueteValor->codigo_operacion) {
 		case cop_Coordinador_Sentencia_Exito:
-			printf("El valor de clave '%s' es '%s'. \n", clave, paqueteValor->data);
+			log_and_free(logger, string_concat(5, "El valor de clave '", clave, "' es '", paqueteValor->data, "'. \n"));
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+			log_and_free(logger, string_concat(3, "La clave '", clave, "' se encuentra tomada por otro ESI. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
-			printf("La clave '%s' todavia no tiene ningun valor. \n", clave);
+			log_and_free(logger, string_concat(3, "La clave '", clave, "' todavia no tiene ningun valor. \n"));
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe:
-			printf("La operacion GET '%s' fallo. La instancia con la clave no se encuentra disponible. \n", clave);
+			log_and_free(logger, string_concat(3, "La operacion GET '", clave, "' fallo. La instancia con la clave no se encuentra disponible. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-			printf("La operacion GET '%s' fallo. La clave supera los 40 caracteres. \n", clave);
+			log_and_free(logger, string_concat(3, "La operacion GET '", clave, "' fallo. La clave supera los 40 caracteres. \n"));
 			index_proxima_instruccion--;
 		break;
 
@@ -112,7 +113,7 @@ void ejecutar_get(char* clave) {
 }
 
 void ejecutar_set(char* clave, char* valor) {
-	printf("Ejecutando SET %s:%s \n", clave, valor);
+	log_and_free(logger, string_concat(5, "Ejecutando SET ", clave, ":", valor," \n"));
 	int tamanio_buffer = size_of_strings(2, clave, valor);
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;
@@ -124,7 +125,7 @@ void ejecutar_set(char* clave, char* valor) {
 	t_paquete* paqueteResultadoOperacion = recibir(Coordinador);
 	switch(paqueteResultadoOperacion->codigo_operacion) {
 		case cop_Coordinador_Sentencia_Exito:
-			printf("La operacion SET '%s' : '%s' fue ejecutada exitosamente. \n", clave, valor);
+			log_and_free(logger, string_concat(5, "La operacion SET '", clave, ":", valor," fue ejecutada exitosamente \n"));
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
@@ -156,31 +157,31 @@ void ejecutar_set(char* clave, char* valor) {
 }
 
 void ejecutar_store(char* clave) {
-	printf("Ejecutando STORE %s \n", clave);
+	log_and_free(logger, string_concat(3, "Ejecutando STORE ", clave," \n"));
 	enviar(Coordinador,cop_Coordinador_Ejecutar_Store, size_of_string(clave), clave);
 	t_paquete* paqueteResultadoOperacion = recibir(Coordinador);
 	switch(paqueteResultadoOperacion->codigo_operacion) {
 		case cop_Coordinador_Sentencia_Exito:
-			printf("La operacion STORE '%s' fue ejecutada exitosamente. \n", clave);
+			log_and_free(logger, string_concat(3, "La operacion STORE '", clave,"' fue ejecutada exitosamente. \n"));
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			printf("La clave '%s' se encuentra tomada por otro ESI. \n", clave);
+			log_and_free(logger, string_concat(3, "La clave '", clave,"' se encuentra tomada por otro ESI. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
-			printf("La operacion STORE '%s' fallo. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n", clave);
+			log_and_free(logger, string_concat(3, "La operacion STORE '", clave,"'  fallo. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-			printf("La operacion STORE '%s' fallo. La clave supera los 40 caracteres. \n", clave);
+			log_and_free(logger, string_concat(3, "La operacion STORE '", clave,"'  fallo. La clave supera los 40 caracteres. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida:
-			printf("La operacion STORE '%s' fallo. GET no soliciado para la clave '%s'. \n", clave, clave);
+			log_and_free(logger, string_concat(5, "La operacion STORE '", clave,"'  fallo. GET no solicitado para la clave '", clave, "'. \n"));
 			index_proxima_instruccion--;
 		break;
 	}
@@ -267,7 +268,10 @@ void conectar_con_planificador() {
 	desplazamiento = 0;
 	ID = deserializar_int(paquetePlanif->data, &desplazamiento);
 	liberar_paquete(paquetePlanif);
-	printf("ESI ID: %d \n", ID);
+	char str[12];
+	sprintf(str, "%d", ID);
+	log_and_free(logger, string_concat(3, "ESI ID: ", str, " \n"));
+
 }
 
 void conectar_con_coordinador() {
