@@ -440,7 +440,7 @@ void ordenar_por_hrrn(){
 
 
 float estimarRafaga(t_ESI * ESI){
-	return ESI->cantidad_instrucciones; // TODO borrar
+	//return ESI->cantidad_instrucciones; // TODO borrar
 	int tn = ESI->duracionRafaga; //Duracion de la rafaga anterior
 	float Tn = ESI->estimacionUltimaRafaga; // Estimacion anterior
 	float estimacion = (configuracion.ALFA_PLANIFICACION / 100)* tn + (1 - (configuracion.ALFA_PLANIFICACION / 100))* Tn;

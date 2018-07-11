@@ -25,6 +25,9 @@ un_socket Coordinador;
 void* archivo;
 t_log* logger;
 int punteroInstancia = 0; //Algoritmo circular
+pthread_t hilo_dump;
+
+pthread_mutex_t mutex_keys_contenidas;
 
 void inicializar_instancia();
 
@@ -81,6 +84,8 @@ void sumar_a_entradas_no_modificadas(char* clave);
 void funcion_exit(int sig);
 
 void free_t_entrada(void * item_entrada);
+
+void* funcion_hilo_dump(void * unused);
 
 // ALGORITMOS DE REEMPLAZO
 

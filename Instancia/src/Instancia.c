@@ -7,13 +7,14 @@
 #include "Instancia.h"
 
 int main(int argc, char* arguments[]) {
+	pthread_mutex_init(&mutex_keys_contenidas, NULL);
+
 	nombre_instancia = arguments[1]; // BORRAR PROXIMAMENTE
 
 	(void) signal(SIGINT, funcion_exit);
 
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/instancia_image.txt");
-	char* fileLog;
-	fileLog = "instancia_logs.txt";
+	char* fileLog = "instancia_logs.txt";
 
 	logger = log_create(fileLog, "Instancia Logs", 1, 1);
 	log_info(logger, "Inicializando proceso Instancia. \n");
@@ -76,6 +77,16 @@ void inicializar_instancia() {
 		mostrar_tabla_entradas();
 	}
 	liberar_paquete(paqueteTablaEntradas);
+
+	// Iniciar hilo de dumps
+	pthread_create(&hilo_dump, NULL, funcion_hilo_dump, NULL);
+}
+
+void* funcion_hilo_dump(void * unused) {
+	while(1) {
+		sleep(configuracion.INTERVALO_DUMP);
+		ejecutar_dump();
+	}
 }
 
 int esperar_instrucciones() {
@@ -190,7 +201,9 @@ int ejecutar_set(void * clave_valor) {
 	char* clave = deserializar_string(clave_valor, &desplazamiento);
 	char* valor = deserializar_string(clave_valor, &desplazamiento);
 	set(clave, valor, true); // Seteo el valor
+	pthread_mutex_lock(&mutex_keys_contenidas);
 	enviar_listado_de_strings(Coordinador, instancia.keys_contenidas); // Le envio al coordinador el listado de claves actualizado
+	pthread_mutex_unlock(&mutex_keys_contenidas);
 	enviar_cantidad_entradas_ocupadas();
 	return 1;
 }
@@ -239,7 +252,9 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	free(valor_restante_a_guardar);
 
 	// Agrego la clave a la lista de claves
+	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_add(instancia.keys_contenidas, copy_string(clave));
+	pthread_mutex_unlock(&mutex_keys_contenidas);
 
 	// Le sumo uno a las entradas no accedidas
 	sumar_a_entradas_no_modificadas(clave);
@@ -282,8 +297,9 @@ int ejecutar_store(char* clave) {
 
 int ejecutar_dump() {
 	log_info(logger, "Ejecutando DUMP \n");
+	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_iterate(instancia.keys_contenidas, dump_clave);
-	enviar(Coordinador, cop_Instancia_Ejecucion_Exito, size_of_string(""), ""); // Avisa al coordinador que el DUMP se ejecuto de forma exitosa
+	pthread_mutex_unlock(&mutex_keys_contenidas);
 }
 
 int dump_clave(char* clave) {
@@ -312,14 +328,19 @@ int remover_clave(char* clave) {
 	bool clave_match(char* key_lista) {
 		return strcmp(clave, key_lista) == 0 ? true : false;
 	}
+	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_remove_by_condition(instancia.keys_contenidas, clave_match);
+	pthread_mutex_unlock(&mutex_keys_contenidas);
 }
 
 bool clave_ingresada(char* clave) {
 	bool clave_match(char* key_lista) {
 		return strings_equal(clave, key_lista);
 	}
-	return list_find(instancia.keys_contenidas, clave_match) == NULL ? false : true;
+	pthread_mutex_lock(&mutex_keys_contenidas);
+	bool result = list_find(instancia.keys_contenidas, clave_match) == NULL ? false : true;
+	pthread_mutex_unlock(&mutex_keys_contenidas);
+	return result;
 }
 
 t_list * get_entradas_con_clave(char* clave) {
@@ -404,8 +425,12 @@ void compactar_tabla_entradas() {
 		clave_valor->valor = valor;
 		list_add(lista_claves, clave_valor);
 	}
+
+	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_iterate(instancia.keys_contenidas, agregar_clave_valor);
 	list_iterate(instancia.keys_contenidas, remover_clave);
+	pthread_mutex_unlock(&mutex_keys_contenidas);
+
 	void restaurar_clave_valor(t_clave_valor* clave_valor) {
 		set(clave_valor->clave, clave_valor->valor, false);
 		free(clave_valor);
@@ -437,6 +462,7 @@ int validar_necesidad_compactacion(char* clave, char* valor) {
 	if (necesidad_compactacion) {
 		log_info(logger, "Es necesario compactar \n");
 	}
+
 	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;
 	enviar(Coordinador, cod_op, size_of_string(""), "");
 }
@@ -500,7 +526,11 @@ t_entrada * biggest_space_used() {
 			clave_mas_grande = clave;
 		}
 	}
+
+	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_iterate(instancia.keys_contenidas, tamanio_clave);
+	pthread_mutex_unlock(&mutex_keys_contenidas);
+
 	t_list * entradas_con_clave = get_entradas_con_clave(clave_mas_grande);
 	t_entrada * primera_entrada_clave_mas_grande = list_get(entradas_con_clave, 0);
 	list_destroy(entradas_con_clave);
