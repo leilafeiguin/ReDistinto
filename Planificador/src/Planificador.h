@@ -106,6 +106,8 @@ void * planificar(void* unused);
 
 bool funcion_SJF(void* item_ESI1, void* item_ESI2);
 
+bool funcion_FIFO(t_ESI * ESI1, t_ESI * ESI2);
+
 void ordenar_por_sjf_sd();
 
 void ordenar_por_sjf_cd();
@@ -116,7 +118,7 @@ void ordenar_por_hrrn();
 
 void list_swap_elems(t_list,void*,void*);
 
-float estimarRafaga(t_ESI * ESI);
+void estimarRafaga(t_ESI * ESI);
 
 t_ESI* esi_por_id(int id_ESI);
 
@@ -169,6 +171,8 @@ t_list * recibir_claves_tomadas(void * buffer);
 void free_claves_tomadas(void * item_clave_tomada);
 
 void free_t_bloqueado(void * item_bloqueo);
+
+void estimar_ESIs();
 
 /*
  * -----------------------------------------------

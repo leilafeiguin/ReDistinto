@@ -187,8 +187,8 @@ void * planificar(void* unused){
 		log_and_free(logger, string_concat(3, "Ejecutando ESI ", str, " \n"));
 		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
 
-		ESI_ejecutando->duracionRafaga++;
-		// actualizarRafaga();
+		//ESI_ejecutando->duracionRafaga++;
+		actualizarRafaga();
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 	}
 }
@@ -211,6 +211,7 @@ void* ejecutar_consola(void * unused){
 			strncpy(lineaCopia, linea, lineaLength);
 			primeraPalabra = strtok_r(lineaCopia, " ", &context);
 
+			log_info(logger, lineaCopia);
 			if (strcmp(linea, "pausar") == 0) {
 				log_info(logger, "Eligio la opcion Pausar\n");
 				ejecutar_pausar();
@@ -412,7 +413,14 @@ bool validar_ESI_id(int id_ESI){
 bool funcion_SJF(void* item_ESI1, void* item_ESI2) {
 	t_ESI * ESI1 = (t_ESI *) item_ESI1;
 	t_ESI * ESI2 = (t_ESI *) item_ESI2;
-	return estimarRafaga(ESI1) < estimarRafaga(ESI2);
+	if (ESI1->estimacionUltimaRafaga == ESI2->estimacionUltimaRafaga) {
+		return funcion_FIFO(ESI1, ESI2);
+	}
+	return ESI1->estimacionUltimaRafaga < ESI2->estimacionUltimaRafaga;
+}
+
+bool funcion_FIFO(t_ESI * ESI1, t_ESI * ESI2) {
+	return ESI1->id_ESI < ESI2->id_ESI;
 }
 
 void ordenar_por_sjf_sd(){
@@ -427,33 +435,46 @@ void ordenar_por_sjf_cd(){
 }
 
 float response_ratio(t_ESI * ESI) {
-	return (estimarRafaga(ESI) + ESI->w) / estimarRafaga(ESI);
+	return (ESI->estimacionUltimaRafaga + ESI->w) / ESI->estimacionUltimaRafaga;
 }
 
 void ordenar_por_hrrn(){
 	bool hrrn(void* item_ESI1, void* item_ESI2) {
 		t_ESI * ESI1 = (t_ESI *) item_ESI1;
 		t_ESI * ESI2 = (t_ESI *) item_ESI2;
-		return response_ratio(ESI1) > response_ratio(ESI2);
+		float response_ratio1 = response_ratio(ESI1);
+		float response_ratio2 = response_ratio(ESI2);
+		if (response_ratio1 == response_ratio2) {
+			return funcion_FIFO(ESI1, ESI2);
+		}
+		return response_ratio1 > response_ratio2;
 	}
 	list_sort(cola_de_listos, hrrn);
 }
 
 
-float estimarRafaga(t_ESI * ESI){
-	//return ESI->cantidad_instrucciones; // TODO borrar
+void estimarRafaga(t_ESI * ESI){
 	int tn = ESI->duracionRafaga; //Duracion de la rafaga anterior
 	float Tn = ESI->estimacionUltimaRafaga; // Estimacion anterior
-	float estimacion = (configuracion.ALFA_PLANIFICACION / 100)* tn + (1 - (configuracion.ALFA_PLANIFICACION / 100))* Tn;
+	float porcentaje_alfa = ((float) configuracion.ALFA_PLANIFICACION) / 100;
+	float estimacion = porcentaje_alfa * tn + (1 - porcentaje_alfa) * Tn;
 	ESI->estimacionUltimaRafaga = estimacion;
-	return estimacion;
+}
+
+void estimar_ESIs_listos() {
+	void estimar(void * item_ESI) {
+		t_ESI * ESI = (t_ESI *) item_ESI;
+		estimarRafaga(ESI);
+	}
+	pthread_mutex_lock(&mutex_cola_de_listos);
+	list_iterate(cola_de_listos, estimar);
+	pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
 void actualizarRafaga() {
 	if(Ultimo_ESI_Ejecutado == ESI_ejecutando){
 		ESI_ejecutando->duracionRafaga++;
 	}else{
-		Ultimo_ESI_Ejecutado->duracionRafaga = 0;
 		ESI_ejecutando->duracionRafaga = 1;
 	}
 }
@@ -519,14 +540,14 @@ void * escuchar_coordinador(void * argumentos) {
 
 		int desplazamiento = 0;
 		int id_ESI;
-		t_ESI * ESI;
 		char str[12];
-		sprintf(str, "%d", ESI->id_ESI);
+		t_ESI * ESI;
 
 		switch(paqueteRecibido->codigo_operacion) {
 			case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
+				sprintf(str, "%d", id_ESI);
 				log_and_free(logger, string_concat(3, "ESI ", str, ": Instruccion ejecutada con exito. Clave sin valor. \n"));
 				ESI_ejecutado_exitosamente(ESI);
 				sem_post(&sem_planificar);
@@ -535,6 +556,7 @@ void * escuchar_coordinador(void * argumentos) {
 			case cop_Coordinador_Sentencia_Exito:
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
+				sprintf(str, "%d", id_ESI);
 				log_and_free(logger, string_concat(3, "ESI ", str, ": Instruccion ejecutada con exito. \n"));
 				ESI_ejecutado_exitosamente(ESI);
 				sem_post(&sem_planificar);
@@ -551,6 +573,7 @@ void * escuchar_coordinador(void * argumentos) {
 			case cop_Coordinador_Sentencia_Fallo_No_Instancias:
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
+				sprintf(str, "%d", id_ESI);
 				log_and_free(logger, string_concat(3,"ESI ", str, ": La instruccion fallo. No hay instancias dispobibles. \n"));
 				pasar_ESI_a_bloqueado(ESI, "", no_instancias_disponiles);
 				sem_post(&sem_planificar);
@@ -560,6 +583,7 @@ void * escuchar_coordinador(void * argumentos) {
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
 				char* nombre_instancia = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				sprintf(str, "%d", id_ESI);
 				log_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. La instancia con la clave no se encuentra disponible. \n"));
 				pasar_ESI_a_bloqueado(ESI, nombre_instancia, instancia_no_disponible);
 				sem_post(&sem_planificar);
@@ -569,6 +593,7 @@ void * escuchar_coordinador(void * argumentos) {
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
 				char* nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				sprintf(str, "%d", id_ESI);
 				log_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. La clave se encuentra tomada. \n"));
 				pasar_ESI_a_bloqueado(ESI, nombre_clave, clave_en_uso);
 				free(nombre_clave);
@@ -578,6 +603,7 @@ void * escuchar_coordinador(void * argumentos) {
 			case cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida:
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
+				sprintf(str, "%d", id_ESI);
 				log_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. No solicito el GET para la clave pedida. \n"));
 				kill_ESI(ESI, "No solicito el GET para la clave pedida");
 				sem_post(&sem_planificar);
@@ -672,6 +698,9 @@ t_ESI * nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 }
 
 void ordenar_cola_listos() {
+	// Aplicamos las estimaciones
+	estimar_ESIs_listos();
+
 	//Ordenamos la cola de listos segun el algoritmo.
 	if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") == 0 ){
 		ordenar_por_sjf_sd();
