@@ -151,7 +151,11 @@ t_entrada * get_entrada_a_guardar_algoritmo_reemplazo(char* clave, char* valor) 
 	} else {
 		entrada_reemplazante = algoritmo_circular(valor);
 	}
+
+	log_and_free(logger, string_concat(5, "La clave '", entrada_reemplazante->clave, "' fue reemplazada por la clave '", clave ,"' \n"));
+	pthread_mutex_lock(&mutex_keys_contenidas);
 	remover_clave(entrada_reemplazante->clave);
+	pthread_mutex_unlock(&mutex_keys_contenidas);
 	return entrada_reemplazante;
 }
 
@@ -163,17 +167,18 @@ t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
 	 * luego aplicara el algoritmo de reemplazo.
 	 */
 	int cant_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
+	printf("cant_entradas_necesarias: %d \n", cant_entradas_necesarias);
 	t_entrada * entrada_guardar = NULL;	// Entrada inicial donde se guardara el valor
 	int i_entrada = 0;
 	while(entrada_guardar == NULL && i_entrada < cantidad_entradas) {
 		t_entrada * entrada_i = get_entrada_x_index(i_entrada);
-		if (entrada_i->espacio_ocupado == 0) {
+		if (entrada_disponible(entrada_i, clave)) {
 			int max_offset = i_entrada + cant_entradas_necesarias - 1;
-			bool espacio_disponible = max_offset >= cantidad_entradas ? false : true;
+			bool espacio_disponible = max_offset < cantidad_entradas;
 			int j_entrada = i_entrada + 1;
 			while (espacio_disponible && j_entrada <= max_offset) {
 				t_entrada * entrada_j = get_entrada_x_index(j_entrada);
-				if (entrada_j->espacio_ocupado == 0) {
+				if (entrada_disponible(entrada_j, clave)) {
 					j_entrada++;
 				} else {
 					espacio_disponible = false;
@@ -188,6 +193,10 @@ t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
 		i_entrada++;
 	}
 	return entrada_guardar;
+}
+
+bool entrada_disponible(t_entrada * entrada, char* clave) {
+	return entrada->espacio_ocupado == 0 || strings_equal(entrada->clave, clave);
 }
 
 t_entrada * get_next(t_entrada * entrada) {
@@ -218,7 +227,9 @@ void enviar_cantidad_entradas_ocupadas() {
 int set(char* clave, char* valor, bool log_mensaje) {
 	// Borro el valor actual si clave ya fue ingresada
 	if (clave_ingresada(clave)) {
+		pthread_mutex_lock(&mutex_keys_contenidas);
 		remover_clave(clave);
+		pthread_mutex_unlock(&mutex_keys_contenidas);
 	}
 
 	if (log_mensaje) {
@@ -236,7 +247,7 @@ int set(char* clave, char* valor, bool log_mensaje) {
 	while(espacio_restante_a_guardar > 0) {
 		entrada->clave = clave;
 		char* contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
-		entrada->contenido = contenido;
+		entrada->contenido = copy_string(contenido);
 		entrada->espacio_ocupado = size_of_string(entrada->contenido) -1;
 		entrada->cant_veces_no_accedida = 0;
 		espacio_restante_a_guardar += (-1) * (entrada->espacio_ocupado);
@@ -258,6 +269,8 @@ int set(char* clave, char* valor, bool log_mensaje) {
 
 	// Le sumo uno a las entradas no accedidas
 	sumar_a_entradas_no_modificadas(clave);
+
+	mostrar_tabla_entradas();
 	return 0;
 }
 
@@ -328,9 +341,7 @@ int remover_clave(char* clave) {
 	bool clave_match(char* key_lista) {
 		return strcmp(clave, key_lista) == 0 ? true : false;
 	}
-	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_remove_by_condition(instancia.keys_contenidas, clave_match);
-	pthread_mutex_unlock(&mutex_keys_contenidas);
 }
 
 bool clave_ingresada(char* clave) {
@@ -344,7 +355,8 @@ bool clave_ingresada(char* clave) {
 }
 
 t_list * get_entradas_con_clave(char* clave) {
-	bool entrada_tiene_la_clave(t_entrada * entrada){
+	bool entrada_tiene_la_clave(void * item_entrada){
+		t_entrada * entrada = (t_entrada *) item_entrada;
 		return strings_equal(clave, entrada->clave);
 	}
 	return list_filter(instancia.entradas, entrada_tiene_la_clave);
@@ -428,7 +440,6 @@ void compactar_tabla_entradas() {
 		clave_valor->valor = valor;
 		list_add(lista_claves, clave_valor);
 	}
-
 	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_iterate(instancia.keys_contenidas, agregar_clave_valor);
 	list_iterate(instancia.keys_contenidas, remover_clave);
@@ -439,7 +450,7 @@ void compactar_tabla_entradas() {
 		free(clave_valor);
 	}
 	list_iterate(lista_claves, restaurar_clave_valor);
-	list_destroy_and_destroy_elements(lista_claves, free);
+	// list_destroy_and_destroy_elements(lista_claves, free);
 }
 
 int cantidad_entradas_ocupadas() {
@@ -461,9 +472,10 @@ int validar_necesidad_compactacion(char* clave, char* valor) {
 		char* valor_actual = get(clave);;
 		cantidad_entradas_libres += cantidad_entradas_necesarias(valor_actual, tamanio_entradas);
 	}
+
 	bool necesidad_compactacion = cant_entradas_necesarias <= cantidad_entradas_libres && get_entrada_a_guardar(clave, valor) == NULL; // Hay fragmentacion externa
 	if (necesidad_compactacion) {
-		log_info(logger, "Es necesario compactar \n");
+		log_and_free(logger, string_concat(5, "Es necesario compactar para ingresar '", clave, "' : '", valor, "' \n"));
 	}
 
 	int cod_op = necesidad_compactacion ? cop_Instancia_Necesidad_Compactacion_True : cop_Instancia_Necesidad_Compactacion_False;

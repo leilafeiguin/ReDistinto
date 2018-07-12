@@ -514,21 +514,25 @@ void conectar_con_coordinador() {
 }
 
 void bloquear_claves_iniciales() {
-	t_list * lista_claves = list_create();
-	char** claves = str_split(configuracion.CLAVES_BLOQUEADAS, ',');
-	int i = 0;
-	while(claves[i] != NULL) {
-		list_add(lista_claves, claves[i]);
-		i++;
+	if (strings_equal("-", configuracion.CLAVES_BLOQUEADAS)) {
+		t_list * lista_claves = list_create();
+		char** claves = str_split(configuracion.CLAVES_BLOQUEADAS, ',');
+
+		int i = 0;
+		while(claves[i] != NULL) {
+			list_add(lista_claves, claves[i]);
+			i++;
+		}
+
+		int tamanio_buffer = size_of_list_of_strings_to_serialize(lista_claves);
+		void * buffer = malloc(tamanio_buffer);
+		int desplazamiento = 0;
+		serializar_lista_strings(buffer, &desplazamiento, lista_claves);
+		enviar_mensaje_coordinador(cop_Coordinador_Bloquear_Claves_Iniciales, tamanio_buffer, buffer);
+		free(buffer);
+		free(claves);
+		list_destroy_and_destroy_elements(lista_claves, free);
 	}
-	int tamanio_buffer = size_of_list_of_strings_to_serialize(lista_claves);
-	void * buffer = malloc(tamanio_buffer);
-	int desplazamiento = 0;
-	serializar_lista_strings(buffer, &desplazamiento, lista_claves);
-	enviar_mensaje_coordinador(cop_Coordinador_Bloquear_Claves_Iniciales, tamanio_buffer, buffer);
-	free(buffer);
-	free(claves);
-	list_destroy_and_destroy_elements(lista_claves, free);
 }
 
 void * escuchar_coordinador(void * argumentos) {

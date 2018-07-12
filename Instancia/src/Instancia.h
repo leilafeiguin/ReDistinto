@@ -87,6 +87,8 @@ void free_t_entrada(void * item_entrada);
 
 void* funcion_hilo_dump(void * unused);
 
+bool entrada_disponible(t_entrada * entrada, char* clave); // Indica si una entrada esta disponible para guardar una determinada clave
+
 // ALGORITMOS DE REEMPLAZO
 
 t_entrada * algoritmo_circular(char* valor);
