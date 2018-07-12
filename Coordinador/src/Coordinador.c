@@ -761,19 +761,22 @@ void liberar_clave_tomada(char* clave) {
 }
 
 void liberar_claves_ESI(t_ESI * ESI) {
-	bool ESI_match(void * item){
+	bool ESI_match(void * item) {
 		t_clave_tomada * clave_tomada  = (t_clave_tomada *) item;
-		if (clave_tomada->id_ESI == ESI->id_ESI) {
-			enviar_mensaje_planificador(cop_Coordinador_Clave_Liberada, size_of_string(clave_tomada->clave), clave_tomada->clave);
-			return true;
-		}
-		return false;
+		return clave_tomada->id_ESI == ESI->id_ESI;
 	}
-	list_remove_by_condition(lista_claves_tomadas, ESI_match);
+	t_list * lista_claves_liberadas = list_remove_all_by_condition(lista_claves_tomadas, ESI_match);
+
+	void enviar_clave_liberda(void * item) {
+		t_clave_tomada * clave_tomada  = (t_clave_tomada *) item;
+		enviar_mensaje_planificador(cop_Coordinador_Clave_Liberada, size_of_string(clave_tomada->clave), clave_tomada->clave);
+	}
+	list_iterate(lista_claves_liberadas, enviar_clave_liberda);
+	list_destroy_and_destroy_elements(lista_claves_liberadas, free);
 }
 
 void kill_ESI(t_ESI * ESI) {
-	bool encontrar_esi(void* esi){
+	bool encontrar_esi(void* esi) {
 		return ((t_ESI*)esi)->id_ESI == ESI->id_ESI;
 	}
 	list_remove_by_condition(lista_ESIs, encontrar_esi);
@@ -891,16 +894,15 @@ void handle_ESI_finalizado(t_ESI *  ESI) {
 	char str[12];
 	sprintf(str, "%d", ESI->id_ESI);
 	log_and_free(logger, string_concat(3, "ESI ", str," finalizado\n"));
-	t_list * lista_claves_liberadas = list_create();
-	bool ESI_match(void * item){
+
+	sprintf(str, "%d", list_size(lista_claves_tomadas));
+	log_and_free(logger, string_concat(3, "Cant claves tomadas:  ", str," \n"));
+
+	bool ESI_match(void * item) {
 		t_clave_tomada * clave_tomada  = (t_clave_tomada *) item;
-		if (clave_tomada->id_ESI == ESI->id_ESI) {
-			list_add(lista_claves_liberadas, clave_tomada->clave);
-			return true;
-		}
-		return false;
+		return clave_tomada->id_ESI == ESI->id_ESI;
 	}
-	list_remove_by_condition(lista_claves_tomadas, ESI_match);
+	t_list * lista_claves_liberadas = list_remove_all_by_condition(lista_claves_tomadas, ESI_match);
 	int tamanio_buffer = size_of_list_of_strings_to_serialize(lista_claves_liberadas);
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;

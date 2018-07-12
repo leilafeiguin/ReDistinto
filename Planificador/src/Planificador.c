@@ -514,7 +514,7 @@ void conectar_con_coordinador() {
 }
 
 void bloquear_claves_iniciales() {
-	if (strings_equal("-", configuracion.CLAVES_BLOQUEADAS)) {
+	if (!strings_equal("-", configuracion.CLAVES_BLOQUEADAS)) {
 		t_list * lista_claves = list_create();
 		char** claves = str_split(configuracion.CLAVES_BLOQUEADAS, ',');
 
@@ -766,18 +766,21 @@ void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo) { // Crea la estructura 
 void desbloquear_ESIs(int motivo, char* parametro) {
 	bool ESI_bloqueado_con_motivo(void * blocked){
 		t_bloqueado* bloqueo = (t_bloqueado*) blocked;
-		if (bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strcmp(parametro, bloqueo->clave_de_bloqueo) == 0)) {
-			char str[12];
-			sprintf(str, "%d", bloqueo->ESI->id_ESI);
-			log_and_free(logger, string_concat(3, "ESI ", str," desbloqueado. \n"));
-			pasar_ESI_a_listo(bloqueo->ESI);
-			return true;
-		}
-		return false;
+		return bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strings_equal(parametro, bloqueo->clave_de_bloqueo));
 	}
 	pthread_mutex_lock(&mutex_cola_de_bloqueados);
-	list_remove_by_condition(cola_de_bloqueados, ESI_bloqueado_con_motivo);
+	t_list * lista_claves_liberadas = list_remove_all_by_condition(cola_de_bloqueados, ESI_bloqueado_con_motivo);
 	pthread_mutex_unlock(&mutex_cola_de_bloqueados);
+
+	void pasar_a_listo(void * blocked){
+		t_bloqueado* bloqueo = (t_bloqueado*) blocked;
+		char str[12];
+		sprintf(str, "%d", bloqueo->ESI->id_ESI);
+		log_and_free(logger, string_concat(3, "ESI ", str," desbloqueado. \n"));
+		pasar_ESI_a_listo(bloqueo->ESI);
+	}
+	list_iterate(lista_claves_liberadas, pasar_a_listo);
+	list_destroy_and_destroy_elements(lista_claves_liberadas, free);
 }
 
 void kill_ESI(t_ESI * ESI, char* motivo) {

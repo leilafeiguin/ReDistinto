@@ -607,5 +607,13 @@ int array_of_strings_length(char** array) {
 	return i;
 }
 
+t_list * list_remove_all_by_condition(t_list * lista, bool(*condicion)(void*)) {
+	t_list * result = list_filter(lista, condicion);
+	while (list_find(lista, condicion) != NULL) {
+		list_remove_by_condition(lista, condicion);
+	}
+	return result;
+}
+
 
 

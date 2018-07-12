@@ -283,4 +283,6 @@ t_list * copy_list(t_list * lista);
 
 int array_of_strings_length(char** array);
 
+t_list * list_remove_all_by_condition(t_list * lista, bool(*condicion)(void*)); // Remueve todos los elementos de una determinada condicion y los devuelve
+
 #endif /* LIBRARIES_H_ */
