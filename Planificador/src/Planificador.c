@@ -391,6 +391,7 @@ void pasar_ESI_a_ejecutando(t_ESI* ESI){
 	ESI->w = 0;
 	ESI->estado = ejecutando;
 	ESI_ejecutando = ESI;
+	ESI->ejecutado_desde_estimacion = true;
 	aumentar_espera_ESIs_listos();
 }
 
@@ -471,7 +472,10 @@ void estimarRafaga(t_ESI * ESI){
 void estimar_ESIs_listos() {
 	void estimar(void * item_ESI) {
 		t_ESI * ESI = (t_ESI *) item_ESI;
-		estimarRafaga(ESI);
+		if (ESI->ejecutado_desde_estimacion) {
+			ESI->ejecutado_desde_estimacion = false;
+			estimarRafaga(ESI);
+		}
 	}
 	pthread_mutex_lock(&mutex_cola_de_listos);
 	list_iterate(cola_de_listos, estimar);
@@ -700,6 +704,7 @@ t_ESI * nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 	newESI->id_ESI = idESI;
 	newESI->cantidad_instrucciones = cantidad_instrucciones;
 	newESI->duracionRafaga = 0;
+	newESI->ejecutado_desde_estimacion = false;
 	pthread_mutex_lock(&mutex_lista_de_ESIs);
 	list_add(lista_de_ESIs, newESI);
 	pthread_mutex_unlock(&mutex_lista_de_ESIs);

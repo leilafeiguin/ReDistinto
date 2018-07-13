@@ -106,6 +106,7 @@ typedef struct {
 	int w;
 	float duracionRafaga;
 	float estimacionUltimaRafaga;
+	bool ejecutado_desde_estimacion;
 } t_ESI;
 
 typedef struct {
