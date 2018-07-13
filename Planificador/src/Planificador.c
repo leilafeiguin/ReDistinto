@@ -35,9 +35,6 @@ int main(void) {
 	pthread_t hilo_de_planificacion;
 	pthread_create(&hilo_de_planificacion, NULL, planificar, NULL);
 
-	ESI_ejecutando = malloc(sizeof(t_ESI));
-	Ultimo_ESI_Ejecutado = malloc(sizeof(t_ESI));
-
 	conectar_con_coordinador();
 
 /*
@@ -163,32 +160,37 @@ void salir(int motivo){
 	free(configuracion.IP_COORDINADOR);
 	free(configuracion.PUERTO_COORDINADOR);
 	free(configuracion.CLAVES_BLOQUEADAS);
-	free(ESI_ejecutando);
-	free(Ultimo_ESI_Ejecutado);
 	exit(motivo);
 }
 
 void * planificar(void* unused){
 	while(1) {
-		sem_wait(&sem_ESIs_listos); // Espero a que haya ESIs
 		sem_wait(&sem_planificar); // Espero a a ver si tengo que planificar
+		t_ESI* ESI_a_ejecutar = get_ESI_a_ejecutar();
 		sem_wait(&sem_sistema_ejecucion);
 		sem_post(&sem_sistema_ejecucion);
 
-		ordenar_cola_listos();
-		pthread_mutex_lock(&mutex_cola_de_listos);
-		t_ESI* ESI_a_ejecutar = list_get(cola_de_listos,0);
-		pthread_mutex_unlock(&mutex_cola_de_listos);
 		pasar_ESI_a_ejecutando(ESI_a_ejecutar);
 		char str[12];
 		sprintf(str, "%d", ESI_a_ejecutar->id_ESI);
 		log_and_free(logger, string_concat(3, "Ejecutando ESI ", str, " \n"));
-		enviar(ESI_ejecutando->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
+		enviar(ESI_a_ejecutar->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
 
-		//ESI_ejecutando->duracionRafaga++;
-		actualizarRafaga();
+		actualizarRafaga(ESI_a_ejecutar);
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 	}
+}
+
+t_ESI * get_ESI_a_ejecutar() {
+	if (ESI_ejecutando != NULL) {
+		return ESI_ejecutando;
+	}
+	sem_wait(&sem_ESIs_listos); // Espero a que haya ESIs listos
+	t_ESI* ESI_a_ejecutar;
+	pthread_mutex_lock(&mutex_cola_de_listos);
+	ESI_a_ejecutar = list_get(cola_de_listos,0);
+	pthread_mutex_unlock(&mutex_cola_de_listos);
+	return ESI_a_ejecutar;
 }
 
 void* ejecutar_consola(void * unused){
@@ -334,7 +336,16 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 	return NULL;
 }
 
+bool validar_si_procesador_liberado(t_ESI * ESI) {
+	if (ESI == ESI_ejecutando) {
+		ESI_ejecutando = NULL;
+		return true;
+	}
+	return false;
+}
+
 void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
+	validar_si_procesador_liberado(ESI);
 	char str[12];
 	sprintf(str, "%d", ESI->id_ESI);
 	log_and_free(logger, string_concat(3, "ESI ", str," BLOQUEADO .\n"));
@@ -347,6 +358,7 @@ void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
 }
 
 void pasar_ESI_a_finalizado(t_ESI* ESI, char* descripcion_estado){
+	validar_si_procesador_liberado(ESI);
 	char str[12];
 	sprintf(str, "%d", ESI->id_ESI);
 	log_and_free(logger, string_concat(5, "ESI ", str, " finalizado, estado: ", descripcion_estado, " \n"));
@@ -375,7 +387,8 @@ void enviar_mensaje_coordinador(int cop, int tamanio_buffer, void * buffer) {
 	pthread_mutex_unlock(&mutex_Coordinador);
 }
 
-void pasar_ESI_a_listo(t_ESI* ESI){
+void pasar_ESI_a_listo(t_ESI* ESI) {
+	validar_si_procesador_liberado(ESI);
 	pthread_mutex_lock(&mutex_cola_de_listos);
 	list_add(cola_de_listos, ESI);
 	pthread_mutex_unlock(&mutex_cola_de_listos);
@@ -383,14 +396,24 @@ void pasar_ESI_a_listo(t_ESI* ESI){
 	sprintf(str, "%d", ESI->id_ESI);
 	log_and_free(logger, string_concat(3, "ESI ", str, " LISTO .\n"));
 	ESI->estado = listo;
+	validar_desalojo();
+	ordenar_cola_listos();
 	sem_post(&sem_ESIs_listos);
+}
+
+void validar_desalojo() {
+	if (ESI_ejecutando != NULL && strings_equal(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD")) {
+		t_ESI * ESI_desalojar = ESI_ejecutando;
+		ESI_ejecutando = NULL;
+		pasar_ESI_a_listo(ESI_desalojar);
+	}
 }
 
 void pasar_ESI_a_ejecutando(t_ESI* ESI){
 	eliminar_ESI_cola_actual(ESI);
+	ESI_ejecutando = ESI;
 	ESI->w = 0;
 	ESI->estado = ejecutando;
-	ESI_ejecutando = ESI;
 	ESI->ejecutado_desde_estimacion = true;
 	aumentar_espera_ESIs_listos();
 }
@@ -422,14 +445,14 @@ bool funcion_FIFO(t_ESI * ESI1, t_ESI * ESI2) {
 	return ESI1->id_ESI < ESI2->id_ESI;
 }
 
-void ordenar_por_sjf_sd(){
+/* void ordenar_por_sjf_sd(){
 	bool SJF_SD(void* item_ESI1, void* item_ESI2) {
 		return funcion_SJF(item_ESI1, item_ESI2) && Ultimo_ESI_Ejecutado->id_ESI != ((t_ESI *) item_ESI2)->id_ESI;
 	}
 	list_sort(cola_de_listos, SJF_SD);
-}
+} */
 
-void ordenar_por_sjf_cd(){
+void ordenar_por_sjf(){
 	list_sort(cola_de_listos, funcion_SJF);
 }
 
@@ -458,15 +481,6 @@ void estimarRafaga(t_ESI * ESI){
 	float porcentaje_alfa = ((float) configuracion.ALFA_PLANIFICACION) / 100;
 	float estimacion = porcentaje_alfa * tn + (1 - porcentaje_alfa) * Tn;
 	ESI->estimacionUltimaRafaga = estimacion;
-
-	printf("Rafaga ESI %d: %f \n", ESI->id_ESI, ESI->duracionRafaga);
-	/*char str[12];
-	sprintf(str, "%f", ESI->estimacionUltimaRafaga);
-	char str2[12];
-	sprintf(str2, "%d", ESI->id_ESI);
-	log_and_free(logger, string_concat(5, "Rafaga ESI: ", str, ": ", str2, " \n"));*/
-
-
 }
 
 void estimar_ESIs_listos() {
@@ -482,11 +496,11 @@ void estimar_ESIs_listos() {
 	pthread_mutex_unlock(&mutex_cola_de_listos);
 }
 
-void actualizarRafaga() {
-	if(Ultimo_ESI_Ejecutado == ESI_ejecutando){
-		ESI_ejecutando->duracionRafaga++;
+void actualizarRafaga(t_ESI * ESI) {
+	if(ESI == Ultimo_ESI_Ejecutado){
+		ESI->duracionRafaga++;
 	}else{
-		ESI_ejecutando->duracionRafaga = 1;
+		ESI->duracionRafaga = 1;
 	}
 }
 
@@ -551,8 +565,6 @@ void * escuchar_coordinador(void * argumentos) {
 	bool escuchar = true;
 	while(escuchar) {
 		t_paquete* paqueteRecibido = recibir(Coordinador); // Recibe el feedback de la instruccion ejecutada por el ESI
-		printf("Mensaje recibido del Coordinador, codigo de operacion: %d \n", paqueteRecibido->codigo_operacion);
-
 		int desplazamiento = 0;
 		int id_ESI;
 		char str[12];
@@ -715,18 +727,13 @@ t_ESI * nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 
 void ordenar_cola_listos() {
 	// Aplicamos las estimaciones
-	pthread_mutex_lock(&mutex_cola_de_listos);
-	printf("Cant listos %d \n", list_size(cola_de_listos));
-	pthread_mutex_unlock(&mutex_cola_de_listos);
 	estimar_ESIs_listos();
 
 	//Ordenamos la cola de listos segun el algoritmo.
-	if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-SD") == 0 ){
-		ordenar_por_sjf_sd();
-	}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD") == 0 ){
-		ordenar_por_sjf_cd();
-	}else if( strcmp(configuracion.ALGORITMO_PLANIFICACION,"HRRN") == 0 ){
+	if(strings_equal(configuracion.ALGORITMO_PLANIFICACION,"HRRN")){
 		ordenar_por_hrrn();
+	} else {
+		ordenar_por_sjf();
 	}
 }
 
@@ -761,8 +768,6 @@ void ESI_ejecutado_exitosamente(t_ESI * ESI) {
 	ESI->cantidad_instrucciones --;
 	if(ESI->cantidad_instrucciones == 0){
 		pasar_ESI_a_finalizado(ESI, "Finalizo correctamente");
-	}else{
-		pasar_ESI_a_listo(ESI);
 	}
 }
 

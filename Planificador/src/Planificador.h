@@ -56,7 +56,7 @@ t_list* cola_de_listos;
 pthread_mutex_t mutex_cola_de_bloqueados;
 t_list* cola_de_bloqueados;
 
-t_ESI* ESI_ejecutando; // Es un unico esi a la vez
+t_ESI* ESI_ejecutando = NULL; // Es un unico esi a la vez
 
 t_ESI* Ultimo_ESI_Ejecutado;
 
@@ -104,13 +104,13 @@ void ejecutar_desbloquear(char* clave);
 
 void * planificar(void* unused);
 
+t_ESI * get_ESI_a_ejecutar();
+
 bool funcion_SJF(void* item_ESI1, void* item_ESI2);
 
 bool funcion_FIFO(t_ESI * ESI1, t_ESI * ESI2);
 
-void ordenar_por_sjf_sd();
-
-void ordenar_por_sjf_cd();
+void ordenar_por_sjf();
 
 float response_ratio(t_ESI * ESI);
 
@@ -124,7 +124,7 @@ t_ESI* esi_por_id(int id_ESI);
 
 t_ESI* esi_por_socket(un_socket socket);
 
-void actualizarRafaga();
+void actualizarRafaga(t_ESI * ESI);
 
 void desbloquear_ESI(t_ESI * ESI, int motivo);
 
@@ -173,6 +173,10 @@ void free_claves_tomadas(void * item_clave_tomada);
 void free_t_bloqueado(void * item_bloqueo);
 
 void estimar_ESIs();
+
+bool validar_si_procesador_liberado(t_ESI * ESI);
+
+void validar_desalojo();
 
 /*
  * -----------------------------------------------
