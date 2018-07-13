@@ -177,6 +177,7 @@ void * planificar(void* unused){
 		enviar(ESI_a_ejecutar->socket,cop_Planificador_Ejecutar_Sentencia, size_of_string(""),"");
 
 		actualizarRafaga(ESI_a_ejecutar);
+		aumentar_espera_ESIs_listos();
 		Ultimo_ESI_Ejecutado = ESI_ejecutando;
 	}
 }
@@ -421,7 +422,6 @@ void pasar_ESI_a_ejecutando(t_ESI* ESI){
 	ESI->w = 0;
 	ESI->estado = ejecutando;
 	ESI->ejecutado_desde_estimacion = true;
-	aumentar_espera_ESIs_listos();
 }
 
 bool validar_ESI_id(int id_ESI){
