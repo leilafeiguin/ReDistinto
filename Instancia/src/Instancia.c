@@ -167,7 +167,6 @@ t_entrada * get_entrada_a_guardar(char* clave, char* valor) {
 	 * luego aplicara el algoritmo de reemplazo.
 	 */
 	int cant_entradas_necesarias = cantidad_entradas_necesarias(valor, tamanio_entradas);
-	printf("cant_entradas_necesarias: %d \n", cant_entradas_necesarias);
 	t_entrada * entrada_guardar = NULL;	// Entrada inicial donde se guardara el valor
 	int i_entrada = 0;
 	while(entrada_guardar == NULL && i_entrada < cantidad_entradas) {
@@ -530,14 +529,15 @@ t_entrada * least_recently_used() {
 
 t_entrada * biggest_space_used() {
 	char * clave_mas_grande;
-	int cantidad_mayor_entradas = 0;
+	int mayor_espacio = 0;
 
 	void tamanio_clave(void * item_clave) {
 		char* clave = (char*) item_clave;
 		char* valor = get(clave);
-		int cantidad_entradas = cantidad_entradas_necesarias(valor, tamanio_entradas);
-		if(cantidad_entradas > cantidad_mayor_entradas) {
-			cantidad_mayor_entradas = cantidad_entradas;
+		int espacio_ocupado = size_of_string(valor);
+
+		if(espacio_ocupado > mayor_espacio) {
+			mayor_espacio = espacio_ocupado;
 			clave_mas_grande = clave;
 		}
 	}

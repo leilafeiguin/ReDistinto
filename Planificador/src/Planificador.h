@@ -178,6 +178,8 @@ bool validar_si_procesador_liberado(t_ESI * ESI);
 
 void validar_desalojo();
 
+void agregar_ESI_a_cola_listos(t_ESI* ESI);
+
 /*
  * -----------------------------------------------
  * FUNCIONES DEADLOCK

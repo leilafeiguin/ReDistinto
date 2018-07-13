@@ -24,7 +24,6 @@ int main(int argc, char **argv) {
 
 	bool ejecutar_ESI = true;
 	while(ejecutar_ESI){
-		log_info(logger, "Aguardando al planificador... \n");
 		t_paquete* paquete = recibir(Planificador);
 
 		switch(paquete->codigo_operacion) {
@@ -89,7 +88,7 @@ void ejecutar_get(char* clave) {
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			log_and_free(logger, string_concat(3, "La clave '", clave, "' se encuentra tomada por otro ESI. \n"));
+			log_and_free(logger, string_concat(3, "La clave '", clave, "' se encuentra tomada. \n"));
 			index_proxima_instruccion--;
 		break;
 

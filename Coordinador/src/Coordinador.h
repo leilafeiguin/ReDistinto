@@ -7,6 +7,7 @@
 #include <commons/string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <semaphore.h>
 
 
 // Variables globales
@@ -17,6 +18,8 @@ pthread_mutex_t sem_planificador;
 pthread_mutex_t sem_claves_tomadas;
 
 un_socket Planificador = codigo_error;
+
+sem_t operaciones_habilitadas; // Semaforo que indica que se pueden realizar operaciones, utilizado para compactar
 
 int MAX_TAMANIO_CLAVE = 40;
 
@@ -121,7 +124,7 @@ bool validar_tamanio_clave(char* clave);
 
 void error_clave_larga(t_ESI * ESI, char* operacion, char* clave);
 
-void iniciar_logger();
+void iniciar_loggers();
 
 void kill_ESI(t_ESI * ESI);
 

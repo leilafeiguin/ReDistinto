@@ -4,15 +4,18 @@
 
 void* archivo;
 t_log* logger;
+t_log* log_operaciones;
 
 int main(void) {
 	pthread_mutex_init(&sem_instancias, NULL);
 	pthread_mutex_init(&sem_planificador, NULL);
 	pthread_mutex_init(&sem_claves_tomadas, NULL);
 
+	sem_init(&operaciones_habilitadas, 0, 1);
+
 	(void) signal(SIGINT, funcion_exit);
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Coordinador/coord_image.txt");
-	iniciar_logger();
+	iniciar_loggers();
 	log_info(logger, "Inicializando proceso Coordinador. \n");
 
 	lista_instancias = list_create();
@@ -45,10 +48,9 @@ void salir(int motivo){
 	exit(motivo);
 }
 
-void iniciar_logger() {
-	char* fileLog;
-	fileLog = "coordinador_logs.txt";
-	logger = log_create(fileLog, "Coordinador Logs", 1, 1);
+void iniciar_loggers() {
+	logger = log_create("coordinador_logs.txt", "Coordinador Logs", 1, 1);
+	log_operaciones = log_create("log_operaciones.txt", "Log de operaciones", 0, 1);
 }
 
 void iniciar_servidor() {
@@ -197,6 +199,8 @@ void* ESI_conectado_funcion_thread(void* argumentos) {
 void escuchar_ESI(t_ESI * ESI) {
 	bool escuchar = true;
 	while(escuchar) {
+		sem_wait(&operaciones_habilitadas);
+		sem_post(&operaciones_habilitadas);
 		t_paquete* paqueteRecibido = recibir(ESI->socket);
 		char str[12];
 		sprintf(str, "%d", ESI->id_ESI);
@@ -308,8 +312,6 @@ void instancia_conectada(un_socket socket_instancia, char* nombre_instancia) {
 		enviar_listado_de_strings(instancia->socket, instancia->keys_contenidas);
 		mensaje_instancia_conectada(nombre_instancia, 1);
 		instancia->estado = conectada;
-
-
 	}
 
 	// Le informo al Planificador sobre la coneccion de la instancia
@@ -370,6 +372,7 @@ void ejecucion_set_caso_exito(t_instancia * instancia, t_ESI * ESI, char* clave,
 	actualizar_keys_contenidas(instancia);
 	actualizar_cantidad_entradas_ocupadas(instancia);
 	log_and_free(logger, string_concat(5, "SET ejecutado con exito. SET '", clave, "':'", valor, "' \n"));
+	log_and_free(log_operaciones, string_concat(5, "SET ", clave, " ", valor," \n"));
 	notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 }
 
@@ -394,22 +397,17 @@ int validar_necesidad_compactacion(t_instancia * instancia, char* clave, char* v
 
 void ejecutar_compactacion() {
 	log_info(logger, "Ejecutando compactacion de instancias \n ");
-	int cantidad_compactaciones_ejecutadas = 0;
+	sem_trywait(&operaciones_habilitadas);
 	t_list* list_instancias_activas = instancias_activas();
 	void enviar_mensaje_compactacion(t_instancia * instancia) {
 		pthread_mutex_lock(&instancia->sem_instancia);
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Compactacion, size_of_string(""), "");
 		t_paquete* paquete = recibir(instancia->socket);
 		pthread_mutex_unlock(&instancia->sem_instancia);
-		if (paquete->codigo_operacion == cop_Instancia_Ejecucion_Exito) {
-			cantidad_compactaciones_ejecutadas++;
-		}
-		if (cantidad_compactaciones_ejecutadas == list_size(list_instancias_activas)) {
-			// Signal instancias
-		}
 		liberar_paquete(paquete);
 	}
 	list_iterate(list_instancias_activas, enviar_mensaje_compactacion);
+	sem_post(&operaciones_habilitadas);
 	list_destroy(list_instancias_activas);
 }
 
@@ -462,15 +460,17 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 	if (validar_clave_ingresada(clave)) {
 		t_instancia * instancia = get_instancia_con_clave(clave);
 		if (!health_check(instancia)) {
-			log_info(logger, "ERROR: GET rechazado. La instancia no se encuentra disponible. \n");
+			log_error(logger, "GET rechazado. La instancia no se encuentra disponible. \n");
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe, instancia->nombre);
 			return 0;
 		}
 		char* valor = get(clave);
 		log_and_free(logger, string_concat(5, "GET ejecutado con exito. El valor de la clave '", clave, "' es '", valor, "'. \n"));
+		log_and_free(log_operaciones, string_concat(3, "GET ", clave," \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, valor);
 	} else {
 		log_and_free(logger, string_concat(3, "GET ejecutado con exito. La clave '", clave, "' todavia no tiene ningun valor. \n"));
+		log_and_free(log_operaciones, string_concat(3, "GET ", clave," \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor, "");
 	}
 
@@ -569,10 +569,12 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 		liberar_paquete(paqueteEstadoOperacion);
 		if (estado_operacion == cop_Instancia_Ejecucion_Exito) {
 			log_and_free(logger, string_concat(3, "STORE ejecutado con exito. La clave '", clave, "' fue guardada y liberada. \n"));
+			log_and_free(log_operaciones, string_concat(3, "STORE ", clave," \n"));
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 		}
 	} else if(validar_clave_tomada(clave)) {
 		log_and_free(logger, string_concat(3, "STORE ejecutado con exito. La clave '", clave, "' fue liberada. \n"));
+		log_and_free(log_operaciones, string_concat(3, "STORE ", clave," \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 	} else {
 		log_info(logger, "ERROR: STORE rechazado. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n");
@@ -894,9 +896,6 @@ void handle_ESI_finalizado(t_ESI *  ESI) {
 	char str[12];
 	sprintf(str, "%d", ESI->id_ESI);
 	log_and_free(logger, string_concat(3, "ESI ", str," finalizado\n"));
-
-	sprintf(str, "%d", list_size(lista_claves_tomadas));
-	log_and_free(logger, string_concat(3, "Cant claves tomadas:  ", str," \n"));
 
 	bool ESI_match(void * item) {
 		t_clave_tomada * clave_tomada  = (t_clave_tomada *) item;
