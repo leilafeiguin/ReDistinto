@@ -389,23 +389,29 @@ void enviar_mensaje_coordinador(int cop, int tamanio_buffer, void * buffer) {
 
 void pasar_ESI_a_listo(t_ESI* ESI) {
 	validar_si_procesador_liberado(ESI);
+	agregar_ESI_a_cola_listos(ESI);
+	validar_desalojo();
+	ordenar_cola_listos();
+}
+
+void agregar_ESI_a_cola_listos(t_ESI* ESI) {
 	pthread_mutex_lock(&mutex_cola_de_listos);
 	list_add(cola_de_listos, ESI);
 	pthread_mutex_unlock(&mutex_cola_de_listos);
+	ESI->estado = listo;
 	char str[12];
 	sprintf(str, "%d", ESI->id_ESI);
 	log_and_free(logger, string_concat(3, "ESI ", str, " LISTO .\n"));
-	ESI->estado = listo;
-	validar_desalojo();
-	ordenar_cola_listos();
 	sem_post(&sem_ESIs_listos);
 }
 
 void validar_desalojo() {
 	if (ESI_ejecutando != NULL && strings_equal(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD")) {
-		t_ESI * ESI_desalojar = ESI_ejecutando;
+		t_ESI * ESI_desalojado = ESI_ejecutando;
 		ESI_ejecutando = NULL;
-		pasar_ESI_a_listo(ESI_desalojar);
+
+		// Agrego a listos el ESI desalojado
+		agregar_ESI_a_cola_listos(ESI_desalojado);
 	}
 }
 
