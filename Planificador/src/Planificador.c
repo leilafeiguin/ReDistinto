@@ -170,12 +170,10 @@ void salir(int motivo){
 
 void * planificar(void* unused){
 	while(1) {
-		log_info(logger, "Aguardando para planificar... \n");
 		sem_wait(&sem_ESIs_listos); // Espero a que haya ESIs
 		sem_wait(&sem_planificar); // Espero a a ver si tengo que planificar
 		sem_wait(&sem_sistema_ejecucion);
 		sem_post(&sem_sistema_ejecucion);
-		log_info(logger, "Planificando \n");
 
 		ordenar_cola_listos();
 		pthread_mutex_lock(&mutex_cola_de_listos);
@@ -211,7 +209,6 @@ void* ejecutar_consola(void * unused){
 			strncpy(lineaCopia, linea, lineaLength);
 			primeraPalabra = strtok_r(lineaCopia, " ", &context);
 
-			log_info(logger, lineaCopia);
 			if (strcmp(linea, "pausar") == 0) {
 				log_info(logger, "Eligio la opcion Pausar\n");
 				ejecutar_pausar();
@@ -312,6 +309,7 @@ void ejecutar_bloquear(int id_ESI, char* clave) {
 }
 
 void ejecutar_desbloquear(char* clave) {
+	log_info(logger,string_concat(3, "desbloquear ", clave," \n"));
 	enviar_mensaje_coordinador(cop_Coordinador_Liberar_Clave, size_of_string(clave), clave);
 	desbloquear_ESIs(clave_en_uso, clave);
 	desbloquear_ESIs(bloqueado_por_consola, clave);
@@ -766,10 +764,11 @@ void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo) { // Crea la estructura 
 void desbloquear_ESIs(int motivo, char* parametro) {
 	bool ESI_bloqueado_con_motivo(void * blocked){
 		t_bloqueado* bloqueo = (t_bloqueado*) blocked;
-		return bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strings_equal(parametro, bloqueo->clave_de_bloqueo));
+		return bloqueo->motivo == motivo && strings_equal(parametro, bloqueo->clave_de_bloqueo);
+		//return bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strings_equal(parametro, bloqueo->clave_de_bloqueo));
 	}
 	pthread_mutex_lock(&mutex_cola_de_bloqueados);
-	t_list * lista_claves_liberadas = list_remove_all_by_condition(cola_de_bloqueados, ESI_bloqueado_con_motivo);
+	t_list * lista_liberados = list_remove_all_by_condition(cola_de_bloqueados, ESI_bloqueado_con_motivo);
 	pthread_mutex_unlock(&mutex_cola_de_bloqueados);
 
 	void pasar_a_listo(void * blocked){
@@ -779,8 +778,8 @@ void desbloquear_ESIs(int motivo, char* parametro) {
 		log_and_free(logger, string_concat(3, "ESI ", str," desbloqueado. \n"));
 		pasar_ESI_a_listo(bloqueo->ESI);
 	}
-	list_iterate(lista_claves_liberadas, pasar_a_listo);
-	list_destroy_and_destroy_elements(lista_claves_liberadas, free);
+	list_iterate(lista_liberados, pasar_a_listo);
+	list_destroy_and_destroy_elements(lista_liberados, free);
 }
 
 void kill_ESI(t_ESI * ESI, char* motivo) {
