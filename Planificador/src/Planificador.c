@@ -376,13 +376,13 @@ void enviar_mensaje_coordinador(int cop, int tamanio_buffer, void * buffer) {
 }
 
 void pasar_ESI_a_listo(t_ESI* ESI){
+	pthread_mutex_lock(&mutex_cola_de_listos);
+	list_add(cola_de_listos, ESI);
+	pthread_mutex_unlock(&mutex_cola_de_listos);
 	char str[12];
 	sprintf(str, "%d", ESI->id_ESI);
 	log_and_free(logger, string_concat(3, "ESI ", str, " LISTO .\n"));
 	ESI->estado = listo;
-	pthread_mutex_lock(&mutex_cola_de_listos);
-	list_add(cola_de_listos, ESI);
-	pthread_mutex_unlock(&mutex_cola_de_listos);
 	sem_post(&sem_ESIs_listos);
 }
 
@@ -457,6 +457,15 @@ void estimarRafaga(t_ESI * ESI){
 	float porcentaje_alfa = ((float) configuracion.ALFA_PLANIFICACION) / 100;
 	float estimacion = porcentaje_alfa * tn + (1 - porcentaje_alfa) * Tn;
 	ESI->estimacionUltimaRafaga = estimacion;
+
+	printf("Rafaga ESI %d: %f \n", ESI->id_ESI, ESI->duracionRafaga);
+	/*char str[12];
+	sprintf(str, "%f", ESI->estimacionUltimaRafaga);
+	char str2[12];
+	sprintf(str2, "%d", ESI->id_ESI);
+	log_and_free(logger, string_concat(5, "Rafaga ESI: ", str, ": ", str2, " \n"));*/
+
+
 }
 
 void estimar_ESIs_listos() {
@@ -701,6 +710,9 @@ t_ESI * nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 
 void ordenar_cola_listos() {
 	// Aplicamos las estimaciones
+	pthread_mutex_lock(&mutex_cola_de_listos);
+	printf("Cant listos %d \n", list_size(cola_de_listos));
+	pthread_mutex_unlock(&mutex_cola_de_listos);
 	estimar_ESIs_listos();
 
 	//Ordenamos la cola de listos segun el algoritmo.

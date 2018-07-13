@@ -559,6 +559,7 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 	}
 
 	t_instancia * instancia = get_instancia_con_clave(clave);
+	liberar_clave_tomada(clave);
 	if (instancia != NULL && health_check(instancia)) {
 		pthread_mutex_lock(&instancia->sem_instancia);
 		enviar(instancia->socket, cop_Instancia_Ejecutar_Store, size_of_string(clave), clave); // Envia a la instancia la clave
@@ -577,7 +578,6 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 		log_info(logger, "ERROR: STORE rechazado. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n");
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias, "");
 	}
-	liberar_clave_tomada(clave);
 	return 1;
 }
 
