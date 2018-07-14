@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
 	char** path_items = string_split(path_script, "/");
 	char* nombre_ESI = path_items[array_of_strings_length(path_items) - 1];
-	char* fileLog = string_concat(3, "zzz--", nombre_ESI, ".txt");
+	char* fileLog = string_concat(2, nombre_ESI, ".txt");
 	free(path_items);
 
 	logger = log_create(fileLog, "ESI Logs", 1, 1);

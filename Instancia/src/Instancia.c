@@ -14,7 +14,7 @@ int main(int argc, char* arguments[]) {
 	(void) signal(SIGINT, funcion_exit);
 
 	imprimir("/home/utnso/workspace/tp-2018-1c-PuntoZip/Instancia/instancia_image.txt");
-	char* fileLog = string_concat(3, "zzz--", nombre_instancia, ".txt");
+	char* fileLog = string_concat(2, nombre_instancia, ".txt");
 
 	logger = log_create(fileLog, "Instancia Logs", 1, 1);
 	log_info(logger, "Inicializando proceso Instancia. \n");
@@ -507,7 +507,11 @@ t_entrada * algoritmo_circular(char* valor) {
 	int puntero = punteroInstancia;
 
 	punteroInstancia += cantidad_entradas_necesarias(valor, tamanio_entradas);
+	if (punteroInstancia >= cantidad_entradas) {
+		punteroInstancia = 0;
+	}
 
+	printf("puntero: %d \n", puntero);
 	return get_entrada_x_index(puntero);
 }
 

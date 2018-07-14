@@ -417,7 +417,7 @@ void ejecutar_compactacion() {
 }
 
 int setear(t_instancia * instancia, char* clave, char* valor) {
-	list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
+	// list_add(instancia->keys_contenidas, clave); // Registro que esta instancia contendra la clave especificada
 	int tamanio_buffer = size_of_strings(2, clave, valor);
 	void * buffer = malloc(tamanio_buffer);
 	int desplazamiento = 0;

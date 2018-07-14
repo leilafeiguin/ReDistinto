@@ -406,11 +406,9 @@ void agregar_ESI_a_cola_listos(t_ESI* ESI) {
 
 void validar_desalojo() {
 	if (ESI_ejecutando != NULL && strings_equal(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD")) {
-		puts("Desalojando");
 		t_ESI * ESI_desalojado = ESI_ejecutando;
 		ESI_ejecutando = NULL;
 
-		printf("ult rafaga desalojado: %d \n", ESI_desalojado->duracionRafaga);
 		ESI_desalojado->estimacionUltimaRafaga -= ESI_desalojado->duracionRafaga; // Calculo el remamente
 		ESI_desalojado->ejecutado_desde_estimacion = false; // Seteo en false para que no vuelva a estimarse
 
@@ -643,7 +641,7 @@ void * escuchar_coordinador(void * argumentos) {
 				nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				sprintf(str, "%d", id_ESI);
 				log_error_and_free(logger, string_concat(3, "SET rechazado. El valor de  la clave ", nombre_clave," ocupa mas entradas que el valor anterior.. \n"));
-				pasar_ESI_a_bloqueado(ESI, nombre_clave, clave_en_uso);
+				kill_ESI(ESI, "Solicita clave con valor mayor");
 				free(nombre_clave);
 				sem_post(&sem_planificar);
 			break;
@@ -810,8 +808,7 @@ void nuevo_bloqueo(t_ESI* ESI, char* clave, int motivo) { // Crea la estructura 
 void desbloquear_ESIs(int motivo, char* parametro) {
 	bool ESI_bloqueado_con_motivo(void * blocked){
 		t_bloqueado* bloqueo = (t_bloqueado*) blocked;
-		return bloqueo->motivo == motivo && strings_equal(parametro, bloqueo->clave_de_bloqueo);
-		//return bloqueo->motivo == motivo && (bloqueo->motivo != instancia_no_disponible || strings_equal(parametro, bloqueo->clave_de_bloqueo));
+		return bloqueo->motivo == motivo && (strings_equal(parametro, bloqueo->clave_de_bloqueo) || motivo == no_instancias_disponiles);
 	}
 	pthread_mutex_lock(&mutex_cola_de_bloqueados);
 	t_list * lista_liberados = list_remove_all_by_condition(cola_de_bloqueados, ESI_bloqueado_con_motivo);
