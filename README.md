@@ -12,3 +12,4 @@ Trello: https://trello.com/operativos7
 
 Pruebas ESI: https://github.com/sisoputnfrba/Pruebas-ESI
 
+Documento Pruebas: https://docs.google.com/document/d/1B8WkexsZjb5Zw0Hy94VuwZLxIGP61xw5in3sCtIvjPU/
