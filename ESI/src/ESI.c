@@ -95,7 +95,7 @@ void ejecutar_get(char* clave) {
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			log_and_free(logger, string_concat(3, "La clave '", clave, "' se encuentra tomada. \n"));
+			log_error_and_free(logger, string_concat(3, "La clave '", clave, "' se encuentra tomada. \n"));
 			index_proxima_instruccion--;
 		break;
 
@@ -104,12 +104,12 @@ void ejecutar_get(char* clave) {
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe:
-			log_and_free(logger, string_concat(3, "La operacion GET '", clave, "' fallo. La instancia con la clave no se encuentra disponible. \n"));
+			log_error_and_free(logger, string_concat(3, "La operacion GET '", clave, "' fallo. La instancia con la clave no se encuentra disponible. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-			log_and_free(logger, string_concat(3, "La operacion GET '", clave, "' fallo. La clave supera los 40 caracteres. \n"));
+			log_error_and_free(logger, string_concat(3, "La operacion GET '", clave, "' fallo. La clave supera los 40 caracteres. \n"));
 			index_proxima_instruccion--;
 		break;
 
@@ -172,22 +172,22 @@ void ejecutar_store(char* clave) {
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
-			log_and_free(logger, string_concat(3, "La clave '", clave,"' se encuentra tomada por otro ESI. \n"));
+			log_error_and_free(logger, string_concat(3, "La clave '", clave,"' se encuentra tomada por otro ESI. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_No_Instancias:
-			log_and_free(logger, string_concat(3, "La operacion STORE '", clave,"'  fallo. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n"));
+			log_error_and_free(logger, string_concat(3, "La operacion STORE '", clave,"'  fallo. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_Larga:
-			log_and_free(logger, string_concat(3, "La operacion STORE '", clave,"'  fallo. La clave supera los 40 caracteres. \n"));
+			log_error_and_free(logger, string_concat(3, "La operacion STORE '", clave,"'  fallo. La clave supera los 40 caracteres. \n"));
 			index_proxima_instruccion--;
 		break;
 
 		case cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida:
-			log_and_free(logger, string_concat(5, "La operacion STORE '", clave,"'  fallo. GET no solicitado para la clave '", clave, "'. \n"));
+			log_error_and_free(logger, string_concat(5, "La operacion STORE '", clave,"'  fallo. GET no solicitado para la clave '", clave, "'. \n"));
 			index_proxima_instruccion--;
 		break;
 	}

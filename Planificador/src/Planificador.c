@@ -612,7 +612,7 @@ void * escuchar_coordinador(void * argumentos) {
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
 				sprintf(str, "%d", id_ESI);
-				log_and_free(logger, string_concat(3,"ESI ", str, ": La instruccion fallo. No hay instancias dispobibles. \n"));
+				log_error_and_free(logger, string_concat(3,"ESI ", str, ": La instruccion fallo. No hay instancias dispobibles. \n"));
 				pasar_ESI_a_bloqueado(ESI, "", no_instancias_disponiles);
 				sem_post(&sem_planificar);
 			break;
@@ -622,7 +622,7 @@ void * escuchar_coordinador(void * argumentos) {
 				ESI = esi_por_id(id_ESI);
 				char* nombre_instancia = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				sprintf(str, "%d", id_ESI);
-				log_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. La instancia con la clave no se encuentra disponible. \n"));
+				log_error_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. La instancia con la clave no se encuentra disponible. \n"));
 				pasar_ESI_a_bloqueado(ESI, nombre_instancia, instancia_no_disponible);
 				sem_post(&sem_planificar);
 			break;
@@ -632,7 +632,7 @@ void * escuchar_coordinador(void * argumentos) {
 				ESI = esi_por_id(id_ESI);
 				char* nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				sprintf(str, "%d", id_ESI);
-				log_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. La clave se encuentra tomada. \n"));
+				log_error_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. La clave se encuentra tomada. \n"));
 				pasar_ESI_a_bloqueado(ESI, nombre_clave, clave_en_uso);
 				free(nombre_clave);
 				sem_post(&sem_planificar);
@@ -642,7 +642,7 @@ void * escuchar_coordinador(void * argumentos) {
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
 				sprintf(str, "%d", id_ESI);
-				log_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. No solicito el GET para la clave pedida. \n"));
+				log_error_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. No solicito el GET para la clave pedida. \n"));
 				kill_ESI(ESI, "No solicito el GET para la clave pedida");
 				sem_post(&sem_planificar);
 			break;

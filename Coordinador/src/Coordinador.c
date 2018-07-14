@@ -243,7 +243,6 @@ void* planificador_conectado_funcion_thread(void* argumentos) {
 void escuchar_planificador() {
 	bool escuchar = true;
 	while(escuchar) {
-		log_info(logger, "Aguardando al Planificador.. \n");
 		int desplazamiento = 0;
 		t_paquete* paqueteRecibido = recibir(Planificador);
 		switch(paqueteRecibido->codigo_operacion) {
@@ -327,11 +326,11 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave == NULL) {
-		log_and_free(logger, string_concat(3, "SET rechazado. No solicito el GET para la clave '", clave, "'. \n"));
+		log_error_and_free(logger, string_concat(3, "SET rechazado. No solicito el GET para la clave '", clave, "'. \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida, clave);
 		return 0;
 	} else if (id_ESI_con_clave != ESI->id_ESI)  {
-		log_and_free(logger, string_concat(3, "SET rechazado. La clave '%s' se encuentra tomada por otro ESI. '", clave, "'. \n"));
+		log_error_and_free(logger, string_concat(3, "SET rechazado. La clave '%s' se encuentra tomada por otro ESI. '", clave, "'. \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
 	}
@@ -342,7 +341,7 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 		if(health_check(instancia)) {
 			ejecucion_set_caso_exito(instancia, ESI, clave, valor);
 		} else {
-			log_error(logger, "GET rechazado. La instancia %s no se encuentra disponible. \n", instancia->nombre);
+			log_error(logger, "SET rechazado. La instancia %s no se encuentra disponible. \n", instancia->nombre);
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe, instancia->nombre);
 		}
 		return 0;
@@ -451,7 +450,7 @@ int ejecutar_get(t_ESI * ESI, char* clave) {
 
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave != NULL && id_ESI_con_clave != ESI->id_ESI ) {
-		log_and_free(logger, string_concat(3, "GET rechazado. La clave '", clave," se encuentra tomada por otro ESI. \n"));
+		log_error_and_free(logger, string_concat(3, "GET rechazado. La clave '", clave," se encuentra tomada por otro ESI. \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
 	}
@@ -549,11 +548,11 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 
 	int id_ESI_con_clave = get_id_ESI_con_clave(clave);
 	if (id_ESI_con_clave == NULL) {
-		log_and_free(logger, string_concat(3, "STORE rechazado. No solicito el GET para la clave '", clave, "'. \n"));
+		log_error_and_free(logger, string_concat(3, "STORE rechazado. No solicito el GET para la clave '", clave, "'. \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida, clave);
 		return 0;
 	} else if (id_ESI_con_clave != ESI->id_ESI ) {
-		log_and_free(logger, string_concat(3, "ERROR: STORE rechazado. La clave '", clave , "' se encuentra tomada por otro ESI \n"));
+		log_error_and_free(logger, string_concat(3, "STORE rechazado. La clave '", clave , "' se encuentra tomada por otro ESI \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Tomada, clave);
 		return 0;
 	}
@@ -577,7 +576,7 @@ int ejecutar_store(t_ESI * ESI, char* clave) {
 		log_and_free(log_operaciones, string_concat(3, "STORE ", clave," \n"));
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Exito, "");
 	} else {
-		log_info(logger, "ERROR: STORE rechazado. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n");
+		log_error(logger, "STORE rechazado. La instancia no se encuentra disponible. Recurso liberada pero no guardado. \n");
 		notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_No_Instancias, "");
 	}
 	return 1;
@@ -804,7 +803,7 @@ bool validar_tamanio_clave(char* clave) {
 void error_clave_larga(t_ESI * ESI, char* operacion, char* clave) {
 	char str[12];
 	sprintf(str, "%d", MAX_TAMANIO_CLAVE);
-	log_and_free(logger, string_concat(6, operacion, " rechazado. La clave '", clave, "' supera los ", str, " caracteres. \n"));
+	log_error_and_free(logger, string_concat(6, operacion, " rechazado. La clave '", clave, "' supera los ", str, " caracteres. \n"));
 	notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Clave_Larga, "");
 }
 

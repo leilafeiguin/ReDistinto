@@ -472,6 +472,11 @@ void log_and_free(t_log* logger, char* mensaje) {
 	free(mensaje);
 }
 
+void log_error_and_free(t_log* logger, char* mensaje) {
+	log_error(logger, mensaje);
+	free(mensaje);
+}
+
 void free_array(char** array, int array_size) {
 	for(int i = 0;i < array_size;i++) {
 		free(array[i]);

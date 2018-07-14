@@ -248,6 +248,8 @@ char* string_concat(int cant_strings, ...);
 
 void log_and_free(t_log* logger, char* mensaje);
 
+void log_error_and_free(t_log* logger, char* mensaje);
+
 void free_array(char** array, int array_size);
 
 char* copy_string(char* value);

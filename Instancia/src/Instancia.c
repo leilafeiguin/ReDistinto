@@ -309,7 +309,7 @@ int ejecutar_store(char* clave) {
 }
 
 int ejecutar_dump() {
-	log_info(logger, "Ejecutando DUMP \n");
+	log_info(logger, "Ejecutando DUMP..\n");
 	pthread_mutex_lock(&mutex_keys_contenidas);
 	list_iterate(instancia.keys_contenidas, dump_clave);
 	pthread_mutex_unlock(&mutex_keys_contenidas);
