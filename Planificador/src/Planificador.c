@@ -691,6 +691,8 @@ void * escuchar_coordinador(void * argumentos) {
 				list_iterate(lista_claves_liberadas,desbloquear_ESIs_clave);
 			break;
 		}
+		// Posible error
+		liberar_paquete(paqueteRecibido);
 	}
 	pthread_detach(pthread_self());
 	return NULL;
@@ -897,7 +899,6 @@ t_list * recibir_claves_tomadas(void * buffer) {
 		clave_tomada->clave = deserializar_string(buffer, &desplazamiento);
 		list_add(list_claves_tomadas, clave_tomada);
 	}
-	free(buffer);
 	return list_claves_tomadas;
 }
 

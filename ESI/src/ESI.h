@@ -19,6 +19,7 @@ un_socket Coordinador;
 ESI_configuracion configuracion;
 un_socket Planificador;
 t_list* instrucciones;
+t_config* archivo_configuracion;
 
 int ID;
 int index_proxima_instruccion = 0;
@@ -43,5 +44,7 @@ void leer_archivo(char* path);
 void conectar_con_planificador();
 
 void conectar_con_coordinador();
+
+void liberar_memoria();
 
 #endif /* ESI_H_ */

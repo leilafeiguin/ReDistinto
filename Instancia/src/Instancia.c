@@ -247,6 +247,7 @@ int set(char* clave, char* valor, bool log_mensaje) {
 		entrada->clave = clave;
 		char* contenido = string_substring(valor_restante_a_guardar, 0, tamanio_entradas);
 		entrada->contenido = copy_string(contenido);
+		free(contenido);
 		entrada->espacio_ocupado = size_of_string(entrada->contenido) -1;
 		entrada->cant_veces_no_accedida = 0;
 		espacio_restante_a_guardar += (-1) * (entrada->espacio_ocupado);
@@ -263,7 +264,7 @@ int set(char* clave, char* valor, bool log_mensaje) {
 
 	// Agrego la clave a la lista de claves
 	pthread_mutex_lock(&mutex_keys_contenidas);
-	list_add(instancia.keys_contenidas, copy_string(clave));
+	list_add(instancia.keys_contenidas, clave);
 	pthread_mutex_unlock(&mutex_keys_contenidas);
 
 	// Le sumo uno a las entradas no accedidas
@@ -494,8 +495,8 @@ void funcion_exit(int sig) {
 
 void free_t_entrada(void * item_entrada) {
 	t_entrada * entrada = (t_entrada*) item_entrada;
-	/*free(entrada->clave);
-	free(entrada->contenido);*/
+	// free(entrada->clave);
+	//free(entrada->contenido);
 	free(entrada);
 }
 

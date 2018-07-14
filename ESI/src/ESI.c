@@ -10,8 +10,10 @@ int main(int argc, char **argv) {
 	char** path_items = string_split(path_script, "/");
 	char* nombre_ESI = path_items[array_of_strings_length(path_items) - 1];
 	char* fileLog = string_concat(3, "zzz--", nombre_ESI, ".txt");
+	free(path_items);
 
 	logger = log_create(fileLog, "ESI Logs", 1, 1);
+	free(fileLog);
 	log_info(logger, "Inicializando proceso ESI. \n");
 
 	configuracion = get_configuracion();
@@ -48,16 +50,21 @@ int main(int argc, char **argv) {
 				index_proxima_instruccion++;
 			break;
 		}
+		liberar_paquete(paquete);
 
 	}
 	// TODO liberar memoria
 	return EXIT_SUCCESS;
 }
 
+void liberar_memoria() {
+	config_destroy(archivo_configuracion);
+}
+
 ESI_configuracion get_configuracion() {
 	log_info(logger, "Levantando archivo de configuracion del proceso ESI\n");
 	ESI_configuracion configuracion;
-	t_config* archivo_configuracion = config_create(pathESIConfig);
+	archivo_configuracion = config_create(pathESIConfig);
 	configuracion.IP_COORDINADOR = get_campo_config_string(archivo_configuracion, "IP_COORDINADOR");
 	configuracion.PUERTO_COORDINADOR = get_campo_config_string(archivo_configuracion, "PUERTO_COORDINADOR");
 	configuracion.IP_PLANIFICADOR = get_campo_config_string(archivo_configuracion, "IP_PLANIFICADOR");
