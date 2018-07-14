@@ -25,6 +25,11 @@ compilar(){
 	make -C "$ESIPATH"
 }
 
+# Clonar repo ESI
+
+git clone https://github.com/sisoputnfrba/Pruebas-ESI
+
+
 # Escribir el archivo de configuracion
 generar_configuracion(){
 
