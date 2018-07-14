@@ -32,5 +32,5 @@ sudo make install
 cd ../tp-2018-1c-PuntoZip/Libraries/Debug
 make
 
-echo "export LD_LIBRARY_PATH$=LD_LIBRARY_PATH:/home/utnso/workspace/tp-2018-1c-PuntoZip/Libraries/Debug" >> /home/utnso/.bashrc
+echo "export LD_LIBRARY_PATH$=LD_LIBRARY_PATH:/home/utnso/tp-2018-1c-PuntoZip/Libraries/Debug" >> /home/utnso/.bashrc
 
