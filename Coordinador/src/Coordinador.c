@@ -427,7 +427,7 @@ int setear(t_instancia * instancia, char* clave, char* valor) {
 
 int actualizar_keys_contenidas(t_instancia * instancia) {
 	pthread_mutex_lock(&instancia->sem_instancia);
-	list_destroy(instancia->keys_contenidas);
+	list_destroy_and_destroy_elements(instancia->keys_contenidas, free);
 	instancia->keys_contenidas = recibir_listado_de_strings(instancia->socket);
 	pthread_mutex_unlock(&instancia->sem_instancia);
 	return 0;
@@ -755,8 +755,9 @@ void liberar_clave_tomada(char* clave) {
 	pthread_mutex_lock(&sem_claves_tomadas);
 	bool clave_match(void * clave_tomada){
 		char* nombre_clave_tomada = ((t_clave_tomada *) clave_tomada)->clave;
-		return strcmp(nombre_clave_tomada, clave) == 0;
+		return strings_equal(nombre_clave_tomada, clave);
 	}
+	//list_remove_and_destroy_by_condition(lista_claves_tomadas, clave_match, clave_tomada_destroyer);
 	list_remove_by_condition(lista_claves_tomadas, clave_match);
 	pthread_mutex_unlock(&sem_claves_tomadas);
 	enviar_mensaje_planificador(cop_Coordinador_Clave_Liberada, size_of_string(clave), clave);
@@ -774,7 +775,7 @@ void liberar_claves_ESI(t_ESI * ESI) {
 		enviar_mensaje_planificador(cop_Coordinador_Clave_Liberada, size_of_string(clave_tomada->clave), clave_tomada->clave);
 	}
 	list_iterate(lista_claves_liberadas, enviar_clave_liberda);
-	list_destroy_and_destroy_elements(lista_claves_liberadas, free);
+	list_destroy_and_destroy_elements(lista_claves_liberadas, clave_tomada_destroyer);
 }
 
 void kill_ESI(t_ESI * ESI) {
@@ -931,4 +932,5 @@ void enviar_claves_informacion_tomadas() {
 	}
 	list_iterate(lista_claves_tomadas,serializar_clave_tomada);
 	enviar_mensaje_planificador(cop_Planificador_Analizar_Deadlocks, tamanio_buffer, buffer);
+	free(buffer);
 }
