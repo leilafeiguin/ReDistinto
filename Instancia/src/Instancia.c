@@ -504,15 +504,21 @@ void free_t_entrada(void * item_entrada) {
 // ALGORITMOS DE REEMPLAZO
 
 t_entrada * algoritmo_circular(char* valor) {
-	int puntero = punteroInstancia;
-
-	punteroInstancia += cantidad_entradas_necesarias(valor, tamanio_entradas);
-	if (punteroInstancia >= cantidad_entradas) {
-		punteroInstancia = 0;
+	t_entrada * result = NULL;
+	int i = 0;
+	while (result == NULL && i < cantidad_entradas) {
+		t_entrada * entrada = get_entrada_x_index(punteroInstancia);
+		char* valor = get(entrada->clave);
+		if (cantidad_entradas_necesarias(valor, tamanio_entradas) == 1) {
+			result = entrada;
+		}
+		punteroInstancia++;
+		if (punteroInstancia >= cantidad_entradas) {
+			punteroInstancia = 0;
+		}
+		i++;
 	}
-
-	printf("puntero: %d \n", puntero);
-	return get_entrada_x_index(puntero);
+	return result;
 }
 
 t_entrada * least_recently_used() {
@@ -520,7 +526,8 @@ t_entrada * least_recently_used() {
 
 	void show_entrada_menos_accedida(void * item_entrada) {
 		t_entrada * entrada = (t_entrada *) item_entrada;
-		if(entrada->cant_veces_no_accedida > entradaMenosAccedida->cant_veces_no_accedida)
+		char* valor = get(entrada->clave);
+		if(cantidad_entradas_necesarias(valor, tamanio_entradas) == 1 && entrada->cant_veces_no_accedida > entradaMenosAccedida->cant_veces_no_accedida)
 		{
 			entradaMenosAccedida = entrada;
 		}
@@ -533,7 +540,7 @@ t_entrada * least_recently_used() {
 }
 
 t_entrada * biggest_space_used() {
-	char * clave_mas_grande;
+	char * clave_mas_grande = NULL;
 	int mayor_espacio = 0;
 
 	void tamanio_clave(void * item_clave) {
@@ -541,7 +548,7 @@ t_entrada * biggest_space_used() {
 		char* valor = get(clave);
 		int espacio_ocupado = size_of_string(valor);
 
-		if(espacio_ocupado > mayor_espacio) {
+		if(cantidad_entradas_necesarias(valor, tamanio_entradas) == 1 && espacio_ocupado > mayor_espacio) {
 			mayor_espacio = espacio_ocupado;
 			clave_mas_grande = clave;
 		}
