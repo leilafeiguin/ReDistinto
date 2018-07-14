@@ -339,7 +339,13 @@ int ejecutar_set(t_ESI * ESI, char* clave, char* valor) {
 	t_instancia * instancia = get_instancia_con_clave(clave);
 	if (instancia != NULL) {
 		if(health_check(instancia)) {
-			ejecucion_set_caso_exito(instancia, ESI, clave, valor);
+			char* valor_actual = get(clave);
+			if (cantidad_entradas_necesarias(valor, configuracion.TAMANIO_ENTRADA) > cantidad_entradas_necesarias(valor_actual, configuracion.TAMANIO_ENTRADA)) {
+				log_error(logger, "SET rechazado. El valor '%s' ocupa mas entradas que el valor anterior.. \n", valor);
+				notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Valor_Mayor_Anterior, clave);
+			} else {
+				ejecucion_set_caso_exito(instancia, ESI, clave, valor);
+			}
 		} else {
 			log_error(logger, "SET rechazado. La instancia %s no se encuentra disponible. \n", instancia->nombre);
 			notificar_resultado_instruccion(ESI, cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe, instancia->nombre);

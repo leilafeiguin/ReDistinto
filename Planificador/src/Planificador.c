@@ -124,8 +124,8 @@ int main(void) {
 							char str[12];
 							sprintf(str, "%d", ESI->id_ESI);
 							log_and_free(logger, string_concat(3, "ESI ", str, " desconectado. \n"));
+							validar_si_procesador_liberado(ESI);
 							eliminar_ESI_cola_actual(ESI);
-							free(ESI);
 						break;
 					}
 				}
@@ -151,7 +151,7 @@ planificador_configuracion get_configuracion() {
 }
 
 void salir(int motivo){
-	log_info(logger, "Aborando Planificador..");
+	log_info(logger, "Abortando Planificador..");
 	list_destroy_and_destroy_elements(lista_de_ESIs, free);
 	list_destroy_and_destroy_elements(cola_de_bloqueados, free_t_bloqueado);
 	list_destroy(cola_de_listos);
@@ -337,12 +337,10 @@ char** validaCantParametrosComando(char* comando, int cantParametros) {
 	return NULL;
 }
 
-bool validar_si_procesador_liberado(t_ESI * ESI) {
+void validar_si_procesador_liberado(t_ESI * ESI) {
 	if (ESI == ESI_ejecutando) {
 		ESI_ejecutando = NULL;
-		return true;
 	}
-	return false;
 }
 
 void pasar_ESI_a_bloqueado(t_ESI* ESI, char* clave_de_bloqueo, int motivo){
@@ -580,6 +578,7 @@ void * escuchar_coordinador(void * argumentos) {
 		int id_ESI;
 		char str[12];
 		t_ESI * ESI;
+		char* nombre_clave;
 
 		switch(paqueteRecibido->codigo_operacion) {
 			case cop_Coordinador_Sentencia_Exito_Clave_Sin_Valor:
@@ -630,9 +629,20 @@ void * escuchar_coordinador(void * argumentos) {
 			case cop_Coordinador_Sentencia_Fallo_Clave_Tomada:
 				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
 				ESI = esi_por_id(id_ESI);
-				char* nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
 				sprintf(str, "%d", id_ESI);
 				log_error_and_free(logger, string_concat(3, "ESI ", str, ": La instruccion fallo. La clave se encuentra tomada. \n"));
+				pasar_ESI_a_bloqueado(ESI, nombre_clave, clave_en_uso);
+				free(nombre_clave);
+				sem_post(&sem_planificar);
+			break;
+
+			case cop_Coordinador_Sentencia_Fallo_Valor_Mayor_Anterior:
+				id_ESI = deserializar_int(paqueteRecibido->data, &desplazamiento);
+				ESI = esi_por_id(id_ESI);
+				nombre_clave = deserializar_string(paqueteRecibido->data, &desplazamiento);
+				sprintf(str, "%d", id_ESI);
+				log_error_and_free(logger, string_concat(3, "SET rechazado. El valor de  la clave ", nombre_clave," ocupa mas entradas que el valor anterior.. \n"));
 				pasar_ESI_a_bloqueado(ESI, nombre_clave, clave_en_uso);
 				free(nombre_clave);
 				sem_post(&sem_planificar);

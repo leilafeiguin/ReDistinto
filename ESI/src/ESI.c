@@ -158,6 +158,11 @@ void ejecutar_set(char* clave, char* valor) {
 			log_error(logger, "La operacion SET '%s' '%s' fallo. La instancia con la clave no se encuentra disponible. \n", clave, valor);
 			index_proxima_instruccion--;
 		break;
+
+		case cop_Coordinador_Sentencia_Fallo_Valor_Mayor_Anterior:
+			log_error(logger, "SET rechazado. El valor '%s' ocupa mas entradas que el valor anterior.. \n", valor);
+			index_proxima_instruccion--;
+		break;
 	}
 	liberar_paquete(paqueteResultadoOperacion);
 }

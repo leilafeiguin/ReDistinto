@@ -71,6 +71,7 @@ enum codigos_de_operacion {
 	cop_Coordinador_Sentencia_Fallo_Instancia_No_Disponibe = 310,
 	cop_Coordinador_Sentencia_Fallo_Clave_Larga = 39,
 	cop_Coordinador_Sentencia_Fallo_Clave_No_Pedida = 312,
+	cop_Coordinador_Sentencia_Fallo_Valor_Mayor_Anterior = 316,
 	cop_Coordinador_Ejecutar_Get = 35,
 	cop_Coordinador_Ejecutar_Set = 36,
 	cop_Coordinador_Ejecutar_Store = 38,

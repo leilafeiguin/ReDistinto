@@ -60,6 +60,8 @@ t_ESI* ESI_ejecutando = NULL; // Es un unico esi a la vez
 
 t_ESI* Ultimo_ESI_Ejecutado;
 
+t_list* ESIs_muertos;
+
 pthread_mutex_t mutex_Coordinador;
 un_socket Coordinador; //Socket del coordinador
 
@@ -174,7 +176,7 @@ void free_t_bloqueado(void * item_bloqueo);
 
 void estimar_ESIs();
 
-bool validar_si_procesador_liberado(t_ESI * ESI);
+void validar_si_procesador_liberado(t_ESI * ESI);
 
 void validar_desalojo();
 
