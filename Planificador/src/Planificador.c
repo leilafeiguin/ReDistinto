@@ -408,8 +408,13 @@ void agregar_ESI_a_cola_listos(t_ESI* ESI) {
 
 void validar_desalojo() {
 	if (ESI_ejecutando != NULL && strings_equal(configuracion.ALGORITMO_PLANIFICACION,"SJF-CD")) {
+		puts("Desalojando");
 		t_ESI * ESI_desalojado = ESI_ejecutando;
 		ESI_ejecutando = NULL;
+
+		printf("ult rafaga desalojado: %d \n", ESI_desalojado->duracionRafaga);
+		ESI_desalojado->estimacionUltimaRafaga -= ESI_desalojado->duracionRafaga; // Calculo el remamente
+		ESI_desalojado->ejecutado_desde_estimacion = false; // Seteo en false para que no vuelva a estimarse
 
 		// Agrego a listos el ESI desalojado
 		agregar_ESI_a_cola_listos(ESI_desalojado);
@@ -723,6 +728,7 @@ t_ESI * nuevo_ESI(un_socket socket, int cantidad_instrucciones) {
 	newESI->cantidad_instrucciones = cantidad_instrucciones;
 	newESI->duracionRafaga = 0;
 	newESI->ejecutado_desde_estimacion = false;
+	newESI->w = 0;
 	pthread_mutex_lock(&mutex_lista_de_ESIs);
 	list_add(lista_de_ESIs, newESI);
 	pthread_mutex_unlock(&mutex_lista_de_ESIs);
